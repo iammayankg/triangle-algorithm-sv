@@ -318,6 +318,51 @@ infeasible hard margin. (5) The paper-style toward-step ETA is not viable
 for soft margins; MDM steps are the natural completion of the enhanced
 algorithm for this problem class.
 
+## Extension: L1 (hinge) soft margin via reduced convex hulls
+
+The L1/nu-SVM is the nearest-point problem between *reduced* convex hulls
+(Bennett-Bredensteiner; Crisp-Burges): R(V, mu) caps each point's weight at
+mu = 2/(nu l), shrinking the hull toward its centroid - the slack mechanism
+in geometric form. `src/reduced_hull.py` implements the Triangle Algorithm
+on reduced hulls with two changes: the extreme-point oracle becomes a capped
+top-k blend (weight mu on the floor(1/mu) best points in the search
+direction, via a partial sort - still O(n)), and the primary step is the
+*capped* MDM transfer (weight moves donor -> receiver, clipped to the box),
+with blended toward-steps as fallback. Dot-product caching and the
+reduced-support-function lower bound carry over unchanged.
+
+Validation (`tests/test_reduced_hull.py`): agreement with the exact
+box-constrained QP to 1e-9..1e-14 on 10 random instances; agreement with
+sklearn's NuSVC (LIBSVM) to ~1e-10 through the mapping
+delta = ||w_svc|| / S, S the per-class sum of LIBSVM's rescaled dual
+coefficients; and the mu-path behaves as the geometry dictates
+(intersecting hulls at weak reduction, distance growing monotonically as mu
+shrinks, margin violators = points at cap).
+
+Experiment (`src/l1_experiment.py`): overlapping Gaussians (4 sigma apart),
+n = 5,000/set, nu in {0.1, 0.3, 0.5} (2-trial means):
+
+| d | nu | RCH-TA | NuSVC | rel. dist | TA acc | NuSVC acc |
+|--:|--:|--:|--:|--:|--:|--:|
+| 100 | 0.1 | 5.0 s | **1.1 s** | 2.0e-4 | 0.9765 | 0.9761 |
+| 100 | 0.3 | **2.7 s** | 2.8 s | 7.8e-4 | 0.9751 | 0.9751 |
+| 100 | 0.5 | **2.4 s** | 4.6 s | 8.7e-4 | 0.9732 | 0.9726 |
+| 1000 | 0.1 | 16.0 s | **10.1 s** | 2.1e-5 | 0.9634 | 0.9636 |
+| 1000 | 0.3 | **15.4 s** | 20.4 s | 1.4e-4 | 0.9737 | 0.9741 |
+| 1000 | 0.5 | **14.3 s** | 28.7 s | 3.3e-4 | 0.9744 | 0.9745 |
+
+![L1 comparison](results/fig_l1.png)
+
+Findings: the two solvers find the same solution (distances within the
+1e-3 tolerance, accuracies matching to 3-4 decimals) by entirely different
+routes. The runtimes cross over in nu: LIBSVM's cost grows with the
+support-vector count (~nu*l), while the reduced-hull TA is essentially flat
+in nu - slightly *faster* at stronger reduction, since more-reduced hulls
+separate more cleanly - making it 2x faster by nu = 0.5 at both dimensions.
+One design note: the geometric algorithm's natural dial is the cap mu
+(equivalently nu); solving for a prescribed C instead requires walking the
+C <-> mu equivalence, whereas nu needs no search.
+
 ## Reproducing
 
 ```bash

@@ -605,9 +605,38 @@ class EnhancedTriangleAlgorithm:
         delta_B = t * num_t - 0.5 * t * t * den_t
         r1, u1, g1 = pairs[0]
         s1 = self.Vsq[r1] - 2.0 * cols[int(r1)][u1] + self.Vsq[u1]
-        delta_1 = g1 * (s[r1] - s[u1]) - 0.5 * g1 * g1 * s1
-        if delta_1 > delta_B:
+        gap1 = s[r1] - s[u1]
+        delta_1 = g1 * gap1 - 0.5 * g1 * g1 * s1
+        best, kind = delta_B, 'block'
+        if delta_1 > best:
+            best, kind = delta_1, 'mdm'
+        cap1 = self.wV.get(u1, 0.0)
+        if s1 > _EPS_NUM and gap1 / s1 > cap1 * (1.0 + 1e-12):
+            # Theorem 6 case (b): pair 1 capacity-clipped -> away/toward
+            num_a = self.pq - self.b[u1] - self.pp + self.a[u1]
+            den_a = self.pp - 2.0 * self.a[u1] + self.Vsq[u1]
+            if num_a > 0.0 and den_a > _EPS_NUM and cap1 < 1.0 - 1e-12:
+                if num_a / den_a >= cap1 / (1.0 - cap1):
+                    return self._away_p(u1)          # drop step
+                d_away = num_a * num_a / (2.0 * den_a)
+                if d_away > best:
+                    best, kind = d_away, 'away'
+            num_f = self.b[r1] - self.pq - self.a[r1] + self.pp
+            den_f = self.Vsq[r1] - 2.0 * self.a[r1] + self.pp
+            if num_f > 0.0 and den_f > _EPS_NUM:
+                al = min(num_f / den_f, 1.0)
+                d_tow = al * num_f - 0.5 * al * al * den_f
+                if d_tow > best:
+                    best, kind = d_tow, 'toward'
+        if kind == 'mdm':
             return self._pairwise_p(r1, u1)
+        if kind == 'away':
+            return self._away_p(u1)
+        if kind == 'toward':
+            alpha = self._alpha_single_p(r1)
+            if alpha > 0.0:
+                self._apply_p(r1, alpha)
+                return True
         # scalar updates
         self.pq += t * float(G @ (self.b[R] - self.b[U]))
         self.pp += 2.0 * t * float(G @ (self.a[R] - self.a[U])) \
@@ -666,9 +695,37 @@ class EnhancedTriangleAlgorithm:
         delta_B = t * num_t - 0.5 * t * t * den_t
         r1, u1, g1 = pairs[0]
         s1 = self.Wsq[r1] - 2.0 * cols[int(r1)][u1] + self.Wsq[u1]
-        delta_1 = g1 * (s[r1] - s[u1]) - 0.5 * g1 * g1 * s1
-        if delta_1 > delta_B:
+        gap1 = s[r1] - s[u1]
+        delta_1 = g1 * gap1 - 0.5 * g1 * g1 * s1
+        best, kind = delta_B, 'block'
+        if delta_1 > best:
+            best, kind = delta_1, 'mdm'
+        cap1 = self.wW.get(u1, 0.0)
+        if s1 > _EPS_NUM and gap1 / s1 > cap1 * (1.0 + 1e-12):
+            num_a = self.pq - self.c[u1] - self.qq + self.e[u1]
+            den_a = self.qq - 2.0 * self.e[u1] + self.Wsq[u1]
+            if num_a > 0.0 and den_a > _EPS_NUM and cap1 < 1.0 - 1e-12:
+                if num_a / den_a >= cap1 / (1.0 - cap1):
+                    return self._away_q(u1)          # drop step
+                d_away = num_a * num_a / (2.0 * den_a)
+                if d_away > best:
+                    best, kind = d_away, 'away'
+            num_f = self.c[r1] - self.pq - self.e[r1] + self.qq
+            den_f = self.Wsq[r1] - 2.0 * self.e[r1] + self.qq
+            if num_f > 0.0 and den_f > _EPS_NUM:
+                al = min(num_f / den_f, 1.0)
+                d_tow = al * num_f - 0.5 * al * al * den_f
+                if d_tow > best:
+                    best, kind = d_tow, 'toward'
+        if kind == 'mdm':
             return self._pairwise_q(r1, u1)
+        if kind == 'away':
+            return self._away_q(u1)
+        if kind == 'toward':
+            beta = self._beta_single_q(r1)
+            if beta > 0.0:
+                self._apply_q(r1, beta)
+                return True
         self.pq += t * float(G @ (self.c[R] - self.c[U]))
         self.qq += 2.0 * t * float(G @ (self.e[R] - self.e[U])) \
             + t * t * den_t

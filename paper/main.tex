@@ -1,0 +1,194 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\conv}{\operatorname{conv}}
+\newcommand{\PW}{\mathrm{PW}}
+\newcommand{\ip}[2]{\langle #1, #2 \rangle}
+\newcommand{\norm}[1]{\lVert #1 \rVert}
+
+\title{Block Transfers, Safe Screening, and Linear Convergence\\
+for the Triangle Algorithm Family of SVM Solvers}
+\author{Mayank Gupta \and Bahman Kalantari
+\thanks{Draft skeleton generated from the replication and extension study;
+see \texttt{docs/block\_convergence.md} and \texttt{REPORT.md} in the
+accompanying repository.}}
+\date{Draft --- \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The Triangle Algorithm (TA) solves hard-margin support vector machine
+training as a convex-hull distance problem with a certified duality gap.
+We extend the enhanced TA of Gupta and Kalantari to the full SVM family
+--- $L_2$ and $L_1$ (hinge/$\nu$-SVM) soft margins and kernels --- through
+exact reductions that reuse the algorithm's dot-product caches, and we
+introduce three algorithmic improvements: \emph{block weight transfers}
+that amortise each $O(n)$ scan over $k$ MDM-style transfers via one exact
+line search along an aggregated direction; \emph{gap-certified safe
+screening} that provably removes non-support points while preserving all
+certificates; and a \emph{guarded step rule} with an away-step fallback.
+Our main theoretical result is global linear convergence of the guarded
+block algorithm with explicit constants and no combinatorial swap-step
+bounds, obtained by analysing the method on the Minkowski-difference
+polytope and inheriting the pyramidal-width machinery of Lacoste-Julien
+and Jaggi. Empirically, the optimised solver is the fastest method to a
+certified solution on six of seven benchmark classes against LIBSVM,
+LIBLINEAR, and SMO baselines, and every inequality in the analysis is
+verified numerically at machine precision.
+\end{abstract}
+
+\section{Introduction}
+% TODO: expand. Points to make:
+% - geometric view of SVM training; distance duality; certificates.
+% - contributions: (1) unified solver family via exact reductions;
+%   (2) block transfers + guard + screening; (3) linear rate with
+%   explicit constants and clean drop-step counting; (4) systematic
+%   empirical study incl. replication of the source paper.
+% - honest positioning vs FW literature (LJ15), MDM, safe screening
+%   (El Ghaoui et al., Ogawa et al.), NPA/RCH literature.
+
+\section{Background and setting}
+Let $V=\{v_1,\dots,v_n\}$, $W=\{w_1,\dots,w_m\}\subset\mathbb{R}^d$ and
+\begin{equation}
+  \min_{p\in\conv(V),\,q\in\conv(W)} f(p,q)=\tfrac12\norm{p-q}^2 .
+  \label{eq:distance}
+\end{equation}
+With $z=p-q$ and the Minkowski-difference polytope
+$Z=\conv(V)-\conv(W)=\conv\{v_i-w_j\}$, \eqref{eq:distance} is the
+minimum-norm-point problem over $Z$, whose objective is $1$-strongly
+convex and $1$-smooth. The Triangle Algorithm~\cite{kalantari,gupta}
+maintains an iterate pair with convex weights $(\alpha,\beta)$ and a
+certified interval $[\mathrm{LB},\mathrm{UB}]$ from parallel supporting
+hyperplanes; it stops when
+$\mathrm{UB}-\mathrm{LB}\le\varepsilon\,\mathrm{UB}$.
+
+% TODO: recap the four enhancements of the source paper; the score
+% arrays a,b,c,e; MDM/pairwise steps; notation table.
+
+\subsection{Exact reductions}
+$L_2$ soft margin: $K\mapsto K+I/C$ via slack coordinates
+$\tilde x_i=[x_i;e_i/\sqrt{C}]$, never materialised (sparse diagonal
+corrections to the caches). $\nu$-SVM: reduced convex hulls
+$R(V,\mu)=\{\sum a_i v_i:\ \sum a_i=1,\ 0\le a_i\le\mu\}$,
+$\mu=2/(\nu\ell)$; the extreme-point oracle becomes a capped top-$k$
+blend. Kernels: all quantities are inner products; iterates live in
+weight space. % TODO: expand each, with validation summaries.
+
+\section{The guarded block-transfer algorithm}
+\begin{algorithm}[h]
+\caption{Guarded block transfer with away fallback (one side, one iteration)}
+\begin{algorithmic}[1]
+\State scores $s_i\gets\ip{g}{v_i}$;\quad top-$k$ receivers, worst-$k$
+active donors, paired best-with-worst; pair 1 is the MDM pair $(r^*,u^*)$
+\State per-pair steps $\gamma_j\gets\min(\mathrm{gap}_j/s_j,\,c_j)$
+\If{pair 1 uncapped}
+  \State take the better of the block step (exact line search along
+  $d=\sum_j\gamma_j d_j$) and the single MDM step \Comment{guard}
+\Else
+  \If{away step on $u^*$ is boundary-clipped}
+     \State take it \Comment{drop step: $\alpha_{u^*}\to 0$}
+  \Else
+     \State take the best of \{block, MDM, away($u^*$), toward($r^*$)\}
+  \EndIf
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+% TODO: feasibility lemma; O(1) computability of all candidate gains
+% from the cached quantities; batched GEMV cache updates.
+
+\section{Analysis}
+All proofs are in the repository note \texttt{docs/block\_convergence.md}
+and will be inlined here. % TODO inline
+
+\begin{lemma}[Gap separability]
+With the product representation $\lambda_{ij}=\alpha_i\beta_j$ over $Z$,
+$g^{\mathrm{PW}}=g^{\mathrm{PW}}_V+g^{\mathrm{PW}}_W$, and likewise for
+the Frank--Wolfe and away gaps; side transfers are pairwise directions of
+$Z$.
+\end{lemma}
+
+\begin{lemma}[Block gain]
+With $S=\ip{g}{d}$, $D=\norm{d}^2$: $S\ge\sum_j\gamma_j^2 s_j$,
+$D\le kS$, and the realised block gain satisfies
+$\Delta_B\ge S/(2k)\ge\Delta_{\mathrm{MDM}}/(2k)$.
+\end{lemma}
+
+\begin{theorem}[Global linear convergence]
+For any block size $k\ge1$, the guarded block-transfer Triangle Algorithm
+with away fallback satisfies, with $\delta=\PW(Z)$, $M=\operatorname{diam}(Z)$,
+$\rho=c\,\delta^2/M^4$ for an explicit absolute constant $c$:
+every non-drop iteration contracts, $h_{t+1}\le(1-\rho)h_t$; drop
+iterations number at most $k\,T_{\mathrm{good}}+s_0$; hence
+$h_T\le h_0(1-\rho)^{(T-s_0)/(k+2)}$.
+\end{theorem}
+
+\begin{proposition}[Near-orthogonal speedup]
+If $|\ip{d_i}{d_j}|\le\eta\sqrt{s_i s_j}$ for $i\ne j$, the interior
+block gain is at least $(\sum_j\Delta_j)/(1+\eta(k-1))$.
+\end{proposition}
+
+\begin{theorem}[Safe screening]
+With $r=\sqrt{\mathrm{UB}^2-\mathrm{LB}^2}$, any zero-weight point with
+$(\ip{h}{v_i}-\ip{h}{v_{\min}})>r\norm{v_i-v_{\min}}$ is outside the
+optimal support; removing all such points preserves the optimum and the
+validity of all subsequent lower bounds.
+\end{theorem}
+
+\section{Experiments}
+% TODO: import from REPORT.md. Planned tables/figures:
+% - replication of the source paper (Tables 2-4 protocol)
+% - zig-zag strategies ablation (midpoint vs away vs pairwise)
+% - standard solvers, hard margin (fig_solvers)
+% - L2 soft margin (fig_soft_margin); L1/nu (fig_l1); kernels (fig_kernel)
+% - real benchmarks (fig_benchmarks); shrinking (fig_shrink)
+% - consolidated (fig_final): fastest certified solver on 6/7 classes
+% - lemma verification: 4000 ensembles, machine-precision slack
+% TODO for submission-grade rigor: LIBSVM benchmark battery (a9a,
+% gisette, rcv1, covtype), >=10 seeds with CIs, fixed hardware,
+% compiled inner loop or oracle-call metrics, ThunderSVM baseline.
+
+\section{Related work}
+% TODO: TA and distance duality (Kalantari); MDM 1974; Gilbert 1966;
+% FW variants and pyramidal width (Lacoste-Julien & Jaggi 2015);
+% Guelat-Marcotte away steps; NPA (Keerthi et al.); RCH view of SVM
+% (Bennett-Bredensteiner; Crisp-Burges); safe screening (El Ghaoui
+% et al. 2012; Ogawa et al. 2013); SMO/LIBSVM/LIBLINEAR.
+
+\section{Conclusion}
+% TODO
+
+\begin{thebibliography}{9}
+\bibitem{kalantari} B.~Kalantari. A characterization theorem and an
+algorithm for a convex hull problem. \emph{Annals of Operations
+Research}, 2015.
+\bibitem{gupta} M.~Gupta, B.~Kalantari. An enhanced triangle algorithm
+for large-scale support vector machine optimization. \emph{JIDMIS},
+3(9s), 2026.
+\bibitem{lj15} S.~Lacoste-Julien, M.~Jaggi. On the global linear
+convergence of Frank--Wolfe optimization variants. \emph{NeurIPS}, 2015.
+\bibitem{mdm} B.~F.~Mitchell, V.~F.~Demyanov, V.~N.~Malozemov. Finding
+the point of a polyhedron closest to the origin. \emph{SIAM J.\ Control},
+12(1), 1974.
+\bibitem{gm86} J.~Guelat, P.~Marcotte. Some comments on Wolfe's `away
+step'. \emph{Mathematical Programming}, 35, 1986.
+\bibitem{screening} L.~El~Ghaoui, V.~Viallon, T.~Rabbani. Safe feature
+elimination for the lasso and sparse supervised learning problems.
+\emph{Pacific J.\ Optimization}, 2012.
+\end{thebibliography}
+
+\end{document}

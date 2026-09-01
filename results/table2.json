@@ -1,0 +1,44 @@
+[
+  {
+    "dim": 3,
+    "iterations": 13.0,
+    "time_s": 0.0015600196666885797,
+    "intersect_rate": 1.0
+  },
+  {
+    "dim": 10,
+    "iterations": 13.666666666666666,
+    "time_s": 0.0019068313333718834,
+    "intersect_rate": 0.0
+  },
+  {
+    "dim": 50,
+    "iterations": 2.3333333333333335,
+    "time_s": 0.0013580553333364758,
+    "intersect_rate": 0.0
+  },
+  {
+    "dim": 100,
+    "iterations": 1.0,
+    "time_s": 0.0012045156667378858,
+    "intersect_rate": 0.0
+  },
+  {
+    "dim": 300,
+    "iterations": 1.0,
+    "time_s": 0.0028421163333405275,
+    "intersect_rate": 0.0
+  },
+  {
+    "dim": 500,
+    "iterations": 1.0,
+    "time_s": 0.004640610000024026,
+    "intersect_rate": 0.0
+  },
+  {
+    "dim": 1000,
+    "iterations": 1.0,
+    "time_s": 0.011238823333390732,
+    "intersect_rate": 0.0
+  }
+]

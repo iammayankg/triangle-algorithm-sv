@@ -553,6 +553,39 @@ is unchanged. Remaining per-iteration overhead is Python-level; the
 compiled-inner-loop item from the performance list would multiply these
 gains.
 
+## Extension: convergence theory for the block step
+
+`docs/block_convergence.md` proves convergence guarantees for
+`step_mode='block'`. The results, with f = 1/2 ||p - q||^2 over the
+product polytope and pair 1 always the MDM (pairwise-FW) pair:
+
+- **Lemma 2 (gain bound):** with per-pair steps gamma_j clipped to
+  capacity and exact line search along the aggregate direction, the block
+  step's realised gain satisfies Delta_B >= S/(2k) >= Delta_MDM/(2k),
+  where S = <g, d> - by the triangle inequality and Cauchy-Schwarz alone.
+- **Guarded step (implemented, Theorem 3):** both Delta_B and the single
+  MDM gain Delta_1 are O(1)-computable from cached quantities; taking the
+  better of the two makes every iteration's progress >= pairwise FW's, so
+  the guarded block algorithm inherits the Lacoste-Julien/Jaggi linear
+  rate for pairwise Frank-Wolfe on g(Ax)-class objectives *with identical
+  constants* - pyramidal width and diameter of the product polytope -
+  while performing up to k transfers per scan. Unguarded, the rate
+  degrades by at most the explicit factor 2k. The eps-certificate remains
+  independent of the rate analysis.
+- **Proposition 4 (why blocks win):** for eta-near-orthogonal pair
+  directions, Delta_B >= (sum of all k individual pair gains) /
+  (1 + eta(k-1)) - a k-fold per-scan improvement as eta -> 0, matching
+  the measured 4-30x iteration reductions and their growth with
+  dimension.
+
+Numerical verification (`tests/test_block_lemma.py`): all inequalities
+hold across 4,000 random ensembles including heavily clipped and boundary
+cases (worst slack at machine precision), Proposition 4 across 500
+near-orthogonal ensembles, and all 5,209 block steps of an instrumented
+live solve decreased the objective. The guard is now active in the
+implementation; it leaves iteration counts on the existing benchmarks
+unchanged (the block step already dominated in practice) and costs O(1).
+
 ## Consolidated performance across all benchmarks
 
 `src/final_benchmark.py` runs every problem class in this study with three

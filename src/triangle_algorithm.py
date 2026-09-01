@@ -598,6 +598,16 @@ class EnhancedTriangleAlgorithm:
         if den_t <= _EPS_NUM or num_t <= 0.0:
             return self._pairwise_p(pairs[0][0], pairs[0][1])
         t = min(num_t / den_t, 1.0)
+        # guard (Theorem 3): fall back to the single MDM step whenever its
+        # exact gain exceeds the block's - the guarded step never makes
+        # less progress than pairwise FW, so the PFW linear rate is
+        # inherited with identical constants
+        delta_B = t * num_t - 0.5 * t * t * den_t
+        r1, u1, g1 = pairs[0]
+        s1 = self.Vsq[r1] - 2.0 * cols[int(r1)][u1] + self.Vsq[u1]
+        delta_1 = g1 * (s[r1] - s[u1]) - 0.5 * g1 * g1 * s1
+        if delta_1 > delta_B:
+            return self._pairwise_p(r1, u1)
         # scalar updates
         self.pq += t * float(G @ (self.b[R] - self.b[U]))
         self.pp += 2.0 * t * float(G @ (self.a[R] - self.a[U])) \
@@ -653,6 +663,12 @@ class EnhancedTriangleAlgorithm:
         if den_t <= _EPS_NUM or num_t <= 0.0:
             return self._pairwise_q(pairs[0][0], pairs[0][1])
         t = min(num_t / den_t, 1.0)
+        delta_B = t * num_t - 0.5 * t * t * den_t
+        r1, u1, g1 = pairs[0]
+        s1 = self.Wsq[r1] - 2.0 * cols[int(r1)][u1] + self.Wsq[u1]
+        delta_1 = g1 * (s[r1] - s[u1]) - 0.5 * g1 * g1 * s1
+        if delta_1 > delta_B:
+            return self._pairwise_q(r1, u1)
         self.pq += t * float(G @ (self.c[R] - self.c[U]))
         self.qq += 2.0 * t * float(G @ (self.e[R] - self.e[U])) \
             + t * t * den_t

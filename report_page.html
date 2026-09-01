@@ -327,6 +327,25 @@ result matters most: block mode is the only configuration that
 <em>reaches</em> the certified solution at all &mdash; MDM exhausts 200k
 iterations short of it. Remaining per-iteration overhead is Python-level;
 a compiled inner loop would multiply these gains.</p>
+<h2>Convergence theory for the block step</h2>
+<p>The block step now carries a proof
+(<code>docs/block_convergence.md</code>). With pair&nbsp;1 always the
+MDM/pairwise-FW pair, elementary arguments (triangle inequality +
+Cauchy&ndash;Schwarz) give the gain bound
+&Delta;<sub>B</sub>&nbsp;&ge;&nbsp;&Delta;<sub>MDM</sub>/(2k) for the
+aggregate line-search step under capacity clipping. A <em>guarded</em>
+variant &mdash; take the single MDM step whenever its O(1)-computable
+gain exceeds the block&#39;s, now implemented &mdash; makes every
+iteration&#39;s progress at least pairwise FW&#39;s, so the guarded
+algorithm inherits the Lacoste-Julien&ndash;Jaggi linear rate with
+identical constants while doing up to k transfers per scan; unguarded,
+the rate degrades by at most the explicit factor 2k. A near-orthogonality
+proposition shows the best case: &Delta;<sub>B</sub> approaches the
+<em>sum</em> of all k pair gains, matching the measured 4&ndash;30&times;
+iteration reductions and their growth with dimension. Every inequality is
+verified numerically across 4,000 random ensembles (worst slack at
+machine precision), 500 near-orthogonal ensembles, and 5,209 instrumented
+live block steps &mdash; none increased the objective.</p>
 <h2>Consolidated performance</h2>
 <p>Every problem class in this study, three ways: the paper-style ETA (or
 plain MDM where toward-steps do not apply), the optimised ETA (block

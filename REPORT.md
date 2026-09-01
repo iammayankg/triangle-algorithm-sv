@@ -468,6 +468,35 @@ the same optimum, so subsequent lower bounds and the final certificate
 remain valid. Screening costs one O(n) pass every `shrink_every`
 iterations using already-cached quantities.
 
+**Performance comparison** (`src/shrink_benchmark.py`, 2-trial means,
+distances identical to 1e-15 everywhere):
+
+| protocol | plain | shrunk | speedup | survivors / 10,000 |
+|--|--:|--:|--:|--:|
+| dims sweep, eps = 1e-3 | 0.08-8.5 s | 0.05-8.4 s | 0.67x-1.01x | 891-10,000 |
+| d=100, eps = 1e-5 | 0.08 s | 0.05 s | 1.41x | 36 |
+| d=1000, eps = 1e-5 | 5.92 s | 3.16 s | 1.87x | 154 |
+| d=2000, eps = 1e-5 | 10.53 s | 4.43 s | **2.39x** | 308 |
+| d=5000, eps = 1e-5 | 23.04 s | 11.06 s | 2.03x | 612 |
+| d=10000, eps = 1e-5 | 55.77 s | 31.18 s | 1.79x | 1,054 |
+| k-sweep d=1000, eps = 1e-5 | 0.29-4.0 s | 0.23-2.4 s | 1.22x-1.67x | 110-157 |
+| digits-3v8 (real) | 0.88 s | 0.65 s | 1.34x | 37 / 357 |
+| wdbc, mnist-3v8 (real) | - | - | 0.94x-1.06x | gap did not close |
+
+![shrinking speedup](results/fig_shrink.png)
+
+The pattern is exactly what the theory predicts: at the paper's working
+tolerance (1e-3) runs finish before the duality gap tightens enough for the
+screening radius to bite, so shrinking is neutral-to-slightly-negative
+(worst 0.67x at d = 1000, where compaction overhead buys nothing); at
+tight tolerance (1e-5), where the long pairwise tail dominates, the point
+set collapses to roughly the support (36-1,054 of 10,000 points) and
+wall-clock improves 1.4x-2.4x, peaking at d = 2000. The gains require all
+three of: a tolerance tight enough to close the gap, enough points for the
+O(n) scans to matter, and a sparse support - real datasets show both the
+win (digits-3v8: 1.34x, 37 of 357 survive) and the neutral case
+(wdbc/mnist-3v8 at maxiter: certificate never activates, ~1.0x).
+
 Validation (`tests/test_shrinking.py`): shrunk and unshrunk runs agree
 with the exact QP to 1e-8..1e-11 across step modes and all three solver
 variants; on instances where the exact QP support is computable, screening

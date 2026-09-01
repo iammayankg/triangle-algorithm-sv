@@ -83,9 +83,19 @@ solvers before they can run - see TODO below.
 ## 4. The battery
 
 ```bash
-runpin python3 src/full_battery.py --data-dir data --seeds 10 \
-    --out results/full_battery.json
+# parallel across cells (recommended on >= 16 vCPU: leave ~2 cores free)
+OMP_NUM_THREADS=1 nohup python3 src/full_battery.py --data-dir data \
+    --seeds 10 --parallel 12 --out results/full_battery.json &
+# analysis: summary table + time/gap/oracle figures, runnable any time
+python3 src/battery_analysis.py --out results/full_battery.json
 ```
+
+Each cell writes its own shard under `results/full_battery.json.shards/`;
+rerunning skips finished shards, so interruptions cost only the cells in
+flight. Smoke-test the pipeline first (no downloads needed):
+`python3 src/full_battery.py --datasets synthetic --seeds 2 --parallel 2
+--out results/smoke.json && python3 src/battery_analysis.py --out
+results/smoke.json`.
 
 - 10 seeds per (dataset, C) cell; C in {0.1, 1, 10}; each cell runs
   ETA (block, guarded), our SMO, and LIBLINEAR on the *same* split.

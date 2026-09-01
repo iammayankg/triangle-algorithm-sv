@@ -69,7 +69,7 @@ class EnhancedTriangleAlgorithm:
                  anti_zigzag=True, zigzag_strategy='midpoint', prioritized=True,
                  step_mode='toward', refresh_every=100, full_scan_every=5,
                  shrink=False, shrink_every=50, shrink_min_frac=0.05,
-                 seed=None):
+                 block_size=16, seed=None):
         """zigzag_strategy: what to do when an i,j,i,j pivot cycle is detected.
           'midpoint' - pivot on the midpoint of the two cycling vertices
                        (the strategy suggested in the paper);
@@ -83,7 +83,12 @@ class EnhancedTriangleAlgorithm:
         zig-zag remedy above; 'mdm' makes the pairwise weight-transfer the
         primary step every iteration (Mitchell-Demyanov-Malozemov), with a
         toward-step fallback - the right mode when the support is dense,
-        e.g. soft-margin problems.
+        e.g. soft-margin problems; 'block' amortises the O(n) scan over up
+        to `block_size` weight transfers per iteration: the top-k
+        receivers are paired with the worst-k active donors, per-pair
+        magnitudes are clipped to donor capacity, and one exact line
+        search is taken along the aggregated direction (guaranteed
+        descent; falls back to single MDM transfers when no block forms).
 
         shrink: gap-certified safe screening (solve_distance only).  With
         the current bounds [LB, UB], strong convexity of 1/2||x||^2 over
@@ -106,6 +111,7 @@ class EnhancedTriangleAlgorithm:
         self.anti_zigzag = anti_zigzag and zigzag_strategy is not None
         self.zigzag_strategy = zigzag_strategy if self.anti_zigzag else None
         self.step_mode = step_mode
+        self.block_size = int(block_size)
         self.shrink = shrink
         self.shrink_every = int(shrink_every)
         self.shrink_min_frac = float(shrink_min_frac)
@@ -525,6 +531,153 @@ class EnhancedTriangleAlgorithm:
         return True
 
     # ------------------------------------------------------------------
+    # block transfers: k paired MDM moves per scan, one exact line search
+    # along the aggregated direction
+    # ------------------------------------------------------------------
+    def _block_pairs(self, s, weights, cap, k):
+        """Pair top-k receivers with worst-k active donors under `s`.
+        Returns [(recv, donor, gamma)] with per-pair capacity clipping."""
+        act = [i for i, w in weights.items() if w > 1e-14]
+        if not act:
+            return []
+        n = len(s)
+        k = max(1, min(k, len(act)))
+        if k >= n:
+            recv = np.argsort(s)[::-1][:k]
+        else:
+            part = np.argpartition(s, n - k)[n - k:]
+            recv = part[np.argsort(s[part])[::-1]]
+        act_arr = np.fromiter(act, dtype=np.int64)
+        if k >= len(act_arr):
+            don = act_arr[np.argsort(s[act_arr])]
+        else:
+            part = np.argpartition(s[act_arr], k)[:k]
+            don = act_arr[part[np.argsort(s[act_arr][part])]]
+        rset = set(int(x) for x in recv)
+        don = [int(u) for u in don if int(u) not in rset]
+        pairs = []
+        for r, u in zip((int(x) for x in recv), don):
+            num = s[r] - s[u]
+            if num <= self.tol:
+                continue
+            g = weights[u]
+            if cap is not None:
+                g = min(g, cap - weights.get(r, 0.0))
+            if g > 0.0:
+                pairs.append((r, u, num, g))
+        return pairs
+
+    def _block_transfer_V(self, k):
+        s = self.b - self.a
+        raw = self._block_pairs(s, self.wV, None, k)
+        if not raw:
+            return False
+        # per-pair unclipped optimum, clipped to capacity
+        pairs = []
+        for r, u, num, gmax in raw:
+            colr = self._gram_col_V(r)[0]
+            den = self.Vsq[r] - 2.0 * colr[u] + self.Vsq[u]
+            if den <= _EPS_NUM:
+                continue
+            pairs.append((r, u, min(num / den, gmax)))
+        if not pairs:
+            return False
+        if len(pairs) == 1:
+            return self._pairwise_p(pairs[0][0], pairs[0][1])
+        # exact line search along dvec = sum g_j (v_rj - v_uj)
+        R = np.array([p_[0] for p_ in pairs])
+        U = np.array([p_[1] for p_ in pairs])
+        G = np.array([p_[2] for p_ in pairs])
+        num_t = float(G @ (s[R] - s[U]))
+        cols = {i: self._gram_col_V(i)[0]
+                for pr in pairs for i in pr[:2]}
+        CR = np.stack([cols[int(r)] for r in R])   # k x n
+        CU = np.stack([cols[int(u)] for u in U])
+        M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
+        den_t = float(G @ M @ G)
+        if den_t <= _EPS_NUM or num_t <= 0.0:
+            return self._pairwise_p(pairs[0][0], pairs[0][1])
+        t = min(num_t / den_t, 1.0)
+        # scalar updates
+        self.pq += t * float(G @ (self.b[R] - self.b[U]))
+        self.pp += 2.0 * t * float(G @ (self.a[R] - self.a[U])) \
+            + t * t * den_t
+        # batched cache update via net per-index coefficients (one GEMV)
+        coeff: dict[int, float] = {}
+        for r, u, g in pairs:
+            coeff[r] = coeff.get(r, 0.0) + t * g
+            coeff[u] = coeff.get(u, 0.0) - t * g
+        idxs = np.fromiter(coeff.keys(), dtype=np.int64)
+        cvec = np.fromiter(coeff.values(), dtype=np.float64)
+        CA = np.stack([self._gram_col_V(int(i))[0] for i in idxs])
+        CC = np.stack([self._gram_col_V(int(i))[1] for i in idxs])
+        self.a += cvec @ CA
+        self.c += cvec @ CC
+        if self.p is not None:
+            self.p += cvec @ self.V[idxs].astype(np.float64)
+        for i, ci in coeff.items():
+            w = self.wV.get(i, 0.0) + ci
+            if w <= 1e-14:
+                self.wV.pop(i, None)
+            else:
+                self.wV[i] = w
+            self.active_V.add(i)
+        return True
+
+    def _block_transfer_W(self, k):
+        s = self.c - self.e
+        raw = self._block_pairs(s, self.wW, None, k)
+        if not raw:
+            return False
+        pairs = []
+        for r, u, num, gmax in raw:
+            colr = self._gram_col_W(r)[1]
+            den = self.Wsq[r] - 2.0 * colr[u] + self.Wsq[u]
+            if den <= _EPS_NUM:
+                continue
+            pairs.append((r, u, min(num / den, gmax)))
+        if not pairs:
+            return False
+        if len(pairs) == 1:
+            return self._pairwise_q(pairs[0][0], pairs[0][1])
+        R = np.array([p_[0] for p_ in pairs])
+        U = np.array([p_[1] for p_ in pairs])
+        G = np.array([p_[2] for p_ in pairs])
+        num_t = float(G @ (s[R] - s[U]))
+        cols = {j: self._gram_col_W(j)[1]
+                for pr in pairs for j in pr[:2]}
+        CR = np.stack([cols[int(r)] for r in R])
+        CU = np.stack([cols[int(u)] for u in U])
+        M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
+        den_t = float(G @ M @ G)
+        if den_t <= _EPS_NUM or num_t <= 0.0:
+            return self._pairwise_q(pairs[0][0], pairs[0][1])
+        t = min(num_t / den_t, 1.0)
+        self.pq += t * float(G @ (self.c[R] - self.c[U]))
+        self.qq += 2.0 * t * float(G @ (self.e[R] - self.e[U])) \
+            + t * t * den_t
+        coeff: dict[int, float] = {}
+        for r, u, g in pairs:
+            coeff[r] = coeff.get(r, 0.0) + t * g
+            coeff[u] = coeff.get(u, 0.0) - t * g
+        idxs = np.fromiter(coeff.keys(), dtype=np.int64)
+        cvec = np.fromiter(coeff.values(), dtype=np.float64)
+        CB = np.stack([self._gram_col_W(int(j))[0] for j in idxs])
+        CE = np.stack([self._gram_col_W(int(j))[1] for j in idxs])
+        self.b += cvec @ CB
+        self.e += cvec @ CE
+        if self.q is not None:
+            self.q += cvec @ self.W[idxs].astype(np.float64)
+        for j, cj in coeff.items():
+            w = self.wW.get(j, 0.0) + cj
+            if w <= 1e-14:
+                self.wW.pop(j, None)
+            else:
+                self.wW[j] = w
+            self.active_W.add(j)
+        return True
+
+    # ------------------------------------------------------------------
     # gap-certified safe screening (shrinking)
     # ------------------------------------------------------------------
     def _screen_and_compact(self, lb_best):
@@ -731,9 +884,18 @@ class EnhancedTriangleAlgorithm:
         d_before = self.dist2()
         moved = False
         # MDM mode: pairwise weight transfer is the primary step,
-        # with a toward-step fallback when no transfer is possible
-        if self.step_mode == 'mdm':
+        # with a toward-step fallback when no transfer is possible.
+        # Block mode: k transfers per scan first, then the same fallbacks.
+        if self.step_mode in ('mdm', 'block'):
             did = False
+            if self.step_mode == 'block':
+                if iV is not None:
+                    did |= self._block_transfer_V(self.block_size)
+                if iW is not None:
+                    did |= self._block_transfer_W(self.block_size)
+                if did:
+                    return self.dist2() <= d_before + _EPS_NUM * max(1.0,
+                                                                     d_before)
             if iV is not None:
                 u = self._worst_active_p()
                 if u is not None and self._pairwise_p(iV, u):

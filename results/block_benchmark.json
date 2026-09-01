@@ -1,0 +1,106 @@
+[
+  {
+    "tag": "soft-d100",
+    "mode": "mdm",
+    "time": 39.48118954199981,
+    "iters": 72546,
+    "dist": 0.07840028786473263,
+    "status": "converged"
+  },
+  {
+    "tag": "soft-d100",
+    "mode": "block(8)",
+    "time": 19.694012465000014,
+    "iters": 17191,
+    "dist": 0.07840029703653971,
+    "status": "converged"
+  },
+  {
+    "tag": "soft-d100",
+    "mode": "block(32)",
+    "time": 34.67733358899977,
+    "iters": 8026,
+    "dist": 0.07840029369060635,
+    "status": "converged"
+  },
+  {
+    "tag": "soft-d1000",
+    "mode": "mdm",
+    "time": 15.61502310800006,
+    "iters": 43486,
+    "dist": 0.5781431656758748,
+    "status": "converged"
+  },
+  {
+    "tag": "soft-d1000",
+    "mode": "block(8)",
+    "time": 11.562841780999861,
+    "iters": 5881,
+    "dist": 0.5781431157727551,
+    "status": "converged"
+  },
+  {
+    "tag": "soft-d1000",
+    "mode": "block(32)",
+    "time": 8.678221511000174,
+    "iters": 1551,
+    "dist": 0.5781429424268983,
+    "status": "converged"
+  },
+  {
+    "tag": "mnist-oe",
+    "mode": "mdm",
+    "time": 53.05536118600003,
+    "iters": 200000,
+    "dist": 0.07766884908547335,
+    "status": "maxiter"
+  },
+  {
+    "tag": "mnist-oe",
+    "mode": "block(8)",
+    "time": 90.36882218200026,
+    "iters": 114271,
+    "dist": 0.07763246632977587,
+    "status": "converged"
+  },
+  {
+    "tag": "mnist-oe",
+    "mode": "block(32)",
+    "time": 143.88632694599983,
+    "iters": 68721,
+    "dist": 0.07763245661273933,
+    "status": "converged"
+  },
+  {
+    "tag": "hard-d1000",
+    "mode": "mdm",
+    "time": 0.24027141299984578,
+    "iters": 301,
+    "dist": 55.33936543300418,
+    "status": "converged"
+  },
+  {
+    "tag": "hard-d1000",
+    "mode": "block(8)",
+    "time": 0.2066713509998408,
+    "iters": 21,
+    "dist": 55.339365404829586,
+    "status": "converged"
+  },
+  {
+    "tag": "hard-d1000",
+    "mode": "block(32)",
+    "time": 0.23722934599982182,
+    "iters": 21,
+    "dist": 55.33936539345745,
+    "status": "converged"
+  },
+  {
+    "tag": "hard-d1000",
+    "mode": "block(32)+shrink",
+    "time": 0.24216309399980673,
+    "iters": 21,
+    "dist": 55.33936539345745,
+    "status": "converged"
+  }
+]

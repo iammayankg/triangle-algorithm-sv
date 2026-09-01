@@ -68,6 +68,7 @@ class EnhancedTriangleAlgorithm:
     def __init__(self, V, W, *, joint_update=True, cache_dots=True,
                  anti_zigzag=True, zigzag_strategy='midpoint', prioritized=True,
                  step_mode='toward', refresh_every=100, full_scan_every=5,
+                 shrink=False, shrink_every=50, shrink_min_frac=0.05,
                  seed=None):
         """zigzag_strategy: what to do when an i,j,i,j pivot cycle is detected.
           'midpoint' - pivot on the midpoint of the two cycling vertices
@@ -83,6 +84,18 @@ class EnhancedTriangleAlgorithm:
         primary step every iteration (Mitchell-Demyanov-Malozemov), with a
         toward-step fallback - the right mode when the support is dense,
         e.g. soft-margin problems.
+
+        shrink: gap-certified safe screening (solve_distance only).  With
+        the current bounds [LB, UB], strong convexity of 1/2||x||^2 over
+        the Minkowski difference gives ||h - h*|| <= r = sqrt(UB^2 - LB^2);
+        a zero-weight point is certifiably outside the optimal support when
+            (h.v_i - h.v_min) > r ||v_i - v_min||
+        (symmetrically on the W side with the max).  Screened points are
+        removed and the problem compacted; because the optimum's support
+        survives, the reduced problem has the same optimum and later lower
+        bounds remain valid.  Screening runs every `shrink_every`
+        iterations and compacts only when at least `shrink_min_frac` of a
+        class would be removed.
         """
         self.V = np.ascontiguousarray(V)
         self.W = np.ascontiguousarray(W)
@@ -93,6 +106,9 @@ class EnhancedTriangleAlgorithm:
         self.anti_zigzag = anti_zigzag and zigzag_strategy is not None
         self.zigzag_strategy = zigzag_strategy if self.anti_zigzag else None
         self.step_mode = step_mode
+        self.shrink = shrink
+        self.shrink_every = int(shrink_every)
+        self.shrink_min_frac = float(shrink_min_frac)
         self.prioritized = prioritized
         self.refresh_every = refresh_every
         self.full_scan_every = full_scan_every
@@ -509,6 +525,81 @@ class EnhancedTriangleAlgorithm:
         return True
 
     # ------------------------------------------------------------------
+    # gap-certified safe screening (shrinking)
+    # ------------------------------------------------------------------
+    def _screen_and_compact(self, lb_best):
+        """Remove points certified to be outside the optimal support."""
+        ub2 = self.dist2()
+        lb = max(lb_best, 0.0)
+        r2 = ub2 - lb * lb
+        if r2 <= 0.0:
+            return
+        r = float(np.sqrt(r2)) * (1.0 + 1e-9)
+        # V side: active points at the optimum minimise h*.v
+        sV = self.a - self.b
+        i0 = int(np.argmin(sV))
+        colVa, _ = self._gram_col_V(i0)
+        dV = np.sqrt(np.maximum(self.Vsq - 2.0 * colVa + self.Vsq[i0], 0.0))
+        keepV = (sV - sV[i0]) <= r * dV + self.tol
+        for i, w in self.wV.items():
+            if w > 0.0:
+                keepV[i] = True
+        keepV[i0] = True
+        # W side: active points at the optimum maximise h*.w
+        sW = self.c - self.e
+        j0 = int(np.argmax(sW))
+        _, colWe = self._gram_col_W(j0)
+        dW = np.sqrt(np.maximum(self.Wsq - 2.0 * colWe + self.Wsq[j0], 0.0))
+        keepW = (sW[j0] - sW) <= r * dW + self.tol
+        for j, w in self.wW.items():
+            if w > 0.0:
+                keepW[j] = True
+        keepW[j0] = True
+        if (1.0 - keepV.mean()) < self.shrink_min_frac and \
+                (1.0 - keepW.mean()) < self.shrink_min_frac:
+            return
+        self._compact(keepV, keepW)
+
+    def _compact(self, keepV, keepW):
+        idxV = np.flatnonzero(keepV)
+        idxW = np.flatnonzero(keepW)
+        mapV = {int(o): k for k, o in enumerate(idxV)}
+        mapW = {int(o): k for k, o in enumerate(idxW)}
+        self.V = self.V[idxV]
+        self.W = self.W[idxW]
+        self.n, self.m = len(idxV), len(idxW)
+        self.Vsq = self.Vsq[idxV]
+        self.Wsq = self.Wsq[idxW]
+        self.a = self.a[idxV]
+        self.b = self.b[idxV]
+        self.c = self.c[idxW]
+        self.e = self.e[idxW]
+        self._origV = self._origV[idxV]
+        self._origW = self._origW[idxW]
+        # zero-weight entries may have been screened; drop them
+        self.wV = {mapV[i]: w for i, w in self.wV.items() if i in mapV}
+        self.wW = {mapW[j]: w for j, w in self.wW.items() if j in mapW}
+        self.active_V = {mapV[i] for i in self.active_V if keepV[i]}
+        self.active_W = {mapW[j] for j in self.active_W if keepW[j]}
+        self.hist_V = []
+        self.hist_W = []
+        self._colV = {mapV[i]: (cV[idxV], cW[idxW])
+                      for i, (cV, cW) in self._colV.items() if keepV[i]}
+        self._colW = {mapW[j]: (cV[idxV], cW[idxW])
+                      for j, (cV, cW) in self._colW.items() if keepW[j]}
+        self._compact_extra(idxV, idxW)
+
+    def _compact_extra(self, idxV, idxW):
+        """Hook for subclasses holding extra per-point arrays."""
+
+    def _orig_weights(self):
+        oV = getattr(self, '_origV', None)
+        if oV is None:
+            return dict(self.wV), dict(self.wW)
+        return ({int(self._origV[i]): w for i, w in self.wV.items()},
+                {int(self._origW[j]): w for j, w in self.wW.items()})
+
+    # ------------------------------------------------------------------
     # sparsity
     # ------------------------------------------------------------------
     def _sparsity(self, thresh=1e-9):
@@ -560,8 +651,8 @@ class EnhancedTriangleAlgorithm:
                         sparsity=self._sparsity(),
                         p=None if self.p is None else self.p.copy(),
                         q=None if self.q is None else self.q.copy(),
-                        weights_V=dict(self.wV),
-                        weights_W=dict(self.wW))
+                        weights_V=self._orig_weights()[0],
+                        weights_W=self._orig_weights()[1])
 
     # ------------------------------------------------------------------
     # Triangle Algorithm II : distance / optimal support
@@ -573,6 +664,8 @@ class EnhancedTriangleAlgorithm:
         t0 = time.perf_counter()
         if not warm_start or not hasattr(self, 'p'):
             self._init_state()
+        self._origV = np.arange(self.n)
+        self._origW = np.arange(self.m)
         tol = self.tol
         status = 'maxiter'
         lb_best = -np.inf
@@ -595,6 +688,8 @@ class EnhancedTriangleAlgorithm:
                 if ub - lb_best <= eps * ub:
                     status = 'converged'
                     break
+            if self.shrink and it % self.shrink_every == 0:
+                self._screen_and_compact(lb_best)
             iV, sV, iW, sW, _ = self._select(self._scores_ta2, it, tol)
             if iV is None and iW is None:
                 # p, q already optimal over the scanned sets
@@ -626,8 +721,8 @@ class EnhancedTriangleAlgorithm:
                         sparsity=self._sparsity(),
                         p=None if self.p is None else self.p.copy(),
                         q=None if self.q is None else self.q.copy(),
-                        weights_V=dict(self.wV),
-                        weights_W=dict(self.wW))
+                        weights_V=self._orig_weights()[0],
+                        weights_W=self._orig_weights()[1])
 
     # ------------------------------------------------------------------
     # one enhancement-aware update step; returns False if no progress

@@ -111,6 +111,10 @@ class KernelETA(EnhancedTriangleAlgorithm):
             self._colW[j] = col
         return col
 
+    def _compact_extra(self, idxV, idxW):
+        self._Vsq_raw = self._Vsq_raw[idxV]
+        self._Wsq_raw = self._Wsq_raw[idxW]
+
     # ---- weight-space state -----------------------------------------
     def _init_state(self, i0=0, j0=0):
         self.p = None            # feature-space iterates are implicit

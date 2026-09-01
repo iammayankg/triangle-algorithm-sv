@@ -454,6 +454,36 @@ support) SoftMarginTA is the fastest solver tested, slightly ahead of
 LIBLINEAR and 4.4x ahead of SMO. The certified duality gap and the
 hard-margin feasibility test are capabilities the baselines do not offer.
 
+## Extension: gap-certified safe shrinking
+
+`shrink=True` adds exact safe screening to `solve_distance` (inherited by
+the soft-margin and kernel solvers). The rule: with current bounds
+[LB, UB], strong convexity of 1/2||x||^2 over the Minkowski difference
+gives ||h - h*|| <= r = sqrt(UB^2 - LB^2); a zero-weight point is
+certifiably outside the optimal support when
+(h.v_i - h.v_min) > r ||v_i - v_min|| (symmetrically with the max on the
+W side). Screened points are removed and the problem compacted - and
+because the optimum's support provably survives, the reduced problem has
+the same optimum, so subsequent lower bounds and the final certificate
+remain valid. Screening costs one O(n) pass every `shrink_every`
+iterations using already-cached quantities.
+
+Validation (`tests/test_shrinking.py`): shrunk and unshrunk runs agree
+with the exact QP to 1e-8..1e-11 across step modes and all three solver
+variants; on instances where the exact QP support is computable, screening
+collapses each 60-point class to *exactly* the optimal support (2-5
+points) without ever discarding a true support point.
+
+Effectiveness: on a Table-3-style instance (d = 1000, n = 5000/set,
+eps = 1e-5) the point set shrinks from 5000+5000 to 82+93 - the support -
+for a 1.6x wall-clock gain (5.4 s -> 3.4 s) at identical distances. The
+honest counterpart: on the dense-overlap mnist odd-vs-even soft-margin
+problem the certificate excludes nothing, because the duality gap never
+tightens enough for the radius r to bite. Safe screening pays off exactly
+where the gap closes (sparse-support, well-conditioned problems); dense
+ill-conditioned problems would need LIBSVM-style heuristic shrinking with
+reactivation, which trades the exactness guarantee for applicability.
+
 ## Reproducing
 
 ```bash

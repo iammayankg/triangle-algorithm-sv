@@ -281,6 +281,29 @@ within ~1% of the SVC reference &mdash; digits odd-vs-even jumps from 0.896
 linear to 0.973 kernelized, the expected benefit on a real nonlinear task.
 The certified duality gap and the feasibility test are capabilities the
 baselines do not offer.</p>
+<h2>Extension: gap-certified safe shrinking</h2>
+<p><code>shrink=True</code> adds exact safe screening to the distance
+solver (inherited by the soft-margin and kernel variants). Strong
+convexity of &frac12;&#8214;x&#8214;&sup2; over the Minkowski difference
+bounds &#8214;h&nbsp;&minus;&nbsp;h*&#8214; &le; r =
+&radic;(UB&sup2;&nbsp;&minus;&nbsp;LB&sup2;), so a zero-weight point with
+(h&middot;v&#7522; &minus; h&middot;v<sub>min</sub>) &gt;
+r&#8214;v&#7522;&nbsp;&minus;&nbsp;v<sub>min</sub>&#8214; is certifiably
+outside the optimal support and is removed. The optimum&#39;s support
+provably survives, so the reduced problem has the same optimum and every
+later certificate stays valid &mdash; one O(n) pass per screening round
+from already-cached quantities.</p>
+<p>Validation: shrunk and unshrunk runs agree with the exact QP to
+10&#8315;&#8312;&ndash;10&#8315;&sup1;&sup1; across all solver variants,
+and on small instances screening collapses each class to <em>exactly</em>
+the QP&#39;s optimal support without ever discarding a true support point.
+On a Table-3-style instance (d&nbsp;=&nbsp;1000, n&nbsp;=&nbsp;5000/set)
+the point set shrinks to 82+93 survivors for a 1.6&times; wall-clock gain
+at identical distances. The honest counterpart: on the dense-overlap MNIST
+soft-margin problem the certificate excludes nothing &mdash; the gap never
+tightens enough for r to bite. Safe screening pays off exactly where the
+gap closes; dense ill-conditioned problems would need LIBSVM-style
+heuristic shrinking with reactivation.</p>
 <h2>Assumptions and caveats</h2>
 <p class="note">The source study leaves the sampling law, trial count, and
 k-grid unspecified, so those were reconstructed: uniform-in-unit-ball clouds

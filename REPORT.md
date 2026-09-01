@@ -224,6 +224,43 @@ device. At the paper's working tolerance of eps = 1e-3 the effect is modest
 heuristic sufficed in the original study; the stronger steps matter when
 high-accuracy solutions are required.
 
+## Extension: optimized ETA vs standard solvers
+
+The paper's future-work section asks for comparisons with up-to-date solvers.
+`src/solver_comparison.py` runs the optimized ETA (pairwise strategy) against
+LIBSVM (sklearn `SVC`, linear kernel, C = 1e6), LIBLINEAR (sklearn
+`LinearSVC`, hinge loss, C = 1e4, tuned to recover the geometric margin), our
+SMO, and a stochastic subgradient baseline (`SGDClassifier`, hinge), on the
+Table-3 protocol. Accuracy is the relative deviation of each solver's margin
+2/||w|| from ETA's certified reference (eps = 1e-6, where UB - LB tightens
+the answer to ~1e-6 relative). Three-trial means:
+
+| dim | ETA-pw | SMO | LIBSVM | LIBLINEAR | SGD |
+|----:|----:|----:|----:|----:|----:|
+| 100 | 0.02 s / 4e-5 | 0.03 s / 2e-4 | 0.02 s / 2e-4 | 0.11 s / 4e-6 | 0.06 s / **1.0** |
+| 300 | 0.05 s / 2e-4 | 0.13 s / 8e-5 | 0.07 s / 1e-4 | 0.28 s / 2e-5 | 0.14 s / **1.0** |
+| 1000 | 0.19 s / 2e-4 | 0.50 s / 2e-4 | 0.37 s / 1e-4 | 0.76 s / 8e-5 | 0.87 s / **1.0** |
+| 2000 | 0.53 s / 2e-4 | 1.14 s / 2e-4 | 1.32 s / 2e-4 | 1.60 s / 2e-4 | 2.35 s / **1.0** |
+| 5000 | 2.98 s / 2e-4 | 4.94 s / 2e-4 | 8.60 s / 2e-4 | 5.84 s / 6e-4 | 15.3 s / **1.0** |
+| 10000 | 8.62 s / 1e-4 | 12.5 s / 1e-4 | 21.9 s / 1e-4 | 10.5 s / 1e-3 | 24.1 s / **1.0** |
+
+(cells: mean time / mean relative margin error)
+
+![solver comparison](results/fig_solvers.png)
+
+Findings: the optimized ETA is the fastest accurate solver at every
+dimension tested — 2.5x faster than LIBSVM and 1.5x faster than our cached
+SMO at d = 10,000, with the advantage growing with dimension. LIBLINEAR is
+speed-competitive at scale but its margin accuracy degrades (1.4e-3 at
+d = 10,000, outside the tolerance) and it only recovers the geometric margin
+at all under careful settings (hinge loss, moderate C, large
+intercept_scaling — squared hinge or very large C misestimate the margin by
+30% or more). The stochastic subgradient baseline finds a valid separator
+but never recovers the maximal margin (relative error ~1.0 at every alpha
+tried), so it is not a contender for the geometric problem. On this synthetic
+protocol the paper's thesis holds against modern baselines, not just the
+original MATLAB SMO.
+
 ## Reproducing
 
 ```bash

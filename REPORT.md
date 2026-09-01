@@ -261,6 +261,63 @@ tried), so it is not a contender for the geometric problem. On this synthetic
 protocol the paper's thesis holds against modern baselines, not just the
 original MATLAB SMO.
 
+## Extension: soft-margin (L2) SVM
+
+The Triangle Algorithm extends exactly to the L2 soft-margin SVM
+(min 1/2||w||^2 + C/2 sum xi_i^2) through the classical reduction: it is a
+hard-margin problem in the augmented space x~_i = [x_i; e_i/sqrt(C)], whose
+Gram matrix is K + I/C and whose augmented hulls never intersect. The
+augmentation is never materialised: the extra coordinates of the iterates
+are exactly the convex weights the algorithm already tracks, so every
+augmented dot product is a cached original-space product plus a sparse
+diagonal correction (`src/soft_margin.py`). Validation
+(`tests/test_soft_margin.py`): SoftMarginTA agrees with the exact QP on the
+explicitly augmented problem to ~1e-10 across random instances and C values,
+the augmented-kernel SMO agrees likewise, and the regularisation path
+delta_C is monotone in C.
+
+Soft margins change the geometry: the support is *dense* (1,000+ support
+vectors on overlapping data vs ~100-300 for the hard-margin experiments),
+and toward-steps stall — oscillation spreads across many vertices, so the
+cycle detector rarely fires. The remedy built in the previous extension
+becomes the algorithm: `step_mode='mdm'` makes the pairwise weight transfer
+the primary step (Mitchell-Demyanov-Malozemov), with toward-steps as
+fallback.
+
+Experiment (`src/soft_experiment.py`): overlapping Gaussian classes (means
+4 sigma apart — Bayes error ~2.3% at every d), n = 5,000/set, C in
+{0.1, 1, 10}, all solvers targeting the same objective, judged by the primal
+value P = 2/delta_C^2 and held-out accuracy (2-trial means):
+
+| d | C | ETA-mdm | ETA-toward | SMO (K+I/C) | LIBLINEAR sq-hinge |
+|--:|--:|--:|--:|--:|--:|
+| 100 | 0.1 | 2.9 s, P=32.60 | 29.2 s (maxiter) | 8.0 s, P=32.58 | **0.1 s, P=32.60** |
+| 100 | 1 | 21.2 s, P=322.95 | 28.1 s (maxiter) | 55.9 s, P=322.78 | **0.1 s, P=322.95** |
+| 100 | 10 | 47.6 s (maxiter) | 36.2 s (maxiter) | 152.4 s (timeout) | **0.1 s, P=3372** |
+| 1000 | 0.1 | 10.3 s, P=5.49 | 37.7 s (maxiter) | 81.8 s, P=5.49 | **1.6 s, P=5.49** |
+| 1000 | 1 | **15.2 s, P=6.39** | 39.5 s (maxiter) | 134.9 s, P=6.39 | 14.7 s, P=6.39 |
+| 1000 | 10 | **12.9 s, P=5.40** | 36.6 s (maxiter) | 110.4 s, P=5.40 | 102.1 s, P=5.41 |
+
+![soft margin comparison](results/fig_soft_margin.png)
+
+Findings. (1) The reduction is exact in practice: ETA-mdm and LIBLINEAR
+agree on the primal objective to 6 significant figures wherever both
+converge, and held-out accuracies are identical to 3-4 decimals across all
+solvers — the solutions coincide. (2) Within the dual/geometric family, ETA-mdm
+beats the augmented-kernel SMO by 3-9x everywhere. (3) Against the primal
+world the picture is dimension- and C-dependent: at d = 100 LIBLINEAR's
+coordinate descent is two orders of magnitude faster, but at d = 1000 ETA-mdm
+matches it at C = 1 and is 8x faster at C = 10, where the primal problem
+becomes ill-conditioned while the geometric problem stays benign — the
+nearly-separable, high-dimensional regime is where the Triangle Algorithm's
+advantage lives, for soft margins just as for hard ones. (4) Large C on
+genuinely overlapping data (d = 100, C = 10) is hard for every dual method
+(SMO needed >400k iterations; ETA-mdm's certified interval brackets the
+LIBLINEAR value) — conditioning degrades as the problem approaches the
+infeasible hard margin. (5) The paper-style toward-step ETA is not viable
+for soft margins; MDM steps are the natural completion of the enhanced
+algorithm for this problem class.
+
 ## Reproducing
 
 ```bash

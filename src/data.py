@@ -63,3 +63,14 @@ def generate_two_balls(d, n, k, rng=None, mode='gaussian', dtype=np.float64):
     u = _unit_vector(d, rng)
     W += (k * diam) * u
     return V.astype(dtype, copy=False), W.astype(dtype, copy=False)
+
+
+def generate_overlap(d, n, delta=4.0, rng=None, dtype=np.float64):
+    """Two Gaussian classes whose means are `delta` standard deviations
+    apart along a random direction, independent of dimension - genuinely
+    overlapping class distributions (Bayes error > 0) at every d, the
+    regime where soft margins matter."""
+    rng = np.random.default_rng(rng)
+    V = rng.standard_normal((n, d))
+    W = rng.standard_normal((n, d)) + delta * _unit_vector(d, rng)
+    return V.astype(dtype, copy=False), W.astype(dtype, copy=False)

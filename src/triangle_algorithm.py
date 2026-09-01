@@ -67,7 +67,8 @@ class EnhancedTriangleAlgorithm:
 
     def __init__(self, V, W, *, joint_update=True, cache_dots=True,
                  anti_zigzag=True, zigzag_strategy='midpoint', prioritized=True,
-                 refresh_every=100, full_scan_every=5, seed=None):
+                 step_mode='toward', refresh_every=100, full_scan_every=5,
+                 seed=None):
         """zigzag_strategy: what to do when an i,j,i,j pivot cycle is detected.
           'midpoint' - pivot on the midpoint of the two cycling vertices
                        (the strategy suggested in the paper);
@@ -76,6 +77,12 @@ class EnhancedTriangleAlgorithm:
           'pairwise' - transfer weight from the worst active vertex to the
                        best pivot (MDM / pairwise Frank-Wolfe step);
           None       - no remedy (anti_zigzag=False implies None).
+
+        step_mode: 'toward' (default) uses the paper's toward-steps with the
+        zig-zag remedy above; 'mdm' makes the pairwise weight-transfer the
+        primary step every iteration (Mitchell-Demyanov-Malozemov), with a
+        toward-step fallback - the right mode when the support is dense,
+        e.g. soft-margin problems.
         """
         self.V = np.ascontiguousarray(V)
         self.W = np.ascontiguousarray(W)
@@ -85,6 +92,7 @@ class EnhancedTriangleAlgorithm:
         self.cache_dots = cache_dots
         self.anti_zigzag = anti_zigzag and zigzag_strategy is not None
         self.zigzag_strategy = zigzag_strategy if self.anti_zigzag else None
+        self.step_mode = step_mode
         self.prioritized = prioritized
         self.refresh_every = refresh_every
         self.full_scan_every = full_scan_every
@@ -617,6 +625,31 @@ class EnhancedTriangleAlgorithm:
     def _step(self, iV, iW, sV=-np.inf, sW=-np.inf):
         d_before = self.dist2()
         moved = False
+        # MDM mode: pairwise weight transfer is the primary step,
+        # with a toward-step fallback when no transfer is possible
+        if self.step_mode == 'mdm':
+            did = False
+            if iV is not None:
+                u = self._worst_active_p()
+                if u is not None and self._pairwise_p(iV, u):
+                    did = True
+                else:
+                    alpha = self._alpha_single_p(iV)
+                    if alpha > 0.0:
+                        self._apply_p(iV, alpha)
+                        did = True
+            if iW is not None:
+                u = self._worst_active_q()
+                if u is not None and self._pairwise_q(iW, u):
+                    did = True
+                else:
+                    beta = self._beta_single_q(iW)
+                    if beta > 0.0:
+                        self._apply_q(iW, beta)
+                        did = True
+            if not did:
+                return False
+            return self.dist2() <= d_before + _EPS_NUM * max(1.0, d_before)
         # zig-zag remedies apply on cycle detection, before (and instead
         # of) the regular toward-step, in joint and single branches alike
         if self.zigzag_strategy is not None:

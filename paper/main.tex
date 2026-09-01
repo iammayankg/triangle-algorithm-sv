@@ -142,6 +142,20 @@ If $|\ip{d_i}{d_j}|\le\eta\sqrt{s_i s_j}$ for $i\ne j$, the interior
 block gain is at least $(\sum_j\Delta_j)/(1+\eta(k-1))$.
 \end{proposition}
 
+\begin{theorem}[Screening activation]
+Let $\delta^*>0$, let $\tau$ be the minimal nonzero optimal-face score
+margin, $D$ the larger class diameter and $R=\max_{z\in Z}\norm{z}$. The
+certified gap equals the Frank--Wolfe gap over $Z$ divided by
+$\mathrm{UB}$, and once
+$h_t \le \tau^4\delta^{*2}/(2592\,R^4 D^4)$
+every zero-weight point outside the optimal faces is screened at the
+next round, permanently; under the linear rate this holds for all
+$t \ge T^* = s_0 + \tfrac{k+2}{\rho}\,
+\log\!\bigl(2592\,R^4D^4 h_0/(\tau^4\delta^{*2})\bigr)$,
+after which every scan costs $O(|F|+|\mathrm{supp}|)$ instead of
+$O(n+m)$. The $\tau$-dependence is information-theoretically necessary.
+\end{theorem}
+
 \begin{theorem}[Safe screening]
 With $r=\sqrt{\mathrm{UB}^2-\mathrm{LB}^2}$, any zero-weight point with
 $(\ip{h}{v_i}-\ip{h}{v_{\min}})>r\norm{v_i-v_{\min}}$ is outside the

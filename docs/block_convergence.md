@@ -253,7 +253,111 @@ satisfies Delta_B >= (sum of the k individual pair gains) /
 (1 + eta (k - 1)); as eta -> 0 a single scan realises the sum of all k
 pairwise gains.
 
-## 4. Remarks
+## 4. Screening activation
+
+The safe-screening rule (see the shrinking note in REPORT.md) removes a
+zero-weight point v_i when
+
+    ( <h, v_i> - <h, v_min> )  >  r ||v_i - v_min|| ,
+    r = sqrt( UB^2 - max(LB,0)^2 ),                                (SCR)
+
+with h = p - q the current iterate direction and v_min the current
+score minimiser. The rule is *safe* at any accuracy; here we prove it is
+also *effective*: it removes every non-support point after an explicit,
+logarithmic number of iterations.
+
+Standing assumptions: the hulls are separated (delta* = ||z*|| > 0);
+let F_V = argmin_i <z*, v_i> and F_W = argmax_j <z*, w_j> be the optimal
+faces (every optimal representation is supported on them, by KKT), and
+define the **score margins**
+
+    tau_i = <z*, v_i> - min_j <z*, v_j>   (> 0 for i not in F_V),
+    tau   = min over both classes of the nonzero margins,
+
+D = the larger class diameter, R = max_{z in Z} ||z|| (so UB_t <= R for
+all t), and h_t the suboptimality. We assume tau exceeds the numerical
+slack used in the implementation of (SCR).
+
+**Lemma 9 (radius condition).** If r <= tau_i / (3 D), then (SCR) fires
+for v_i (any zero-weight i not in F_V), whatever the current v_min is.
+
+*Proof.* Recall ||h - z*|| <= r (strong convexity; the shrinking note).
+Write m* = min_j <z*, v_j> and pick v' in F_V. Since v_min minimises
+<h, .>, we have <h, v_min - v'> <= 0, hence
+
+    <z*, v_min> - m* = <h, v_min - v'> + <z* - h, v_min - v'>
+                     <= r ||v_min - v'|| <= r D .
+
+Therefore
+
+    <h, v_i - v_min> = <z*, v_i - v_min> + <h - z*, v_i - v_min>
+                     >= tau_i - rD - r ||v_i - v_min|| .
+
+The rule (SCR) requires the left side to exceed r||v_i - v_min||; a
+sufficient condition is tau_i > rD + 2 r||v_i - v_min||, and since
+||v_i - v_min|| <= D, the condition tau_i >= 3 r D suffices. QED
+
+**Lemma 10 (the certified gap is the Frank-Wolfe gap).** At any full
+scan, the certificate satisfies
+
+    UB - LB = gFW(z) / UB ,     gFW(z) = <z, z> - min_{u in Z} <z, u>,
+
+and consequently
+
+    gFW(z) <= 2 h + R sqrt(2 h) .
+
+*Proof.* LB = min_u <z, u> / ||z|| by definition of the supporting
+hyperplane bound (the code computes exactly min_V <h,v> - max_W <h,w> =
+min_u <z,u>), and UB = ||z||; subtract. For the second claim, at the
+optimum 0 = <z*, z*> - min_u <z*, u>; subtracting from gFW(z),
+
+    gFW(z) = ( ||z||^2 - ||z*||^2 ) + ( min_u <z*, u> - min_u <z, u> )
+          <= 2 h + max_u <z* - z, u> <= 2 h + R ||z - z*||
+          <= 2 h + R sqrt(2 h),
+
+using 1-strong convexity for the last step. QED
+
+**Theorem 11 (screening activation).** Suppose the screening radius is
+computed with the running bounds (monotone UB and best LB, which can only
+shrink r relative to the same-scan values). If
+
+    h_t <= tau^4 delta*^2 / ( 2592 R^4 D^4 ),                       (ACT)
+
+then at the next screening round every zero-weight point outside
+F_V u F_W is removed, permanently. Under the linear rate of Theorem 6,
+condition (ACT) holds for all
+
+    t >= T* = s_0 + ((k+2)/rho) * log( 2592 R^4 D^4 h_0
+                                       / ( tau^4 delta*^2 ) ),
+
+so after O( (k/rho) log( R D h_0 / (tau delta*) ) ) iterations the
+working set is contained in F_V u F_W u supp(alpha_t) u supp(beta_t),
+and every subsequent scan costs O(|F| + |supp|) instead of O(n + m).
+
+*Proof.* By Lemma 9 it suffices that r <= tau/(3D). Since
+r^2 = (UB - LB)(UB + LB) <= 2 R (UB - LB), Lemma 10 gives
+
+    r^2 <= 2 R * gFW / UB <= (2 R / delta*) * ( 2 h + R sqrt(2h) ).
+
+For h <= R^2/2 (which holds always, as h_0 <= ||z_0||^2/2 <= R^2/2 and
+h is monotone), 2h <= R sqrt(2h), so r^2 <= (4 R^2 / delta*) sqrt(2 h).
+The requirement r^2 <= tau^2/(9 D^2) is then implied by
+sqrt(2h) <= tau^2 delta* / (36 R^2 D^2), i.e. by (ACT). Permanence and
+validity of subsequent bounds follow from the safety of (SCR) (the
+optimum's support survives every removal, so the reduced problem has the
+same optimum). The iteration bound follows from Theorem 6 with
+log(1/(1-rho)) >= rho. QED
+
+**Remark (sharpness of the margin dependence).** The tau-dependence is
+information-theoretic, not an artifact: a point whose optimal score
+margin is tau cannot be distinguished from a support point by *any*
+screening rule that is safe for all instances consistent with a
+certificate of gap ~ tau, so an activation threshold degrading as
+tau -> 0 is unavoidable. Points with positive current weight are never
+screened by (SCR); they are drained instead by the away/drop mechanism,
+so the eventual working set is the union above rather than F alone.
+
+## 5. Remarks
 
 1. **Where each assumption is used.** Strong convexity of F enters only
    through Lemma 5; the guard and the case analysis of Lemma 4 use

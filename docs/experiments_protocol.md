@@ -11,22 +11,51 @@ development environment for this study showed 2x wall-clock variance on
 identical deterministic runs, which is exactly what this protocol
 eliminates).
 
-- CPU battery: any modern 8-16 core x86 machine, e.g. AWS `c7i.4xlarge`
-  / `m7i.4xlarge` (on-demand, not burstable - avoid `t*` instances), or
-  a local workstation. 32 GB RAM is ample (largest dense matrix:
-  covtype subsample 100k x 54; gisette 6000 x 5000).
-- GPU (only for the ThunderSVM baseline): any NVIDIA card, e.g. AWS
-  `g5.xlarge`.
+- CPU battery: any modern 8-16+ core x86 machine - a Lightning.ai
+  Studio on a >= 16 vCPU CPU tier (see 1a), an AWS `c7i.4xlarge` /
+  `m7i.4xlarge` (on-demand, not burstable - avoid `t*` instances), or a
+  local workstation. 32 GB RAM is ample (largest dense matrix: covtype
+  subsample 100k x 54; gisette 6000 x 5000).
+- GPU (only for the ThunderSVM baseline): any NVIDIA card - a T4/L4
+  Studio on Lightning.ai, or AWS `g5.xlarge`.
 - Report in the paper: CPU model, core count, RAM, OS, BLAS
   implementation (`numpy.show_config()`), and Python/library versions.
+
+### 1a. Running on Lightning.ai (recommended setup)
+
+Lightning AI Studios give each session a dedicated cloud VM (AWS-backed),
+which satisfies the single-tenant requirement; the environment persists
+across machine switches, so you can develop on the free CPU tier and
+switch to the benchmark machine only for timed runs.
+
+- **CPU battery**: switch the Studio to the largest CPU machine tier
+  offered in the machine picker - prefer >= 16 vCPU / 32 GB RAM
+  (32 vCPU if offered; 8 vCPU / 32 GB is the workable minimum - gisette
+  and covtype are the memory/compute peaks). Use *on-demand*, not
+  interruptible, for the timed runs: an interruption mid-battery ruins a
+  seed cell.
+- **GPU (ThunderSVM baseline only)**: a T4 (~$0.41/hr as of Sep 2026)
+  is sufficient - ThunderSVM is not compute-bound at these problem
+  sizes; L4 (~$0.60/hr) or A10G (~$0.71/hr) if the T4 queue is long.
+  No need for A100/H100.
+- **Practicalities**: disable (or lengthen) the Studio auto-sleep
+  timeout before launching the battery, and run it under
+  `nohup ... &` so a browser disconnect cannot kill it; results are
+  written incrementally to JSON, so an interrupted run resumes by
+  rerunning only missing cells. Record the exact machine tier shown in
+  the picker in the paper's hardware paragraph.
+- Expected cost: the full CPU battery is a several-hour run on a
+  mid-tier CPU machine plus an hour or two of T4 - a few dollars total
+  at current rates. (Prices and tiers change; verify in the machine
+  picker at run time.)
 
 ## 2. Machine setup
 
 ```bash
-# performance governor, no frequency scaling surprises (Linux)
-sudo cpupower frequency-set -g performance   # or equivalent
-# optional but recommended: disable turbo for stable clocks
-echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
+# On bare metal, pin clocks (skip on cloud VMs - Lightning/AWS guests
+# cannot control the governor; a dedicated instance type is the control):
+#   sudo cpupower frequency-set -g performance
+#   echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo
 
 git clone <repo> && cd triangle-algorithm
 python3 -m venv .venv && source .venv/bin/activate

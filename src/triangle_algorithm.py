@@ -66,15 +66,25 @@ class EnhancedTriangleAlgorithm:
     """Enhanced Triangle Algorithm over two point sets V (n x d), W (m x d)."""
 
     def __init__(self, V, W, *, joint_update=True, cache_dots=True,
-                 anti_zigzag=True, prioritized=True,
+                 anti_zigzag=True, zigzag_strategy='midpoint', prioritized=True,
                  refresh_every=100, full_scan_every=5, seed=None):
+        """zigzag_strategy: what to do when an i,j,i,j pivot cycle is detected.
+          'midpoint' - pivot on the midpoint of the two cycling vertices
+                       (the strategy suggested in the paper);
+          'away'     - away step: shrink the weight of the worst active
+                       vertex (Guelat-Marcotte / away-step Frank-Wolfe);
+          'pairwise' - transfer weight from the worst active vertex to the
+                       best pivot (MDM / pairwise Frank-Wolfe step);
+          None       - no remedy (anti_zigzag=False implies None).
+        """
         self.V = np.ascontiguousarray(V)
         self.W = np.ascontiguousarray(W)
         self.n, self.d = self.V.shape
         self.m = self.W.shape[0]
         self.joint_update = joint_update
         self.cache_dots = cache_dots
-        self.anti_zigzag = anti_zigzag
+        self.anti_zigzag = anti_zigzag and zigzag_strategy is not None
+        self.zigzag_strategy = zigzag_strategy if self.anti_zigzag else None
         self.prioritized = prioritized
         self.refresh_every = refresh_every
         self.full_scan_every = full_scan_every
@@ -307,12 +317,22 @@ class EnhancedTriangleAlgorithm:
     # anti-zig-zag
     # ------------------------------------------------------------------
     def _zigzag_candidate(self, hist):
-        """Detect an i,j,i,j pattern in recent pivots; return (i, j) or None."""
-        if not self.anti_zigzag or len(hist) < 4:
+        """Detect pivot oscillation in recent history.
+
+        Returns (i, j) when the incoming pivot hist[-1] was already used
+        within the previous three steps with some other pivot in between
+        (this covers the classic i,j,i,j two-cycle and short cycles).
+        """
+        if not self.anti_zigzag or len(hist) < 3:
             return None
-        i1, j1, i2, j2 = hist[-4], hist[-3], hist[-2], hist[-1]
-        if i1 == i2 and j1 == j2 and i1 != j1:
-            return (i1, j1)
+        cur = hist[-1]
+        if cur < 0:
+            return None
+        for back in (hist[-3], hist[-4] if len(hist) >= 4 else -9):
+            if back == cur:
+                other = hist[-2]
+                if other >= 0 and other != cur:
+                    return (cur, other)
         return None
 
     def _apply_p_midpoint(self, i, j):
@@ -354,6 +374,124 @@ class EnhancedTriangleAlgorithm:
             return False
         self._apply_q(None, beta, colWa, colWe, wsq, eval_, cval,
                       wsplit=[(i, 0.5), (j, 0.5)])
+        return True
+
+    # ------------------------------------------------------------------
+    # away and pairwise (MDM) steps
+    # ------------------------------------------------------------------
+    def _worst_active_p(self):
+        """Active vertex of V most opposed to the descent direction:
+        argmin over support of (q - p).u = (b - a)[u]."""
+        cand = [u for u, w in self.wV.items() if u >= 0 and w > 1e-12]
+        if not cand:
+            return None
+        s = self.b - self.a
+        return min(cand, key=lambda u: s[u])
+
+    def _worst_active_q(self):
+        cand = [u for u, w in self.wW.items() if u >= 0 and w > 1e-12]
+        if not cand:
+            return None
+        s = self.c - self.e
+        return min(cand, key=lambda u: s[u])
+
+    def _away_p(self, u):
+        """Away step: p <- p + gamma (p - V[u]), gamma <= w_u / (1 - w_u)."""
+        wu = self.wV.get(u, 0.0)
+        if wu <= 1e-12 or wu >= 1.0 - 1e-12:
+            return False
+        num = self.pq - self.b[u] - self.pp + self.a[u]   # (q-p).(p-u)
+        den = self.pp - 2.0 * self.a[u] + self.Vsq[u]     # ||p-u||^2
+        if den <= _EPS_NUM or num <= 0.0:
+            return False
+        g = min(num / den, wu / (1.0 - wu))
+        colVa, colVc = self._gram_col_V(u)
+        au, bu = self.a[u], self.b[u]
+        op = 1.0 + g
+        self.pq = op * self.pq - g * bu
+        self.pp = op * op * self.pp - 2.0 * g * op * au + g * g * self.Vsq[u]
+        self.a = op * self.a - g * colVa
+        self.c = op * self.c - g * colVc
+        self.p *= op
+        self.p -= g * self.V[u].astype(np.float64)
+        self.wV = {k: op * w for k, w in self.wV.items()}
+        self.wV[u] = self.wV[u] - g
+        if self.wV[u] <= 1e-14:
+            del self.wV[u]
+        return True
+
+    def _away_q(self, u):
+        wu = self.wW.get(u, 0.0)
+        if wu <= 1e-12 or wu >= 1.0 - 1e-12:
+            return False
+        num = self.pq - self.c[u] - self.qq + self.e[u]   # (p-q).(q-u)
+        den = self.qq - 2.0 * self.e[u] + self.Wsq[u]     # ||q-u||^2
+        if den <= _EPS_NUM or num <= 0.0:
+            return False
+        g = min(num / den, wu / (1.0 - wu))
+        colWa, colWe = self._gram_col_W(u)
+        eu, cu = self.e[u], self.c[u]
+        op = 1.0 + g
+        self.pq = op * self.pq - g * cu
+        self.qq = op * op * self.qq - 2.0 * g * op * eu + g * g * self.Wsq[u]
+        self.b = op * self.b - g * colWa
+        self.e = op * self.e - g * colWe
+        self.q *= op
+        self.q -= g * self.W[u].astype(np.float64)
+        self.wW = {k: op * w for k, w in self.wW.items()}
+        self.wW[u] = self.wW[u] - g
+        if self.wW[u] <= 1e-14:
+            del self.wW[u]
+        return True
+
+    def _pairwise_p(self, v, u):
+        """MDM step: transfer weight from active u to pivot v,
+        p <- p + gamma (V[v] - V[u]), gamma <= w_u."""
+        wu = self.wV.get(u, 0.0)
+        if wu <= 1e-12 or v == u:
+            return False
+        colv_a, colv_c = self._gram_col_V(v)
+        colu_a, colu_c = self._gram_col_V(u)
+        num = (self.b[v] - self.b[u]) - (self.a[v] - self.a[u])  # (q-p).(v-u)
+        den = self.Vsq[v] - 2.0 * colv_a[u] + self.Vsq[u]        # ||v-u||^2
+        if den <= _EPS_NUM or num <= 0.0:
+            return False
+        g = min(num / den, wu)
+        self.pq += g * (self.b[v] - self.b[u])
+        self.pp += 2.0 * g * (self.a[v] - self.a[u]) + g * g * den
+        self.a += g * (colv_a - colu_a)
+        self.c += g * (colv_c - colu_c)
+        self.p += g * (self.V[v].astype(np.float64)
+                       - self.V[u].astype(np.float64))
+        self.wV[v] = self.wV.get(v, 0.0) + g
+        self.wV[u] = wu - g
+        if self.wV[u] <= 1e-14:
+            del self.wV[u]
+        self.active_V.add(v)
+        return True
+
+    def _pairwise_q(self, v, u):
+        wu = self.wW.get(u, 0.0)
+        if wu <= 1e-12 or v == u:
+            return False
+        colv_a, colv_e = self._gram_col_W(v)
+        colu_a, colu_e = self._gram_col_W(u)
+        num = (self.c[v] - self.c[u]) - (self.e[v] - self.e[u])  # (p-q).(v-u)
+        den = self.Wsq[v] - 2.0 * colv_e[u] + self.Wsq[u]
+        if den <= _EPS_NUM or num <= 0.0:
+            return False
+        g = min(num / den, wu)
+        self.pq += g * (self.c[v] - self.c[u])
+        self.qq += 2.0 * g * (self.e[v] - self.e[u]) + g * g * den
+        self.b += g * (colv_a - colu_a)
+        self.e += g * (colv_e - colu_e)
+        self.q += g * (self.W[v].astype(np.float64)
+                       - self.W[u].astype(np.float64))
+        self.wW[v] = self.wW.get(v, 0.0) + g
+        self.wW[u] = wu - g
+        if self.wW[u] <= 1e-14:
+            del self.wW[u]
+        self.active_W.add(v)
         return True
 
     # ------------------------------------------------------------------
@@ -479,6 +617,36 @@ class EnhancedTriangleAlgorithm:
     def _step(self, iV, iW, sV=-np.inf, sW=-np.inf):
         d_before = self.dist2()
         moved = False
+        # zig-zag remedies apply on cycle detection, before (and instead
+        # of) the regular toward-step, in joint and single branches alike
+        if self.zigzag_strategy is not None:
+            did = False
+            zzV = self._zigzag_candidate(self.hist_V + [iV]) \
+                if iV is not None else None
+            if zzV is not None:
+                if self.zigzag_strategy == 'pairwise':
+                    u = self._worst_active_p()
+                    did |= u is not None and self._pairwise_p(iV, u)
+                elif self.zigzag_strategy == 'away':
+                    u = self._worst_active_p()
+                    did |= u is not None and self._away_p(u)
+                else:  # midpoint
+                    did |= self._apply_p_midpoint(*zzV)
+            zzW = self._zigzag_candidate(self.hist_W + [iW]) \
+                if iW is not None else None
+            if zzW is not None:
+                if self.zigzag_strategy == 'pairwise':
+                    u = self._worst_active_q()
+                    did |= u is not None and self._pairwise_q(iW, u)
+                elif self.zigzag_strategy == 'away':
+                    u = self._worst_active_q()
+                    did |= u is not None and self._away_q(u)
+                else:  # midpoint
+                    did |= self._apply_q_midpoint(*zzW)
+            if did:
+                self.hist_V.append(-2)
+                self.hist_W.append(-2)
+                return self.dist2() <= d_before + _EPS_NUM * max(1.0, d_before)
         if iV is not None and iW is not None and not self.joint_update:
             # without joint updates, advance the side with the larger
             # violation so both iterates keep making progress
@@ -502,7 +670,8 @@ class EnhancedTriangleAlgorithm:
                 self.hist_V.append(iV)
                 self.hist_W.append(iW)
         elif iV is not None:
-            zz = self._zigzag_candidate(self.hist_V + [iV])
+            zz = self._zigzag_candidate(self.hist_V + [iV]) \
+                if self.zigzag_strategy == 'midpoint' else None
             if zz is not None and self._apply_p_midpoint(*zz):
                 self.hist_V.append(-1)
                 moved = True
@@ -513,7 +682,8 @@ class EnhancedTriangleAlgorithm:
                     self.hist_V.append(iV)
                     moved = True
         elif iW is not None:
-            zz = self._zigzag_candidate(self.hist_W + [iW])
+            zz = self._zigzag_candidate(self.hist_W + [iW]) \
+                if self.zigzag_strategy == 'midpoint' else None
             if zz is not None and self._apply_q_midpoint(*zz):
                 self.hist_W.append(-1)
                 moved = True

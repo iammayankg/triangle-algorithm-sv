@@ -189,6 +189,41 @@ kernel-row cache alone closes much of the gap (1.5x at d = 10,000), which
 supports the paper's own limitation note that comparisons should be extended
 to modern solvers (LIBSVM, LIBLINEAR, ThunderSVM).
 
+## Extension: beyond the midpoint anti-zig-zag strategy
+
+The paper's anti-zig-zag remedy pivots on the midpoint of two alternating
+pivots. Since TA II's toward-steps are Frank-Wolfe/Gilbert-type updates,
+the FW literature suggests two stronger remedies, both implemented here as
+`zigzag_strategy` options exploiting the weight bookkeeping the algorithm
+already maintains:
+
+- **away** — an away step (Guelat-Marcotte): shrink the weight of the worst
+  active vertex, moving p along p - u;
+- **pairwise** — an MDM/pairwise-FW step: transfer weight directly from the
+  worst active vertex to the best pivot, moving p along v - u.
+
+Oscillation is detected when the incoming pivot was already used within the
+previous three steps. Benchmark (`src/zigzag_bench.py`), distance solved to
+eps = 1e-6:
+
+| instance | none | midpoint | away | pairwise |
+|---|---:|---:|---:|---:|
+| Gaussian d=30, n=200, k=1.3 | 158,941 it / 6.6 s | 148,996 it / 6.5 s | **106 it / 0.005 s** | 181 it / 0.008 s |
+| Gaussian d=100, n=1000, k=1.2 | 300,000 it (maxiter) | 300,000 it (maxiter) | 15,886 it / 0.90 s | **3,921 it / 0.22 s** |
+
+At tight tolerances the midpoint strategy is nearly ineffective (late-stage
+oscillation just re-forms on the new face), while away/pairwise steps cut
+iterations by two to three orders of magnitude *and* land closer to the true
+optimum — consistent with the linear-convergence guarantees of away-step and
+pairwise Frank-Wolfe over polytopes. On the classic pathological case
+(optimum in the relative interior of an edge) the enhanced algorithm needs no
+remedy at all: the paper's joint closest-point update already lands on the
+optimum in a handful of iterations, making it itself a powerful anti-zig-zag
+device. At the paper's working tolerance of eps = 1e-3 the effect is modest
+(~11% fewer iterations at d = 1000), which explains why the midpoint
+heuristic sufficed in the original study; the stronger steps matter when
+high-accuracy solutions are required.
+
 ## Reproducing
 
 ```bash

@@ -69,6 +69,7 @@ class SoftMarginTA(EnhancedTriangleAlgorithm):
     def _gram_col_V(self, i):
         col = self._colV.get(i)
         if col is None:
+            self.col_evals += 1
             x = self.V[i]
             cV = (self.V @ x).astype(np.float64)
             cV[i] += 1.0 / self.C
@@ -79,6 +80,7 @@ class SoftMarginTA(EnhancedTriangleAlgorithm):
     def _gram_col_W(self, j):
         col = self._colW.get(j)
         if col is None:
+            self.col_evals += 1
             x = self.W[j]
             cW = (self.W @ x).astype(np.float64)
             cW[j] += 1.0 / self.C
@@ -103,6 +105,7 @@ class SoftMarginSMO(SMO):
     def _krow(self, i):
         row = self._cache.get(i)
         if row is None:
+            self.row_evals += 1
             row = (self.X @ self.X[i]).astype(np.float64)
             row[i] += 1.0 / self.C_soft
             self._cache[i] = row

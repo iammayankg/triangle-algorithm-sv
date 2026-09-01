@@ -90,6 +90,7 @@ class KernelETA(EnhancedTriangleAlgorithm):
     def _gram_col_V(self, i):
         col = self._colV.get(i)
         if col is None:
+            self.col_evals += 1
             x, xsq = self.V[i], self._Vsq_raw[i]
             cV = self.kern.cross(self.V, self._Vsq_raw, x, xsq)
             if self.reg:
@@ -102,6 +103,7 @@ class KernelETA(EnhancedTriangleAlgorithm):
     def _gram_col_W(self, j):
         col = self._colW.get(j)
         if col is None:
+            self.col_evals += 1
             x, xsq = self.W[j], self._Wsq_raw[j]
             cW = self.kern.cross(self.W, self._Wsq_raw, x, xsq)
             if self.reg:
@@ -189,6 +191,7 @@ class KernelSMO(SMO):
     def _krow(self, i):
         row = self._cache.get(i)
         if row is None:
+            self.row_evals += 1
             row = self.kern.cross(self.X, self._Xsq_raw, self.X[i],
                                   self._Xsq_raw[i])
             if self.reg:

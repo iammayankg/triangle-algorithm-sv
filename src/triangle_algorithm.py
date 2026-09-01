@@ -133,6 +133,12 @@ class EnhancedTriangleAlgorithm:
         # lazy Gram-column caches: idx -> (V @ x, W @ x) for x = V[idx] / W[idx]
         self._colV: dict[int, tuple[np.ndarray, np.ndarray]] = {}
         self._colW: dict[int, tuple[np.ndarray, np.ndarray]] = {}
+        # oracle counter: O(nd) column evaluations (cache misses) - an
+        # implementation-independent cost metric for benchmarking
+        self.col_evals = 0
+        # optional convergence trace: set to a list before solve_distance
+        # to receive (iteration, elapsed_s, UB, LB_best) at every full scan
+        self.trace = None
 
     # ------------------------------------------------------------------
     # state initialisation & cache plumbing
@@ -166,6 +172,7 @@ class EnhancedTriangleAlgorithm:
         if self.cache_dots:
             col = self._colV.get(i)
             if col is None:
+                self.col_evals += 1
                 x = self.V[i]
                 col = ((self.V @ x).astype(np.float64),
                        (self.W @ x).astype(np.float64))
@@ -179,6 +186,7 @@ class EnhancedTriangleAlgorithm:
         if self.cache_dots:
             col = self._colW.get(j)
             if col is None:
+                self.col_evals += 1
                 x = self.W[j]
                 col = ((self.V @ x).astype(np.float64),
                        (self.W @ x).astype(np.float64))
@@ -911,6 +919,9 @@ class EnhancedTriangleAlgorithm:
                 lb = (float(np.min(self.a - self.b))
                       - float(np.max(self.c - self.e))) / ub
                 lb_best = max(lb_best, lb)
+                if self.trace is not None:
+                    self.trace.append((it, time.perf_counter() - t0,
+                                       ub, lb_best))
                 if ub - lb_best <= eps * ub:
                     status = 'converged'
                     break

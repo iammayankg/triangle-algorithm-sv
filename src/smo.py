@@ -54,10 +54,12 @@ class SMO:
         self.diag = np.einsum('ij,ij->i', self.X, self.X).astype(np.float64)
         self._cache: OrderedDict[int, np.ndarray] = OrderedDict()
         self._cache_rows = cache_rows
+        self.row_evals = 0
 
     def _krow(self, i):
         row = self._cache.get(i)
         if row is None:
+            self.row_evals += 1
             row = (self.X @ self.X[i]).astype(np.float64)
             self._cache[i] = row
             if len(self._cache) > self._cache_rows:

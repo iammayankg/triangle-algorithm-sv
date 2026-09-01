@@ -23,6 +23,11 @@ eliminates).
 
 ### 1a. Running on Lightning.ai (recommended setup)
 
+> Step-by-step operational instructions (Studio creation, machine
+> switching, launch, ThunderSVM install, retrieval):
+> **docs/lightning_runbook.md**. This section holds only the hardware
+> choices.
+
 Lightning AI Studios give each session a dedicated cloud VM (AWS-backed),
 which satisfies the single-tenant requirement; the environment persists
 across machine switches, so you can develop on the free CPU tier and

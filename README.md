@@ -24,6 +24,10 @@ anti-zig-zag pivot strategy, and prioritized searches.
 - `src/plots.py` — figures
 - `tests/test_correctness.py` — verification against exact QP ground truth
 - `results/` — result tables (CSV/JSON), figures, and the raw run log
+- `docs/` — convergence analysis (`block_convergence.md`), full-scale
+  experiment protocol (`experiments_protocol.md`), and the Lightning.ai
+  runbook (`lightning_runbook.md`)
+- `paper/` — draft paper skeleton (LaTeX)
 
 ## Quick start
 

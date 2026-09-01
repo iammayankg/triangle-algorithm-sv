@@ -40,5 +40,23 @@
     "iterations": 1.0,
     "time_s": 0.011238823333390732,
     "intersect_rate": 0.0
+  },
+  {
+    "dim": 2000,
+    "iterations": 1.0,
+    "time_s": 0.02334641133347759,
+    "intersect_rate": 0.0
+  },
+  {
+    "dim": 5000,
+    "iterations": 1.0,
+    "time_s": 0.08083694099999168,
+    "intersect_rate": 0.0
+  },
+  {
+    "dim": 10000,
+    "iterations": 1.0,
+    "time_s": 0.13566374133332224,
+    "intersect_rate": 0.0
   }
 ]

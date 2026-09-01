@@ -363,6 +363,51 @@ One design note: the geometric algorithm's natural dial is the cap mu
 (equivalently nu); solving for a prescribed C instead requires walking the
 C <-> mu equivalence, whereas nu needs no search.
 
+## Extension: kernelized Triangle Algorithm
+
+The ETA touches data only through inner products, so kernelization changes
+plumbing, not algorithm (`src/kernel_ta.py`): Gram columns become kernel
+columns k(V, x_i); squared norms become kernel diagonals; the iterates
+exist purely as convex weights (no explicit feature vector - the base
+class's p, q become optional), with the exact cache refresh reconstructed
+from the support's cached kernel columns; and the classifier is the kernel
+expansion of the witness-pair bisector. Supported: linear, RBF,
+polynomial, each optionally with a ridge term K + I/C giving the
+kernelized L2 soft margin by the same sparse-diagonal trick as the linear
+case. `KernelSMO` is the matching baseline.
+
+Validation (`tests/test_kernel.py`): the linear kernel reproduces the
+euclidean ETA to machine precision (1e-12..1e-16); RBF distances match the
+exact kernel QP to ~1e-9 on 8 random instances; agreement with sklearn
+SVC's hard-margin RBF solution (via ||w_H||^2 = (alpha y)' K (alpha y)) to
+~1e-5; kernel SMO matches the QP to ~1e-8.
+
+Experiment (`src/kernel_experiment.py`): the kernel analogue of Table 3 -
+separated Gaussian clouds (k = 1.2), RBF with gamma = 1/d, n = 3,000/set,
+hard margin (2-trial means):
+
+| d | K-ETA | K-SMO | LIBSVM (SVC) | rel. dist (all pairs) |
+|--:|--:|--:|--:|--:|
+| 10 | 2.1 s | 0.1 s | 0.04 s | < 6e-4 |
+| 100 | 0.9 s | 0.1 s | 0.1 s | < 6e-4 |
+| 1000 | 1.1 s | 1.4 s | 1.5 s | < 5e-4 |
+
+![kernel comparison](results/fig_kernel.png)
+
+Kernel L2 soft margin (K + I/C, overlapping data, d = 100): K-ETA and
+K-SMO agree to 2e-5 at C = 0.1 and 7e-6 at C = 1.
+
+Findings: all three solvers agree on the feature-space hull distance and
+find identical support counts. The timing story inverts the linear one at
+low dimension - LIBSVM's shrinking SMO is extremely effective on RBF
+hard-margin problems, beating K-ETA by an order of magnitude at d <= 100 -
+but the familiar pattern reasserts itself as d grows: at d = 1000, where
+kernel-column evaluation (O(nd)) dominates and the TA needs fewer of them,
+K-ETA is again the fastest. In feature space the RBF geometry is benign
+(nearly-orthogonal unit vectors, well-separated hulls), which is exactly
+the regime kernel SMO was engineered for; the Triangle Algorithm's edge
+lives where per-column cost is high.
+
 ## Reproducing
 
 ```bash

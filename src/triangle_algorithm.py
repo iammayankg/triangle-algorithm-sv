@@ -186,16 +186,17 @@ class EnhancedTriangleAlgorithm:
         self.a = om * self.a + alpha * colVa
         self.c = om * self.c + alpha * colVc
         if wsplit is None:
-            x = self.V[i].astype(np.float64)
-            self.p *= om
-            self.p += alpha * x
+            if self.p is not None:
+                self.p *= om
+                self.p += alpha * self.V[i].astype(np.float64)
             self.wV = {k: om * w for k, w in self.wV.items()}
             self.wV[i] = self.wV.get(i, 0.0) + alpha
             self.active_V.add(i)
         else:  # synthetic midpoint of vertices in wsplit
-            self.p *= om
-            for k, share in wsplit:
-                self.p += (alpha * share) * self.V[k].astype(np.float64)
+            if self.p is not None:
+                self.p *= om
+                for k, share in wsplit:
+                    self.p += (alpha * share) * self.V[k].astype(np.float64)
             self.wV = {k: om * w for k, w in self.wV.items()}
             for k, share in wsplit:
                 self.wV[k] = self.wV.get(k, 0.0) + alpha * share
@@ -215,16 +216,17 @@ class EnhancedTriangleAlgorithm:
         self.b = om * self.b + beta * colWa
         self.e = om * self.e + beta * colWe
         if wsplit is None:
-            x = self.W[j].astype(np.float64)
-            self.q *= om
-            self.q += beta * x
+            if self.q is not None:
+                self.q *= om
+                self.q += beta * self.W[j].astype(np.float64)
             self.wW = {k: om * w for k, w in self.wW.items()}
             self.wW[j] = self.wW.get(j, 0.0) + beta
             self.active_W.add(j)
         else:
-            self.q *= om
-            for k, share in wsplit:
-                self.q += (beta * share) * self.W[k].astype(np.float64)
+            if self.q is not None:
+                self.q *= om
+                for k, share in wsplit:
+                    self.q += (beta * share) * self.W[k].astype(np.float64)
             self.wW = {k: om * w for k, w in self.wW.items()}
             for k, share in wsplit:
                 self.wW[k] = self.wW.get(k, 0.0) + beta * share
@@ -420,8 +422,9 @@ class EnhancedTriangleAlgorithm:
         self.pp = op * op * self.pp - 2.0 * g * op * au + g * g * self.Vsq[u]
         self.a = op * self.a - g * colVa
         self.c = op * self.c - g * colVc
-        self.p *= op
-        self.p -= g * self.V[u].astype(np.float64)
+        if self.p is not None:
+            self.p *= op
+            self.p -= g * self.V[u].astype(np.float64)
         self.wV = {k: op * w for k, w in self.wV.items()}
         self.wV[u] = self.wV[u] - g
         if self.wV[u] <= 1e-14:
@@ -444,8 +447,9 @@ class EnhancedTriangleAlgorithm:
         self.qq = op * op * self.qq - 2.0 * g * op * eu + g * g * self.Wsq[u]
         self.b = op * self.b - g * colWa
         self.e = op * self.e - g * colWe
-        self.q *= op
-        self.q -= g * self.W[u].astype(np.float64)
+        if self.q is not None:
+            self.q *= op
+            self.q -= g * self.W[u].astype(np.float64)
         self.wW = {k: op * w for k, w in self.wW.items()}
         self.wW[u] = self.wW[u] - g
         if self.wW[u] <= 1e-14:
@@ -469,8 +473,9 @@ class EnhancedTriangleAlgorithm:
         self.pp += 2.0 * g * (self.a[v] - self.a[u]) + g * g * den
         self.a += g * (colv_a - colu_a)
         self.c += g * (colv_c - colu_c)
-        self.p += g * (self.V[v].astype(np.float64)
-                       - self.V[u].astype(np.float64))
+        if self.p is not None:
+            self.p += g * (self.V[v].astype(np.float64)
+                           - self.V[u].astype(np.float64))
         self.wV[v] = self.wV.get(v, 0.0) + g
         self.wV[u] = wu - g
         if self.wV[u] <= 1e-14:
@@ -493,8 +498,9 @@ class EnhancedTriangleAlgorithm:
         self.qq += 2.0 * g * (self.e[v] - self.e[u]) + g * g * den
         self.b += g * (colv_a - colu_a)
         self.e += g * (colv_e - colu_e)
-        self.q += g * (self.W[v].astype(np.float64)
-                       - self.W[u].astype(np.float64))
+        if self.q is not None:
+            self.q += g * (self.W[v].astype(np.float64)
+                           - self.W[u].astype(np.float64))
         self.wW[v] = self.wW.get(v, 0.0) + g
         self.wW[u] = wu - g
         if self.wW[u] <= 1e-14:
@@ -551,8 +557,10 @@ class EnhancedTriangleAlgorithm:
         return TAResult(status=status, distance=float(np.sqrt(self.dist2())),
                         lower_bound=0.0, iterations=it,
                         time=time.perf_counter() - t0,
-                        sparsity=self._sparsity(), p=self.p.copy(),
-                        q=self.q.copy(), weights_V=dict(self.wV),
+                        sparsity=self._sparsity(),
+                        p=None if self.p is None else self.p.copy(),
+                        q=None if self.q is None else self.q.copy(),
+                        weights_V=dict(self.wV),
                         weights_W=dict(self.wW))
 
     # ------------------------------------------------------------------
@@ -615,8 +623,10 @@ class EnhancedTriangleAlgorithm:
         return TAResult(status=status, distance=ub,
                         lower_bound=float(lb_best), iterations=it,
                         time=time.perf_counter() - t0,
-                        sparsity=self._sparsity(), p=self.p.copy(),
-                        q=self.q.copy(), weights_V=dict(self.wV),
+                        sparsity=self._sparsity(),
+                        p=None if self.p is None else self.p.copy(),
+                        q=None if self.q is None else self.q.copy(),
+                        weights_V=dict(self.wV),
                         weights_W=dict(self.wW))
 
     # ------------------------------------------------------------------

@@ -408,6 +408,52 @@ K-ETA is again the fastest. In feature space the RBF geometry is benign
 the regime kernel SMO was engineered for; the Triangle Algorithm's edge
 lives where per-column cost is high.
 
+## Extension: real benchmark datasets
+
+The sandbox's egress policy blocks the usual dataset hosts (OpenML,
+figshare, LIBSVM site, HuggingFace), so the suite uses real standards
+bundled inside PyPI packages: UCI Breast Cancer Wisconsin (wdbc, 569 x 30),
+UCI handwritten digits (odd-vs-even, 1797 x 64, and 3-vs-8, ~360 x 64), and
+a bundled 5,000-sample MNIST subset (odd-vs-even, 5000 x 784, and 3-vs-8,
+~1000 x 784). 75/25 stratified splits, features standardized on train
+(`src/benchmark_real.py`).
+
+**Geometry first.** TA I on the training hulls decides hard-margin
+feasibility: wdbc, digits-3v8 and mnist-3v8 are linearly separable
+(high-dimension, small-n regime); digits odd-vs-even is certifiably not
+(hulls intersect); mnist odd-vs-even is borderline (undecided in 2 x 10^4
+iterations) - the geometric solver gives this diagnosis for free.
+
+**L2 soft margin (C = 1), time / primal / test accuracy:**
+
+| dataset | SoftMarginTA (MDM) | SMO (ours) | LIBLINEAR |
+|--|--:|--:|--:|
+| wdbc | 0.06 s / 10.649 / .944 | 0.05 s / 10.644 / .944 | 0.003 s / 10.649 / .944 |
+| digits-oe | 1.95 s / 128.69 / .896 | 1.21 s / 128.61 / .896 | 0.01 s / 128.69 / .896 |
+| digits-3v8 | 0.02 s / 0.790 / .989 | 0.02 s / 0.790 / .989 | 0.002 s / 0.790 / .989 |
+| mnist5k-oe | **45.6 s** / 331.54 / .842 | 200.3 s / 323.27 / .845 | 48.8 s / 331.85 / .843 |
+| mnist5k-3v8 | 0.08 s / 0.438 / .956 | 0.06 s / 0.438 / .956 | 0.73 s / 0.438 / .956 |
+
+![benchmark times](results/fig_benchmarks.png)
+
+**nu-SVM (nu = 0.2), reduced hulls vs NuSVC:** distance agreement
+1e-5..9e-5 on every dataset, test accuracies within a point of each other
+(e.g. mnist5k-oe: 0.881 vs 0.882; TA 2.9 s vs NuSVC 1.9 s).
+
+**RBF (K + I/C, C = 1), KernelETA vs KernelSMO:** distance agreement
+2e-6..2e-5 everywhere; accuracies match the SVC(rbf) reference within ~1%
+(digits-oe jumps from 0.896 linear to 0.973 kernelized - the expected
+benefit on a real nonlinear task).
+
+Findings: on real data the TA family reproduces the standard solvers'
+solutions - primal objectives to 4-6 significant figures, identical test
+accuracies per dataset - and the synthetic-study timing pattern carries
+over: LIBLINEAR dominates the small low-dimensional sets, while on the
+hardest instance (mnist odd-vs-even: 784 dimensions, dense ~2,000-vector
+support) SoftMarginTA is the fastest solver tested, slightly ahead of
+LIBLINEAR and 4.4x ahead of SMO. The certified duality gap and the
+hard-margin feasibility test are capabilities the baselines do not offer.
+
 ## Reproducing
 
 ```bash

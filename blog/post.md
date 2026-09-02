@@ -12,7 +12,7 @@ Here is the version that's easy to picture. Take your two classes of points and 
 
 Once you see it this way, a different kind of training algorithm suggests itself. You don't have to solve a quadratic program. You can just walk toward the closest pair.
 
-This post is about one algorithm that does that, the Triangle Algorithm, and about a paper we've just finished on making it faster and putting a proper convergence proof under it. It's also about a benchmark run last week that went badly in an instructive way. I'll try to keep the mathematics to what's needed for the pictures to make sense. Everything below is backed by code that's public, and I say something at the end about how the work was actually done, because that part is a little unusual.
+This post is about one algorithm that does that, the Triangle Algorithm, and about a paper we've just finished on making it faster and putting a proper convergence proof under it. It's also about a benchmark run this week that went badly in an instructive way, and a second run that mapped out exactly where the badness starts. I'll try to keep the mathematics to what's needed for the pictures to make sense. Everything below is backed by code that's public, and I say something at the end about how the work was actually done, because that part is a little unusual.
 
 ---
 
@@ -92,7 +92,7 @@ At loose tolerance it does nothing, because the run finishes before the radius i
 
 ## Where it works and where it doesn't
 
-On the problems the theory says should suit it, hard margins, kernels, high dimension, ν-SVMs, the optimized solver was the fastest method to a certified solution on six of the seven benchmark classes we tried, somewhere between 1.6 and 2.5 times faster than LIBSVM. At a tight tolerance the paper-style configuration doesn't converge at all and the new one takes a fifth of a second.
+On the problems the theory says should suit it, hard margins, kernels, high dimension, ν-SVMs, the optimized solver was the fastest method to a certified solution on six of the seven benchmark classes we tried, somewhere between 1.6 and 2.5 times faster than the best standard solver for each class (LIBSVM, LIBLINEAR or NuSVC). At a tight tolerance the paper-style configuration doesn't converge at all and the new one takes a fifth of a second.
 
 ![Consolidated benchmark](figs/08_regimes.png)
 
@@ -102,9 +102,23 @@ Then we rented a 32-core machine and ran the standard real-world benchmarks (a9a
 
 My first assumption was that it was stuck; the times were too uniform. It wasn't. The traces show it converging linearly, exactly as the theorem says, just with a terrible constant. The reason is in the support: on these datasets 60 to 65 percent of the points end up as support vectors with nearly equal weights. In the difference-polytope picture that means the optimum is in the middle of an almost regular simplex with thousands of vertices, and the pyramidal width of a simplex shrinks like 1/n. Each iteration costs O(n) and the number of iterations grows with n, so the whole thing is quadratic. Coordinate descent on the primal, which is what LIBLINEAR does, never looks at support density and simply doesn't care.
 
-I tried the two obvious rescues. Starting from the centroid instead of a vertex made it slightly worse. Bigger blocks traded iterations for per-iteration cost and came out even. The theory was telling me the same thing both times: the geometry sets the rate, not the starting point. So the paper reports this as what it is, the edge of the method's useful regime, and points out that the theory predicted it. What I like about the certificate here is that the boundary is visible while the algorithm runs. Watch the support density and the gap and you know which side of it you're on.
+I tried the two obvious rescues. Starting from the centroid instead of a vertex made it slightly worse. Bigger blocks traded iterations for per-iteration cost and came out even. The theory was telling me the same thing both times: the geometry sets the rate, not the starting point.
 
-I'd rather publish that than a paper that only showed the six wins.
+So we gave every solver a ten-minute budget and ran the rest of the L2 battery. On the four overlapping datasets (a9a, w8a, ijcnn1, and covtype at a hundred thousand points), at three values of C, our solver hit the cap in every single cell and LIBLINEAR finished in between a third of a second and twenty-five seconds. One detail from those logs stuck with me. At C = 0.1 the iterate had LIBLINEAR's test accuracy, to three digits, long before the cap, while the certificate was still reporting a gap of 0.1 or worse. The point p is close to right; the proof that it's right is what takes an hour. That is what a small pyramidal width looks like from the inside.
+
+The fifth dataset went the other way, and it's the cleanest illustration I have of the whole argument. Gisette has five thousand features and is linearly separable, so even its soft-margin solution has a sparse support, about a fifth of the points. Same solver, same code, same tolerance: 30 to 45 seconds to a certified solution at every value of C, against four to five minutes for our SMO and between eight minutes and an hour and a half for LIBLINEAR run to the same primal accuracy, all landing on the same answer and the same test accuracy. At the largest C, LIBLINEAR spent its hour and a half and still stopped five percent short of the optimum the certificate had pinned down, with slightly lower test accuracy; on separable data the primal objective goes flat at large C and a progress-based stopping rule fires too early, which is the kind of thing a certificate exists to catch. Nothing about the algorithm changed between covtype and gisette. The polytope did.
+
+That run showed the boundary from the losing side. The theory also says where the winning side should be: sparse support, well-separated hulls, expensive inner products. So we ran a second battery on the same five datasets in the regime the algorithm is actually built for, hard margins and kernels, always against a baseline solving the same objective.
+
+![Regime battery on real data](figs/10_regime_battery.png)
+
+Some of it went the way the theory said. The first thing the algorithm does on each dataset is decide whether the two hulls intersect at all, which is a certificate that a linear hard margin does or doesn't exist; it settled that in under a minute per dataset, and none of the standard solvers can answer the question. Gisette, with five thousand features and a fifth of its points in the support, is the geometry the method likes: it tied LIBSVM on the linear hard margin, beat it by 20 percent on the RBF hard margin, and beat kernel SMO by a factor of three on the kernel soft margin, with identical solutions to five digits. Across all five datasets the kernel soft-margin cells needed four to six times fewer kernel-column evaluations than SMO; whether that turned into wall-clock depended on how expensive a column was, a win of three to four times on the wide datasets and a loss of about 1.5 times on the narrow ones, where our O(n) NumPy scan per iteration is the bottleneck and not the kernel.
+
+Some of it didn't. On ijcnn1's RBF hard margin the two solvers returned the same answer to the last digit, 819 support vectors, identical accuracy, and ours took 420 seconds where LIBSVM took 1.3. The hulls in feature space are 0.004 apart in a space of diameter about 1.4. That ratio goes into the rate constant squared, and no step rule fixes it; LIBSVM's second-order working-set selection just handles that conditioning better. On a9a and covtype the feature-space hulls are within a ten-thousandth of touching and neither solver certified anything, ours timing out honestly and LIBSVM's large-C surrogate stopping at its tolerance a long way out. And on w8a the feature-space hulls intersect, because the dataset contains identical points with opposite labels, so no hard margin exists; the algorithm proved that and moved on.
+
+So the picture that emerged is not "the method is slow on real data." It's that the method's speed is set by one geometric ratio, width over diameter, and the real datasets sample that ratio from both ends. The paper reports both. What I like about the certificate here is that the boundary is visible while the algorithm runs. Watch the support density and the gap and you know which side of it you're on.
+
+I'd rather publish that than a paper that only showed the wins.
 
 ---
 
@@ -114,7 +128,7 @@ Geometry gives you certificates. Framing the SVM as a distance between hulls han
 
 The step rule is not a detail. The gap between a toward-step and a weight transfer was the gap between 159,000 iterations and 181. The gap between an unguarded block and a guarded one is the gap between "usually faster" and "never slower."
 
-And the pyramidal width tells you in advance whether a method of this kind will fly or crawl. Sparse support, fat polytope, fast. Dense support, thin polytope, slow. If you have heavily overlapping data and want an L2 soft margin, use LIBLINEAR and don't look back. If you want a hard margin, a kernel, a ν-SVM, or a certificate you can trust, this family is worth trying.
+And the pyramidal width tells you in advance whether a method of this kind will fly or crawl. Sparse support, fat polytope, fast. Dense support or nearly touching hulls, thin polytope, slow. If you have heavily overlapping data and want an L2 soft margin, use LIBLINEAR and don't look back. If you want a hard margin in high dimension, a kernel with expensive columns, a ν-SVM, or a certificate you can trust, this family is worth trying.
 
 The solvers, the proofs, the numerical checks, and every experiment script including the ones that made the figures in this post are in the repository linked below.
 

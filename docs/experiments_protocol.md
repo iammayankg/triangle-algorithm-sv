@@ -110,8 +110,14 @@ results/smoke.json`.
   accuracy; seed 0 additionally records the (time, UB, LB) convergence
   trace for the gap-vs-time plots the linear-rate theorem predicts.
 - The summary prints mean +/- 95% CI (t-distribution) over seeds.
-  ETA and SMO each carry a 600 s budget per cell (LIBLINEAR is
-  unbounded, finishing in seconds); worst case ~21 min per cell, so
+  ETA and SMO each carry a 600 s budget per cell; LIBLINEAR is
+  unbounded by default (it finishes in seconds on the overlapping
+  sets but needs 8 min to 1.5 h on gisette at the matched 1e-6
+  tolerance). `--liblin-cap SECONDS` runs LIBLINEAR in a child process
+  that is killed at the cap and recorded as `timeout` with no model;
+  the paper's Table 2 shards were produced unbounded, so do not mix
+  capped and uncapped shards in one battery. Worst case ~21 min per
+  cell uncapped on the overlapping sets, so
   150 cells at `--parallel 12` take ~4.5 h. On the heavily overlapping
   datasets ETA and SMO are expected to time out (dense-support regime,
   Theorem 6) and report their achieved certified gaps - that is the

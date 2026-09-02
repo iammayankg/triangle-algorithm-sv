@@ -119,7 +119,12 @@ def acc(w, b, X, y01):
     return float(np.mean((X @ w + b > 0).astype(int) == y01))
 
 
-def run_cell(X, y, Xt, yt, C, trace):
+def run_cell(X, y, Xt, yt, C, trace, liblin_cap=None,
+             liblin_child_args=None):
+    """One cell: ETA, our SMO (both with the 600 s cap) and LIBLINEAR
+    (unbounded unless liblin_cap is given, in which case it runs in a
+    child process killed after liblin_cap seconds; liblin_child_args =
+    (name, C, seed, data_dir, max_n) lets the child reload the data)."""
     V, W = X[y == 1], X[y == 0]
     out = {}
 
@@ -148,19 +153,54 @@ def run_cell(X, y, Xt, yt, C, trace):
                       primal=2.0 / rs.hull_distance ** 2,
                       acc=acc(rs.w, rs.b, Xt, yt), status=rs.status)
 
+    if liblin_cap is None:
+        out['LIBLIN'] = fit_liblin(Xs, ys, Xt, yt, C)
+    else:
+        out['LIBLIN'] = _liblin_capped(liblin_cap, *liblin_child_args)
+    return out
+
+
+def fit_liblin(Xs, ys, Xt, yt, C, tol=1e-6):
+    """LIBLINEAR (LinearSVC, squared hinge, parameter C/2 so that the
+    objective is 1/2||w||^2 + C/2 sum xi^2); returns the LIBLIN record."""
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         t0 = time.perf_counter()
-        m = LinearSVC(loss='squared_hinge', C=C / 2.0, tol=1e-6,
+        m = LinearSVC(loss='squared_hinge', C=C / 2.0, tol=tol,
                       max_iter=200_000, intercept_scaling=100.0).fit(Xs, ys)
         el = time.perf_counter() - t0
     wv, bv = m.coef_.ravel(), float(m.intercept_[0])
     xi = np.maximum(0.0, 1.0 - ys * (Xs @ wv + bv))
-    out['LIBLIN'] = dict(time=el, iters=int(np.ravel(m.n_iter_)[0]),
-                         primal=0.5 * float(wv @ wv)
-                         + 0.5 * C * float(xi @ xi),
-                         acc=acc(wv, bv, Xt, yt), status='converged')
-    return out
+    return dict(time=el, iters=int(np.ravel(m.n_iter_)[0]),
+                primal=0.5 * float(wv @ wv) + 0.5 * C * float(xi @ xi),
+                acc=acc(wv, bv, Xt, yt), status='converged')
+
+
+def _liblin_capped(cap, name, C, seed, data_dir, max_n):
+    """Run fit_liblin in a child process with a wall-clock cap.
+    LinearSVC trains inside compiled code that cannot be interrupted, so
+    the only way to cap it is to kill the process; the child reloads the
+    (deterministic) cell data and prints the LIBLIN record as JSON.  On
+    timeout the record is status='timeout' with time=cap and no model."""
+    import subprocess
+    cmd = [sys.executable, str(Path(__file__).resolve()), '--liblin-child',
+           name, str(C), str(seed), str(data_dir), str(max_n)]
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=cap)
+    except subprocess.TimeoutExpired:
+        return dict(time=float(cap), iters=None, primal=float('nan'),
+                    acc=float('nan'), status='timeout')
+    if p.returncode != 0:
+        raise RuntimeError(f'LIBLINEAR child failed:\n{p.stderr[-2000:]}')
+    return json.loads(p.stdout.strip().splitlines()[-1])
+
+
+def _liblin_child(name, C, seed, data_dir, max_n):
+    X, y, Xt, yt = _load_cached(name, data_dir, max_n, seed)
+    V, W = X[y == 1], X[y == 0]
+    Xs = np.vstack([V, W])
+    ys = np.concatenate([np.ones(len(V)), -np.ones(len(W))])
+    print(json.dumps(fit_liblin(Xs, ys, Xt, yt, C)), flush=True)
 
 
 def _shard_path(out, name, C, seed):
@@ -169,11 +209,13 @@ def _shard_path(out, name, C, seed):
 
 def _run_one(job):
     """Worker entry: one (dataset, C, seed) cell -> shard file."""
-    name, C, seed, data_dir, max_n, out = job
+    name, C, seed, data_dir, max_n, out, liblin_cap = job
     shard = _shard_path(out, name, C, seed)
     t0 = time.time()
     X, y, Xt, yt = _load_cached(name, data_dir, max_n, seed)
-    cell = run_cell(X, y, Xt, yt, C, trace=(seed == 0))
+    cell = run_cell(X, y, Xt, yt, C, trace=(seed == 0),
+                    liblin_cap=liblin_cap,
+                    liblin_child_args=(name, C, seed, data_dir, max_n))
     recs = []
     for solver, rec in cell.items():
         rec.update(dataset=name, C=C, seed=seed, solver=solver,
@@ -228,7 +270,18 @@ def main():
     ap.add_argument('--parallel', type=int, default=1,
                     help='concurrent cells; set OMP_NUM_THREADS=1')
     ap.add_argument('--out', default='results/full_battery.json')
+    ap.add_argument('--liblin-cap', type=float, default=None,
+                    help='wall-clock cap in seconds for LIBLINEAR (runs it '
+                         'in a killable child process); default unbounded, '
+                         'which is what the paper\'s Table 2 shards used')
+    ap.add_argument('--liblin-child', nargs=5, metavar='ARG',
+                    help=argparse.SUPPRESS)   # internal: name C seed dir max_n
     args = ap.parse_args()
+
+    if args.liblin_child:
+        name, C, seed, data_dir, max_n = args.liblin_child
+        _liblin_child(name, float(C), int(seed), data_dir, int(max_n))
+        return
 
     if args.parallel > 1 and os.environ.get('OMP_NUM_THREADS') != '1':
         print('WARNING: set OMP_NUM_THREADS=1 when using --parallel '
@@ -244,7 +297,7 @@ def main():
                     done.append(json.loads(shard.read_text()))
                 else:
                     jobs.append((name, C, seed, args.data_dir,
-                                 args.max_n, args.out))
+                                 args.max_n, args.out, args.liblin_cap))
     print(f"{len(done)} cells already done (shards), {len(jobs)} to run, "
           f"parallel={args.parallel}", flush=True)
 

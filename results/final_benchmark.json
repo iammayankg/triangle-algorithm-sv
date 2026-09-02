@@ -2,7 +2,7 @@
   {
     "bench": "A hard d=1000",
     "solver": "ETA paper-style",
-    "time": 0.23748804200022278,
+    "time": 1.2542913600009342,
     "dist": 55.06307876711612,
     "status": "converged",
     "extra": ""
@@ -10,15 +10,15 @@
   {
     "bench": "A hard d=1000",
     "solver": "ETA block+shrink",
-    "time": 0.2357011539997984,
-    "dist": 55.03891018622246,
+    "time": 0.7213460739985749,
+    "dist": 55.039043575273446,
     "status": "converged",
     "extra": ""
   },
   {
     "bench": "A hard d=1000",
     "solver": "SMO (uncached)",
-    "time": 1.0247581180001362,
+    "time": 1.5477450510006747,
     "dist": 55.02815167986019,
     "status": "converged",
     "extra": ""
@@ -26,7 +26,7 @@
   {
     "bench": "A hard d=1000",
     "solver": "LIBSVM (SVC linear)",
-    "time": 0.389476468999419,
+    "time": 0.8478503530022863,
     "dist": 55.04440673062844,
     "status": "converged",
     "extra": ""
@@ -34,7 +34,7 @@
   {
     "bench": "B hard d=10000",
     "solver": "ETA paper-style",
-    "time": 8.029807756000082,
+    "time": 4.133650437997858,
     "dist": 170.97080795934906,
     "status": "converged",
     "extra": ""
@@ -42,7 +42,7 @@
   {
     "bench": "B hard d=10000",
     "solver": "ETA block+shrink",
-    "time": 8.613067291000334,
+    "time": 3.96517877199949,
     "dist": 170.95171704752596,
     "status": "converged",
     "extra": ""
@@ -50,7 +50,7 @@
   {
     "bench": "B hard d=10000",
     "solver": "SMO (uncached)",
-    "time": 28.92166913999972,
+    "time": 11.61570796199885,
     "dist": 170.97011285378932,
     "status": "converged",
     "extra": ""
@@ -58,7 +58,7 @@
   {
     "bench": "B hard d=10000",
     "solver": "LIBSVM (SVC linear)",
-    "time": 20.477502378999816,
+    "time": 22.553861665001023,
     "dist": 170.9684058169529,
     "status": "converged",
     "extra": ""
@@ -66,7 +66,7 @@
   {
     "bench": "C hard d=1000 tight",
     "solver": "ETA paper-style",
-    "time": 1.5097449570002937,
+    "time": 4.105781121998007,
     "dist": 55.04046926701202,
     "status": "maxiter",
     "extra": ""
@@ -74,15 +74,15 @@
   {
     "bench": "C hard d=1000 tight",
     "solver": "ETA block+shrink",
-    "time": 0.2124821109991899,
-    "dist": 55.03883939471085,
+    "time": 0.7183183300003293,
+    "dist": 55.03883936174397,
     "status": "converged",
     "extra": ""
   },
   {
     "bench": "C hard d=1000 tight",
     "solver": "SMO (uncached)",
-    "time": 1.3458655479998924,
+    "time": 2.8216452179985936,
     "dist": 55.03891995528796,
     "status": "converged",
     "extra": ""
@@ -90,7 +90,7 @@
   {
     "bench": "C hard d=1000 tight",
     "solver": "LIBSVM (SVC linear)",
-    "time": 0.42365469400010625,
+    "time": 1.147095664000517,
     "dist": 55.038945684330734,
     "status": "converged",
     "extra": ""
@@ -98,23 +98,23 @@
   {
     "bench": "D soft d=1000",
     "solver": "ETA mdm",
-    "time": 13.149419667000075,
-    "dist": 0.5781431656758748,
+    "time": 28.320332668998162,
+    "dist": 0.578143161434147,
     "status": "converged",
     "extra": ""
   },
   {
     "bench": "D soft d=1000",
     "solver": "ETA block(32)",
-    "time": 8.850787958000183,
-    "dist": 0.5781429424268983,
-    "status": "converged",
+    "time": 347.605118827003,
+    "dist": 0.818558175001329,
+    "status": "maxiter",
     "extra": ""
   },
   {
     "bench": "D soft d=1000",
     "solver": "LIBLINEAR sq-hinge",
-    "time": 13.83386075800081,
+    "time": 19.745107841998106,
     "dist": 0.5781422599901828,
     "status": "converged",
     "extra": "(dist from primal)"
@@ -122,23 +122,23 @@
   {
     "bench": "E mnist-oe",
     "solver": "ETA mdm",
-    "time": 43.94434535799974,
-    "dist": 0.07766884908547335,
+    "time": 110.14789566199761,
+    "dist": 0.07766480674323994,
     "status": "maxiter",
     "extra": ""
   },
   {
     "bench": "E mnist-oe",
     "solver": "ETA block(8)",
-    "time": 82.7453835209999,
-    "dist": 0.07763246632977587,
+    "time": 147.95342158900166,
+    "dist": 0.07763246637422914,
     "status": "converged",
     "extra": ""
   },
   {
     "bench": "E mnist-oe",
     "solver": "LIBLINEAR sq-hinge",
-    "time": 55.005324466000275,
+    "time": 157.5057339979976,
     "dist": 0.07763244246968698,
     "status": "converged",
     "extra": "(dist from primal)"
@@ -146,23 +146,23 @@
   {
     "bench": "F rbf d=1000",
     "solver": "K-ETA pairwise",
-    "time": 0.9978787520003607,
-    "dist": 0.4768407743460898,
+    "time": 4.895278446001612,
+    "dist": 0.47684077434608957,
     "status": "converged",
     "extra": ""
   },
   {
     "bench": "F rbf d=1000",
     "solver": "K-ETA block",
-    "time": 0.7576298339999994,
-    "dist": 0.4766734074118747,
+    "time": 3.703878774002078,
+    "dist": 0.4766723124995161,
     "status": "converged",
     "extra": ""
   },
   {
     "bench": "F rbf d=1000",
     "solver": "LIBSVM (SVC rbf)",
-    "time": 1.279858005999813,
+    "time": 4.468881402000989,
     "dist": 0.47663778782637495,
     "status": "converged",
     "extra": ""
@@ -170,15 +170,15 @@
   {
     "bench": "G nu=0.3 d=1000",
     "solver": "RCH-TA",
-    "time": 18.489094950000435,
-    "dist": 1.83376846484733,
+    "time": 66.63779380499909,
+    "dist": 1.8337684648473302,
     "status": "converged",
     "extra": ""
   },
   {
     "bench": "G nu=0.3 d=1000",
     "solver": "NuSVC (LIBSVM)",
-    "time": 21.8818001059999,
+    "time": 44.83287435799866,
     "dist": 1.8334899567653302,
     "status": "converged",
     "extra": ""

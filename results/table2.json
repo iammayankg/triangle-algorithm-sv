@@ -1,62 +1,62 @@
 [
   {
     "dim": 3,
-    "iterations": 13.0,
-    "time_s": 0.0015600196666885797,
+    "iterations": 14.333333333333334,
+    "time_s": 0.003232671000053718,
     "intersect_rate": 1.0
   },
   {
     "dim": 10,
-    "iterations": 13.666666666666666,
-    "time_s": 0.0019068313333718834,
+    "iterations": 14.0,
+    "time_s": 0.00296355166574358,
     "intersect_rate": 0.0
   },
   {
     "dim": 50,
     "iterations": 2.3333333333333335,
-    "time_s": 0.0013580553333364758,
+    "time_s": 0.001928563333422062,
     "intersect_rate": 0.0
   },
   {
     "dim": 100,
     "iterations": 1.0,
-    "time_s": 0.0012045156667378858,
+    "time_s": 0.05728639866659554,
     "intersect_rate": 0.0
   },
   {
     "dim": 300,
     "iterations": 1.0,
-    "time_s": 0.0028421163333405275,
+    "time_s": 0.0511265819992938,
     "intersect_rate": 0.0
   },
   {
     "dim": 500,
     "iterations": 1.0,
-    "time_s": 0.004640610000024026,
+    "time_s": 0.028524709999449744,
     "intersect_rate": 0.0
   },
   {
     "dim": 1000,
     "iterations": 1.0,
-    "time_s": 0.011238823333390732,
+    "time_s": 0.04452651100048873,
     "intersect_rate": 0.0
   },
   {
     "dim": 2000,
     "iterations": 1.0,
-    "time_s": 0.02334641133347759,
+    "time_s": 0.05485958366686342,
     "intersect_rate": 0.0
   },
   {
     "dim": 5000,
     "iterations": 1.0,
-    "time_s": 0.08083694099999168,
+    "time_s": 0.06039843033371047,
     "intersect_rate": 0.0
   },
   {
     "dim": 10000,
     "iterations": 1.0,
-    "time_s": 0.13566374133332224,
+    "time_s": 0.09262993100067736,
     "intersect_rate": 0.0
   }
 ]

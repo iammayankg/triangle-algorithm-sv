@@ -55,8 +55,8 @@ duality gap from supporting hyperplanes. We study the weight-transfer
 steps used by the enhanced TA and propose \emph{guarded block
 transfers}: $k$ Mitchell--Demyanov--Malozemov (MDM) transfers per scan
 are aggregated into a
-single exact line search, compared in $O(1)$ time against the single
-best transfer, and replaced by an away step whenever the leading
+single exact line search, compared against the single best transfer at
+a cost independent of $n$, and replaced by an away step whenever the leading
 transfer is capacity-clipped. Analysing the method on the
 Minkowski-difference polytope, where the objective is $1$-strongly
 convex and one pyramidal width governs the geometry, we prove global
@@ -109,8 +109,9 @@ reused across several transfers without weakening the guarantee.
 \begin{enumerate}\setlength\itemsep{0pt}
 \item \textbf{Guarded block transfers} (\S\ref{sec:alg}): pair the top-$k$
 receivers with the worst-$k$ active donors, take one exact line search
-along the aggregated direction, and \emph{guard} by an $O(1)$ comparison
-with the single MDM step; on capacity-clipped iterations, fall back to
+along the aggregated direction, and \emph{guard} by a comparison with
+the single MDM step that costs $O(k^2)$ cached dot products, independent
+of $n$; on capacity-clipped iterations, fall back to
 an away step. Cache updates for a whole block are one matrix--vector
 product.
 \item \textbf{Linear convergence with explicit constants}
@@ -191,7 +192,7 @@ pairwise direction of $Z$ (Lemma~\ref{lem:side}).
 \State $d_j\gets v_{r_j}-v_{u_j}$;\ $\mathrm{gap}_j\gets s^V_{r_j}-s^V_{u_j}$;\ discard pairs with $\mathrm{gap}_j\le0$ and receivers that are donors;\ $\gamma_j\gets\min(\mathrm{gap}_j/\norm{d_j}^2,\ c_j)$ \Comment{$c_j$: donor capacity}
 \If{pair 1 uncapped ($\gamma_1=\mathrm{gap}_1/\norm{d_1}^2$)}
   \State $\Delta_B\gets$ gain of exact line search $t\in[0,1]$ along $d=\sum_j\gamma_jd_j$;\quad $\Delta_1\gets$ gain of the MDM step
-  \State take the step with the larger gain \Comment{guard, $O(1)$}
+  \State take the step with the larger gain \Comment{guard, $O(k'^2)$}
 \Else
   \If{the away step on $u^*$ is boundary-clipped} take it \Comment{drop step: $\alpha_{u^*}\!\to0$}
   \Else\ take the best of \{block, MDM, away($u^*$), toward($r^*$)\}
@@ -204,15 +205,14 @@ Algorithm~\ref{alg:block} amortises one $O(n)$ scan over up to $k$
 transfers. Only the scan is amortised: a new receiver still costs one
 Gram or kernel column, $O(nd)$, and a block touches up to $2k'$
 columns, so Section~\ref{sec:exp} reports iterations, column
-evaluations and wall-clock separately. The implementation steps both
-sides per iteration, larger pairwise gap first, and skips the second
-side when the first step is a drop (Lemma~\ref{lem:twosided}). Every
-candidate gain is available in $O(1)$ from cached
-quantities: with $S=\ip{g}{d}$ and $D=\norm d^2$, the block gain is
+evaluations and wall-clock separately. Every candidate gain is
+available from cached quantities at a cost independent of $n$: with
+$S=\ip{g}{d}$ and $D=\norm d^2$, the block gain is
 $tS-t^2D/2$ at $t=\min(S/D,1)$, where $S=\sum_j\gamma_j\mathrm{gap}_j$
 and $D=\gamma^\top\Gamma\gamma$ for the $k'\times k'$ Gram matrix
-$\Gamma$ of the pair directions, read off the cached columns; the MDM,
-away and toward gains are the standard one-dimensional expressions.
+$\Gamma$ of the pair directions, $O(k'^2)$ dot products read off the
+cached columns; the MDM, away and toward gains are the standard
+one-dimensional expressions.
 Throughout, the \emph{gain} of a step is the decrease $h(z_t)-h(z_{t+1})$
 in the objective. The cache update
 for the whole block is a single matrix--vector product with the net
@@ -275,7 +275,13 @@ The drop counting is the away-step argument: each drop removes one
 support index, non-drop steps add at most $k$, so drops are at most
 $k$ times the good steps plus $s_0$. There is no swap-step bound
 because case (b) never takes a capacity-clipped pairwise step: it
-takes an away step, which either contracts or drops.
+takes an away step, which either contracts or drops. The implementation
+steps both sides per iteration with the schedule of
+Lemma~\ref{lem:twosided} (larger-gap side first, second side skipped
+after a drop); the batteries of \S\ref{sec:exp} were run with the
+earlier unconditional $V$-then-$W$ order, which differs only on drop
+iterations and agrees with it on the instances of
+Appendix~\ref{app:details}.
 
 \begin{proposition}[Near-orthogonal speed-up]\label{prop:orth}
 If all $k'$ pairs are uncapped, the block line search is interior, and
@@ -334,10 +340,7 @@ OpenBLAS, one BLAS thread per solver, 26 cells concurrently), so times
 are comparable within a battery. Every ETA-versus-baseline pair solves
 the \emph{same} objective; a differently regularised solver appears only
 as a labelled reference. ``Our SMO'' is our own SMO implementation on
-the same objective; K-ETA is the kernelised ETA. The batteries were
-run with the unconditional $V$-then-$W$ order that preceded the
-schedule of Lemma~\ref{lem:twosided}; the two differ only on drop
-iterations and agree on the instances of Appendix~\ref{app:details}.
+the same objective; K-ETA is the kernelised ETA.
 
 \paragraph{Synthetic (Appendix~\ref{app:details}).} Block transfers
 cut iterations $4$--$30\times$ relative to single MDM but wall-clock
@@ -504,9 +507,10 @@ the nearest-point and reduced-hull view of soft margins
 the pyramidal-width analysis \cite{lj2015}, whose pairwise step is our
 MDM pair. Swap-step-free pairwise variants \cite{tsuji2022,rinaldi2023}
 and block-coordinate FW \cite{lacoste2013bcfw} are the closest
-algorithmic relatives; gap-safe screening \cite{ndiaye2017,shibagaki2016}
-and active-set identification for FW \cite{bomze2020,garber2020} the
-closest to Theorem~\ref{thm:activation}, with \cite{elghaoui2012,ogawa2013}
+algorithmic relatives; gap-safe screening
+\cite{fercoq2015,ndiaye2017,shibagaki2016} and active-set
+identification for FW \cite{bomze2020,garber2020} the closest to
+Theorem~\ref{thm:activation}, with \cite{elghaoui2012,ogawa2013,wang2014}
 as its SVM ancestors. Appendix~\ref{app:related} details the
 differences.
 
@@ -522,11 +526,13 @@ beats LIBSVM and kernel SMO and supplies a certificate, against dense
 support or nearly touching hulls, where $\delta/M$ is small and primal
 coordinate descent or second-order SMO is faster by one to two orders
 of magnitude. Which side a run is on can be read from its certified gap
-and support size. Limitations: the implementation is
-NumPy-level (a compiled inner loop would move the practical boundary,
-not the $O(n^2)$ asymptotics), sparse inputs are not supported, the
-reduced-hull ($\nu$-SVM) variant is validated but not analysed, and the
-constants in Theorem~\ref{thm:linear} are loose.
+and support size. Limitations: screening pays only at tolerances tight enough for the
+certificate to close; the implementation is NumPy-level (a compiled
+inner loop would move the practical boundary, not the $O(n^2)$
+asymptotics) and does not support sparse inputs; the kernel experiments
+use $10$k-point subsamples; the reduced-hull ($\nu$-SVM) variant is
+validated but not analysed; and the constants in
+Theorem~\ref{thm:linear} are loose.
 
 \begin{thebibliography}{99}
 \bibitem{kalantari2015} B.~Kalantari. A characterization theorem and an
@@ -565,6 +571,10 @@ conditional gradients without swap steps and sparser kernel herding.
 \bibitem{rinaldi2023} F.~Rinaldi and D.~Zeffiro. Avoiding bad steps in
 Frank--Wolfe variants. \emph{Computational Optimization and
 Applications}, 84:225--264, 2023.
+\bibitem{fercoq2015} O.~Fercoq, A.~Gramfort, and J.~Salmon. Mind the
+duality gap: safer rules for the Lasso. \emph{ICML}, 2015.
+\bibitem{wang2014} J.~Wang, P.~Wonka, and J.~Ye. Scaling SVM and least
+absolute deviations via exact data reduction. \emph{ICML}, 2014.
 \bibitem{ndiaye2017} E.~Ndiaye, O.~Fercoq, A.~Gramfort, and J.~Salmon.
 Gap safe screening rules for sparsity enforcing penalties. \emph{JMLR},
 18(128):1--33, 2017.
@@ -952,13 +962,18 @@ unchanged. Block-coordinate FW \cite{lacoste2013bcfw} blocks over
 \emph{coordinates} of a product domain rather than aggregating pairs on
 one polytope.
 \paragraph{Screening and identification.} Gap-safe rules
-\cite{ndiaye2017,shibagaki2016} screen with a radius from the duality
-gap and identify the support in finite time; the active-set complexity
-of away-step FW \cite{bomze2020} and the strict-complementarity bounds
-of \cite{garber2020} give the same identification from the algorithm's
-side. Theorem~\ref{thm:activation} is the polytope-distance instance,
-with constants tied to the TA certificate; the SVM rules of
-\cite{elghaoui2012,ogawa2013} are its ancestors.
+\cite{fercoq2015,ndiaye2017,shibagaki2016} screen with a radius from
+the duality gap and identify the support in finite time; the active-set
+complexity of away-step FW \cite{bomze2020} and the
+strict-complementarity bounds of \cite{garber2020} give the same
+identification from the algorithm's side. Theorem~\ref{thm:activation}
+is the polytope-distance instance, with constants tied to the TA
+certificate; the SVM rules of \cite{elghaoui2012,ogawa2013} and the
+exact data reduction of \cite{wang2014} are its ancestors. Our case (b)
+chooses among block, MDM, away and toward candidates by realised gain,
+which subsumes the pairwise-versus-FW choice of blended pairwise
+conditional gradients \cite{tsuji2022}; an empirical comparison with
+that method is left for future work.
 \paragraph{Synthetic results in brief.} Away and pairwise steps
 converge at $\varepsilon=10^{-6}$ where the toward and midpoint steps of
 \cite{gupta2026} do not. Screening reduces $10{,}000$ points to

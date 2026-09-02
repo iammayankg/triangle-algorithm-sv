@@ -2,7 +2,7 @@
 
 **Paper:** Gupta, M. & Kalantari, B., *An Enhanced Triangle Algorithm for Large-Scale
 Support Vector Machine Optimization: A Comparative Study with Classical and Modern
-Solvers*, JIDMIS Vol. 3, Issue 9s (2026). <https://jidmis.org/index.php/jidmis/article/view/2284>
+Solvers*, Journal of Intelligent Decision Making and Information Science (JIDMIS), Vol. 3, Issue 9s (2026). <https://jidmis.org/index.php/jidmis/article/view/2284>
 
 **This replication:** independent Python/NumPy implementation of the Enhanced
 Triangle Algorithm (ETA) and a hard-margin SMO baseline, run on the paper's

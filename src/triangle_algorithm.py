@@ -892,9 +892,14 @@ class EnhancedTriangleAlgorithm:
     # Triangle Algorithm II : distance / optimal support
     # ------------------------------------------------------------------
     def solve_distance(self, eps=1e-3, max_iter=10_000, eps_intersect=1e-6,
-                       warm_start=False):
+                       warm_start=False, time_cap=None):
         """Compute the distance between conv(V) and conv(W) to relative
-        tolerance eps, i.e. stop when UB - LB <= eps * UB."""
+        tolerance eps, i.e. stop when UB - LB <= eps * UB.
+
+        time_cap: optional wall-clock budget in seconds; on expiry the
+        solver returns status 'timeout' with its current certified bounds
+        (checked at full scans, so the overshoot is at most a few
+        iterations)."""
         t0 = time.perf_counter()
         if not warm_start or not hasattr(self, 'p'):
             self._init_state()
@@ -908,6 +913,10 @@ class EnhancedTriangleAlgorithm:
         for it in range(1, max_iter + 1):
             if it % self.refresh_every == 0:
                 self._refresh_caches()
+            if time_cap is not None and it % self.full_scan_every == 0 \
+                    and time.perf_counter() - t0 > time_cap:
+                status = 'timeout'
+                break
             ub = float(np.sqrt(self.dist2()))
             if ub <= eps_intersect:
                 status = 'intersect'

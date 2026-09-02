@@ -116,7 +116,10 @@ def run_cell(X, y, Xt, yt, C, trace):
                       zigzag_strategy='pairwise', seed=0)
     if trace:
         ta.trace = []
-    r = ta.solve_distance(eps=1e-3, max_iter=500_000)
+    # same 600 s budget as SMO: non-converging cells (dense-support /
+    # near-touching-hull regime) report 'timeout' with their achieved
+    # certified gap instead of running to the iteration cap
+    r = ta.solve_distance(eps=1e-3, max_iter=2_000_000, time_cap=600)
     w, b = sep_from_soft(ta, r)
     out['ETA'] = dict(time=r.time, iters=r.iterations,
                       oracle=ta.col_evals, primal=2.0 / r.distance ** 2,
@@ -167,7 +170,13 @@ def _run_one(job):
         recs.append(rec)
     shard.parent.mkdir(parents=True, exist_ok=True)
     shard.write_text(json.dumps(recs))
-    msg = ' '.join(f"{s}={cell[s]['time']:.1f}s" for s in cell)
+    def _tag(rec):
+        st = rec.get('status', '')
+        flag = '' if st == 'converged' else f"/{st}"
+        gap = f" gap={rec['gap']:.1e}" if 'gap' in rec and st != 'converged' \
+            else ''
+        return f"{rec['time']:.1f}s{flag}{gap}"
+    msg = ' '.join(f"{s}={_tag(cell[s])}" for s in cell)
     print(f"[{name} C={C:g} seed={seed}] {msg} "
           f"(cell {time.time() - t0:.0f}s)", flush=True)
     return recs

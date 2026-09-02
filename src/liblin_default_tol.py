@@ -53,21 +53,29 @@ def main():
     ap.add_argument('--out', default='results/liblin_default_tol.json')
     args = ap.parse_args()
 
-    rows = []
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    # resume: cells already in the output file are skipped
+    rows = json.loads(out.read_text()) if out.exists() else []
+    done = {(r['dataset'], r['C'], r['tol'], r['seed']) for r in rows}
+    if done:
+        print(f"{len(done)} cells already done in {out}", flush=True)
     for name in args.datasets:
         for seed in range(args.seeds):
+            todo = [(C, tol) for C in args.Cs for tol in args.tols
+                    if (name, C, tol, seed) not in done]
+            if not todo:
+                continue
             X, y, Xt, yt = _load_cached(name, args.data_dir, 100_000, seed)
-            for C in args.Cs:
-                for tol in args.tols:
-                    r = run(X, y, Xt, yt, C, tol)
-                    r.update(dataset=name, seed=seed)
-                    rows.append(r)
-                    print(f"[{name} C={C:g} tol={tol:g} seed={seed}] "
-                          f"LIBLIN={r['time']:.1f}s iters={r['iters']} "
-                          f"primal={r['primal']:.6g} acc={r['acc']:.4f}",
-                          flush=True)
-    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps(rows, indent=1))
+            for C, tol in todo:
+                r = run(X, y, Xt, yt, C, tol)
+                r.update(dataset=name, seed=seed)
+                rows.append(r)
+                out.write_text(json.dumps(rows, indent=1))
+                print(f"[{name} C={C:g} tol={tol:g} seed={seed}] "
+                      f"LIBLIN={r['time']:.1f}s iters={r['iters']} "
+                      f"primal={r['primal']:.6g} acc={r['acc']:.4f}",
+                      flush=True)
 
     print('\n| dataset | C | tol | time (s) | iters | primal | accuracy |')
     print('|--|--:|--:|--:|--:|--:|--:|')

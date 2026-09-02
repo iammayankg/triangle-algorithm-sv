@@ -70,11 +70,20 @@ def main():
     ap.add_argument('--out', default='results/k_ablation_real.json')
     args = ap.parse_args()
 
-    rows = []
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    # resume: cells already in the output file are skipped
+    rows = json.loads(out.read_text()) if out.exists() else []
+    done = {(r['dataset'], r['k'], r['seed']) for r in rows}
+    if done:
+        print(f"{len(done)} cells already done in {out}", flush=True)
     for name in args.datasets:
         for seed in range(args.seeds):
+            todo = [(m, k) for m, k in MODES if (name, k, seed) not in done]
+            if not todo:
+                continue
             X, y, Xt, yt = _load_cached(name, args.data_dir, 100_000, seed)
-            for mode, k in MODES:
+            for mode, k in todo:
                 if name == 'ijcnn1':
                     r = ijcnn1_kl2(X, y, Xt, yt, mode, k, seed)
                 else:               # gisette, or synthetic for a smoke test
@@ -84,8 +93,7 @@ def main():
                 print(f"[{name} k={k} seed={seed}] {r['time']:.1f}s/"
                       f"{r['status']} iters={r['iters']} cols={r['oracle']} "
                       f"gap={r['gap']:.1e} acc={r['acc']:.4f}", flush=True)
-                Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-                Path(args.out).write_text(json.dumps(rows, indent=1))
+                out.write_text(json.dumps(rows, indent=1))
 
     print('\n| dataset | k | time (s) | iterations | columns | accuracy | converged |')
     print('|--|--:|--:|--:|--:|--:|--:|')

@@ -342,12 +342,17 @@ the \emph{same} objective; a differently regularised solver appears only
 as a labelled reference. ``Our SMO'' is our own SMO implementation on
 the same objective; K-ETA is the kernelised ETA.
 
-\paragraph{Synthetic (Appendix~\ref{app:details}).} Block transfers
-cut iterations $4$--$30\times$ relative to single MDM but wall-clock
-only $1.2$--$2.8\times$, since each block iteration touches more
-columns (Table~\ref{tab:kabl}); screening gives $1.4$--$2.4\times$ at
-$\varepsilon=10^{-5}$ and is neutral at $10^{-3}$, as
-Theorem~\ref{thm:activation} predicts.
+\paragraph{Blocks and screening (Appendix~\ref{app:details}).} On
+synthetic data block transfers cut iterations $4$--$30\times$ relative
+to single MDM but wall-clock only $1.2$--$2.8\times$, since each block
+iteration touches more columns (Table~\ref{tab:kabl}). On real data
+(Table~\ref{tab:kreal}) blocks cut iterations $6\times$ on gisette's
+$L_2$ margin with no wall-clock change, because its $5{,}000$-dimensional
+columns dominate, and $9\times$ on ijcnn1's kernel cell with a
+$2.3\times$ wall-clock gain, because there the $O(n)$ scan dominates:
+the block amortises the scan, not the columns. Screening gives
+$1.4$--$2.4\times$ at $\varepsilon=10^{-5}$ and is neutral at
+$10^{-3}$, as Theorem~\ref{thm:activation} predicts.
 
 \begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
 \caption{Regime battery on real data: hard margins and kernels, five
@@ -466,14 +471,16 @@ objective. LIBLINEAR run to the same primal accuracy (tolerance
 $10^{-6}$; at $C{=}1$: $0.14900$ vs ETA's $0.14893$, inside ETA's
 certified $8\times10^{-4}$) takes $8$\,min to $1.5$\,h, but that is
 the tolerance needed to match ETA's primal, not a property of the
-problem; we did not time LIBLINEAR at its default tolerance
-(Appendix~\ref{app:details}) and therefore claim no wall-clock
-advantage over it on gisette. What ETA adds is
-the certificate: at $C{=}10$ LIBLINEAR's progress-based stopping rule
-fires, even at tolerance $10^{-6}$, at a primal $5\%$ above ETA's
-certified optimum ($0.1566$ vs $0.1490$, test accuracy $0.977$ vs
+problem: at its default tolerance ($10^{-4}$) LIBLINEAR takes
+$5$--$66$\,s, comparable to ETA, but stops $5$--$24\%$ above the
+certified optimum with test accuracy $0.973$--$0.978$ against $0.981$
+(Table~\ref{tab:libdef}). We therefore claim no wall-clock advantage
+over LIBLINEAR on gisette; what ETA adds is the certificate, which is
+what reveals that the fast answer is not the optimum. Even at
+$10^{-6}$ and $C{=}10$ LIBLINEAR's progress-based rule fires $5\%$
+above the certified optimum ($0.1566$ vs $0.1490$, accuracy $0.977$ vs
 $0.981$), because on separable data the primal is nearly flat at large
-$C$; the certificate does not fire early. On the four
+$C$. On the four
 overlapping datasets both geometric solvers hit the 600\,s cap on every
 cell while LIBLINEAR finishes in $0.3$--$25$\,s. At $C{=}0.1$ ETA's
 iterate already has LIBLINEAR's test accuracy on a9a, ijcnn1 and w8a
@@ -526,13 +533,12 @@ beats LIBSVM and kernel SMO and supplies a certificate, against dense
 support or nearly touching hulls, where $\delta/M$ is small and primal
 coordinate descent or second-order SMO is faster by one to two orders
 of magnitude. Which side a run is on can be read from its certified gap
-and support size. Limitations: screening pays only at tolerances tight enough for the
-certificate to close; the implementation is NumPy-level (a compiled
-inner loop would move the practical boundary, not the $O(n^2)$
-asymptotics) and does not support sparse inputs; the kernel experiments
-use $10$k-point subsamples; the reduced-hull ($\nu$-SVM) variant is
-validated but not analysed; and the constants in
-Theorem~\ref{thm:linear} are loose.
+and support size. Limitations: screening pays only when the certificate closes; the
+implementation is NumPy-level (a compiled inner loop would move the
+practical boundary, not the $O(n^2)$ asymptotics) without sparse
+support; kernel experiments use $10$k-point subsamples; the
+reduced-hull ($\nu$-SVM) variant is validated but not analysed; and the
+constants in Theorem~\ref{thm:linear} are loose.
 
 \begin{thebibliography}{99}
 \bibitem{kalantari2015} B.~Kalantari. A characterization theorem and an
@@ -828,13 +834,11 @@ tolerance is also why LIBLINEAR needs $18{,}000$ iterations and over an
 hour on gisette at $C{=}1$, and $35{,}000$ iterations and $1.5$\,h at
 $C{=}10$, where it nevertheless stops $5\%$ above the certified optimum
 ($0.1566$ vs $0.1490$). The gisette LIBLINEAR times in
-Table~\ref{tab:l2} are therefore the cost of matching ETA's primal, not
-LIBLINEAR's cost at its default tolerance ($10^{-4}$), which we did not
-measure; since its dual coordinate descent is monotone, the primal at
-the default tolerance can only be at or above the $10^{-6}$ value. The
-paper claims no wall-clock advantage over LIBLINEAR on gisette.
-% TODO(default-tol): add LIBLINEAR gisette rows at tol=1e-4 (time,
-% primal, accuracy) once the data are fetched; see src/full_battery.py
+Table~\ref{tab:l2} are therefore the cost of matching ETA's primal;
+Table~\ref{tab:libdef} reports the same configuration at
+scikit-learn's default tolerance $10^{-4}$ (five seeds, run separately
+without concurrent load): $5$--$66$\,s, but primals $5$--$24\%$ above
+the certified optimum and lower test accuracy.
 Intercept scaling $100$; iteration cap
 $2\times10^5$. LIBSVM
 (scikit-learn \texttt{SVC}): tolerance $10^{-3}$, 1000\,MB cache,
@@ -866,7 +870,10 @@ the dense-support regime, at $O(n^2)$-type cost.}\label{fig:trace}
 with OpenBLAS 0.3.31, \texttt{OMP\_NUM\_THREADS=1}; the $L_2$ battery
 ran 14 cells and the regime battery 12 cells concurrently (the gisette,
 covtype and w8a $C{=}10$ cells of Table~\ref{tab:l2} were completed in
-later passes with 11--14 workers and no other load). The uncapped
+later passes with 11--14 workers and no other load; the runs of
+Tables~\ref{tab:libdef} and~\ref{tab:kreal} were made separately with
+no concurrent load, which is why their gisette $k{=}16$ time is below
+Table~\ref{tab:l2}'s). The uncapped
 a9a/w8a runs in Figure~\ref{fig:trace} were made earlier on the same
 machine under a different load (LIBLINEAR took $12$ and $48$\,s there
 against $4$ and $23$\,s in the capped battery), so ratios across the two
@@ -916,7 +923,41 @@ $L_2$ overlap, $d{=}1000$, $C{=}1$ & Lemma~\ref{lem:twosided} & 4.3 & 3,001 & 18
 \end{tabular}\end{table}
 
 \begin{table}[h]\centering\scriptsize
-\caption{Block-size ablation on the same instances (current code): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock does not fall in proportion, because each block iteration touches more columns.}\label{tab:kabl}
+\caption{LIBLINEAR on gisette at its default tolerance ($10^{-4}$)
+versus the matched tolerance ($10^{-6}$) of Table~\ref{tab:l2}; five
+seeds. ETA's certified primal is $0.14835$ / $0.14893$ / $0.14899$ at
+$C=0.1$ / $1$ / $10$, reached in $30$--$45$\,s with test accuracy
+$0.981$.}\label{tab:libdef}
+\begin{tabular}{lrrrlr}\toprule
+$C$ & tol & time (s) & iterations & primal (vs certified) & accuracy \\\midrule
+0.1 & $10^{-4}$ & $66\pm10$ & 363 & 0.15648 ($+5.5\%$) & .978 \\
+0.1 & $10^{-6}$ & $500\pm41$ & 2,434 & 0.14835 ($+0.0\%$) & .981 \\
+1 & $10^{-4}$ & $5.5\pm0.8$ & 10 & 0.18427 ($+24\%$) & .974 \\
+1 & $10^{-6}$ & $3916\pm115$ & 18,063 & 0.14900 ($+0.05\%$) & .981 \\
+10 & $10^{-4}$ & $4.8\pm0.1$ & 8 & 0.18487 ($+24\%$) & .973 \\
+10 & $10^{-6}$ & $5396\pm197$ & 35,411 & 0.15663 ($+5.1\%$) & .977 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[h]\centering\scriptsize
+\caption{Block-size ablation on real data (ETA only, three seeds, run
+separately without concurrent load): the gisette $L_2$ margin
+($C{=}1$, $d{=}5{,}000$) and the ijcnn1 kernel $L_2$ cell of
+Table~\ref{tab:regime} ($d{=}22$, $n_k{=}9{,}853$). Every cell
+converged to the certified gap with identical distance and accuracy
+per dataset.}\label{tab:kreal}
+\begin{tabular}{lrrrr}\toprule
+instance & $k$ & time (s) & iterations & columns \\\midrule
+gisette $L_2$, $C{=}1$ & 1 & $26.3\pm5.4$ & 4,946 & 1,300 \\
+gisette $L_2$, $C{=}1$ & 4 & $25.3\pm5.1$ & 1,071 & 1,349 \\
+gisette $L_2$, $C{=}1$ & 16 & $27.8\pm4.4$ & 831 & 1,480 \\
+\midrule
+ijcnn1 kernel $L_2$, $C{=}1$ & 1 & $13.6\pm0.4$ & 12,796 & 4,520 \\
+ijcnn1 kernel $L_2$, $C{=}1$ & 4 & $6.6\pm0.5$ & 2,358 & 4,522 \\
+ijcnn1 kernel $L_2$, $C{=}1$ & 16 & $5.8\pm0.3$ & 1,396 & 4,590 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[h]\centering\scriptsize
+\caption{Block-size ablation on the synthetic instances (current code): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock does not fall in proportion, because each block iteration touches more columns.}\label{tab:kabl}
 \begin{tabular}{lrrrrr}\toprule
 instance & $k$ & time (s) & iterations & columns & drops \\\midrule
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 1 & 0.3 & 296 & 104 & 0 \\

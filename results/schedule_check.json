@@ -2,7 +2,7 @@
   {
     "tag": "hard-d1000-eps1e-5",
     "drop_skip": false,
-    "time": 0.14864583301823586,
+    "time": 0.1489802089636214,
     "iters": 16,
     "dist": 55.339365395595046,
     "status": "converged",
@@ -15,7 +15,7 @@
   {
     "tag": "hard-d1000-eps1e-5",
     "drop_skip": true,
-    "time": 0.14545574999647215,
+    "time": 0.15011304098879918,
     "iters": 16,
     "dist": 55.339365395595046,
     "status": "converged",
@@ -28,57 +28,57 @@
   {
     "tag": "soft-d100-C1",
     "drop_skip": false,
-    "time": 8.626431917014997,
-    "iters": 11501,
-    "dist": 0.07840029407005762,
+    "time": 7.876316000008956,
+    "iters": 11216,
+    "dist": 0.07840029218599637,
     "status": "converged",
-    "n_drops": 647,
+    "n_drops": 638,
     "n_drop_skips": 0,
     "kinds": {
-      "block": 22165,
-      "drop": 647
+      "block": 21789,
+      "drop": 638
     }
   },
   {
     "tag": "soft-d100-C1",
     "drop_skip": true,
-    "time": 8.4146721669822,
-    "iters": 10911,
-    "dist": 0.07840028593895305,
+    "time": 8.075646291021258,
+    "iters": 10701,
+    "dist": 0.07840028658536105,
     "status": "converged",
-    "n_drops": 656,
-    "n_drop_skips": 352,
+    "n_drops": 599,
+    "n_drop_skips": 316,
     "kinds": {
-      "block": 20620,
-      "drop": 656
+      "block": 20482,
+      "drop": 599
     }
   },
   {
     "tag": "soft-d1000-C1",
     "drop_skip": false,
-    "time": 4.648797625035513,
-    "iters": 3031,
-    "dist": 0.5781430307700594,
+    "time": 4.255695624975488,
+    "iters": 2951,
+    "dist": 0.5781430110537237,
     "status": "converged",
-    "n_drops": 203,
+    "n_drops": 172,
     "n_drop_skips": 0,
     "kinds": {
-      "block": 5714,
-      "drop": 203
+      "block": 5725,
+      "drop": 172
     }
   },
   {
     "tag": "soft-d1000-C1",
     "drop_skip": true,
-    "time": 84.52575512498152,
-    "iters": 200000,
-    "dist": 0.5854300757623787,
-    "status": "maxiter",
-    "n_drops": 146,
-    "n_drop_skips": 78,
+    "time": 4.286427833023481,
+    "iters": 3001,
+    "dist": 0.5781430103216324,
+    "status": "converged",
+    "n_drops": 180,
+    "n_drop_skips": 121,
     "kinds": {
-      "block": 5439,
-      "drop": 146
+      "block": 5696,
+      "drop": 180
     }
   }
 ]

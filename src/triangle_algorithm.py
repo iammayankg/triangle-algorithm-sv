@@ -46,6 +46,9 @@ from dataclasses import dataclass, field
 import numpy as np
 
 _EPS_NUM = 1e-12  # numerical slack for strict inequalities
+# support threshold: a convex weight at or below this is treated as zero
+# by every step (pair selection, away/pairwise/block bookkeeping)
+_W_MIN = 1e-12
 
 
 @dataclass
@@ -438,14 +441,14 @@ class EnhancedTriangleAlgorithm:
     def _worst_active_p(self):
         """Active vertex of V most opposed to the descent direction:
         argmin over support of (q - p).u = (b - a)[u]."""
-        cand = [u for u, w in self.wV.items() if u >= 0 and w > 1e-12]
+        cand = [u for u, w in self.wV.items() if u >= 0 and w > _W_MIN]
         if not cand:
             return None
         s = self.b - self.a
         return min(cand, key=lambda u: s[u])
 
     def _worst_active_q(self):
-        cand = [u for u, w in self.wW.items() if u >= 0 and w > 1e-12]
+        cand = [u for u, w in self.wW.items() if u >= 0 and w > _W_MIN]
         if not cand:
             return None
         s = self.c - self.e
@@ -454,7 +457,7 @@ class EnhancedTriangleAlgorithm:
     def _away_p(self, u):
         """Away step: p <- p + gamma (p - V[u]), gamma <= w_u / (1 - w_u)."""
         wu = self.wV.get(u, 0.0)
-        if wu <= 1e-12 or wu >= 1.0 - 1e-12:
+        if wu <= _W_MIN or wu >= 1.0 - 1e-12:
             return False
         num = self.pq - self.b[u] - self.pp + self.a[u]   # (q-p).(p-u)
         den = self.pp - 2.0 * self.a[u] + self.Vsq[u]     # ||p-u||^2
@@ -473,13 +476,13 @@ class EnhancedTriangleAlgorithm:
             self.p -= g * self.V[u].astype(np.float64)
         self.wV = {k: op * w for k, w in self.wV.items()}
         self.wV[u] = self.wV[u] - g
-        if self.wV[u] <= 1e-14:
+        if self.wV[u] <= _W_MIN:
             del self.wV[u]
         return True
 
     def _away_q(self, u):
         wu = self.wW.get(u, 0.0)
-        if wu <= 1e-12 or wu >= 1.0 - 1e-12:
+        if wu <= _W_MIN or wu >= 1.0 - 1e-12:
             return False
         num = self.pq - self.c[u] - self.qq + self.e[u]   # (p-q).(q-u)
         den = self.qq - 2.0 * self.e[u] + self.Wsq[u]     # ||q-u||^2
@@ -498,7 +501,7 @@ class EnhancedTriangleAlgorithm:
             self.q -= g * self.W[u].astype(np.float64)
         self.wW = {k: op * w for k, w in self.wW.items()}
         self.wW[u] = self.wW[u] - g
-        if self.wW[u] <= 1e-14:
+        if self.wW[u] <= _W_MIN:
             del self.wW[u]
         return True
 
@@ -506,7 +509,7 @@ class EnhancedTriangleAlgorithm:
         """MDM step: transfer weight from active u to pivot v,
         p <- p + gamma (V[v] - V[u]), gamma <= w_u."""
         wu = self.wV.get(u, 0.0)
-        if wu <= 1e-12 or v == u:
+        if wu <= _W_MIN or v == u:
             return False
         colv_a, colv_c = self._gram_col_V(v)
         colu_a, colu_c = self._gram_col_V(u)
@@ -524,14 +527,14 @@ class EnhancedTriangleAlgorithm:
                            - self.V[u].astype(np.float64))
         self.wV[v] = self.wV.get(v, 0.0) + g
         self.wV[u] = wu - g
-        if self.wV[u] <= 1e-14:
+        if self.wV[u] <= _W_MIN:
             del self.wV[u]
         self.active_V.add(v)
         return True
 
     def _pairwise_q(self, v, u):
         wu = self.wW.get(u, 0.0)
-        if wu <= 1e-12 or v == u:
+        if wu <= _W_MIN or v == u:
             return False
         colv_a, colv_e = self._gram_col_W(v)
         colu_a, colu_e = self._gram_col_W(u)
@@ -549,7 +552,7 @@ class EnhancedTriangleAlgorithm:
                            - self.W[u].astype(np.float64))
         self.wW[v] = self.wW.get(v, 0.0) + g
         self.wW[u] = wu - g
-        if self.wW[u] <= 1e-14:
+        if self.wW[u] <= _W_MIN:
             del self.wW[u]
         self.active_W.add(v)
         return True
@@ -561,7 +564,7 @@ class EnhancedTriangleAlgorithm:
     def _block_pairs(self, s, weights, cap, k):
         """Pair top-k receivers with worst-k active donors under `s`.
         Returns [(recv, donor, gamma)] with per-pair capacity clipping."""
-        act = [i for i, w in weights.items() if w > 1e-14]
+        act = [i for i, w in weights.items() if w > _W_MIN]
         if not act:
             return []
         n = len(s)
@@ -653,15 +656,17 @@ class EnhancedTriangleAlgorithm:
             den_a = self.pp - 2.0 * self.a[u1] + self.Vsq[u1]
             if num_a > 0.0 and den_a > _EPS_NUM and cap1 < 1.0 - 1e-12:
                 if num_a / den_a >= cap1 / (1.0 - cap1):
-                    ok = self._away_p(u1)            # drop step
-                    if ok:
+                    if self._away_p(u1):             # drop step
                         self._last_drop = True
                         self.n_drops += 1
                         self.step_kinds['drop'] = self.step_kinds.get('drop', 0) + 1
-                    return ok
-                d_away = num_a * num_a / (2.0 * den_a)
-                if d_away > best:
-                    best, kind = d_away, 'away'
+                        return True
+                    # away step refused (weight at the support threshold):
+                    # fall through to the remaining candidates
+                else:
+                    d_away = num_a * num_a / (2.0 * den_a)
+                    if d_away > best:
+                        best, kind = d_away, 'away'
             num_f = self.b[r1] - self.pq - self.a[r1] + self.pp
             den_f = self.Vsq[r1] - 2.0 * self.a[r1] + self.pp
             if num_f > 0.0 and den_f > _EPS_NUM:
@@ -698,7 +703,7 @@ class EnhancedTriangleAlgorithm:
             self.p += cvec @ self.V[idxs].astype(np.float64)
         for i, ci in coeff.items():
             w = self.wV.get(i, 0.0) + ci
-            if w <= 1e-14:
+            if w <= _W_MIN:
                 self.wV.pop(i, None)
             else:
                 self.wV[i] = w
@@ -750,15 +755,17 @@ class EnhancedTriangleAlgorithm:
             den_a = self.qq - 2.0 * self.e[u1] + self.Wsq[u1]
             if num_a > 0.0 and den_a > _EPS_NUM and cap1 < 1.0 - 1e-12:
                 if num_a / den_a >= cap1 / (1.0 - cap1):
-                    ok = self._away_q(u1)            # drop step
-                    if ok:
+                    if self._away_q(u1):             # drop step
                         self._last_drop = True
                         self.n_drops += 1
                         self.step_kinds['drop'] = self.step_kinds.get('drop', 0) + 1
-                    return ok
-                d_away = num_a * num_a / (2.0 * den_a)
-                if d_away > best:
-                    best, kind = d_away, 'away'
+                        return True
+                    # away step refused (weight at the support threshold):
+                    # fall through to the remaining candidates
+                else:
+                    d_away = num_a * num_a / (2.0 * den_a)
+                    if d_away > best:
+                        best, kind = d_away, 'away'
             num_f = self.c[r1] - self.pq - self.e[r1] + self.qq
             den_f = self.Wsq[r1] - 2.0 * self.e[r1] + self.qq
             if num_f > 0.0 and den_f > _EPS_NUM:
@@ -793,7 +800,7 @@ class EnhancedTriangleAlgorithm:
             self.q += cvec @ self.W[idxs].astype(np.float64)
         for j, cj in coeff.items():
             w = self.wW.get(j, 0.0) + cj
-            if w <= 1e-14:
+            if w <= _W_MIN:
                 self.wW.pop(j, None)
             else:
                 self.wW[j] = w
@@ -1035,9 +1042,9 @@ class EnhancedTriangleAlgorithm:
                 if iV is not None and iW is not None:
                     # larger pairwise side gap (max score - worst active) first
                     gV = float(sVa.max()) - min(sVa[u] for u, w in self.wV.items()
-                                                if u >= 0 and w > 1e-12)
+                                                if u >= 0 and w > _W_MIN)
                     gW = float(sWa.max()) - min(sWa[u] for u, w in self.wW.items()
-                                                if u >= 0 and w > 1e-12)
+                                                if u >= 0 and w > _W_MIN)
                     order = ('V', 'W') if gV >= gW else ('W', 'V')
                 else:
                     order = ('V',) if iV is not None else ('W',)

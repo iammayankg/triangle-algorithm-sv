@@ -95,6 +95,15 @@ tail -f results/full_battery.log     # detachable; the run survives
 - If the Studio restarts or you stop the run: rerun the same command -
   finished shards are skipped automatically.
 
+Then the regime battery (hard-margin / kernel cells, ETA's own regime;
+1-3 h at `--parallel 8`):
+
+```bash
+OMP_NUM_THREADS=1 nohup python3 -u src/regime_battery.py --data-dir data \
+    --seeds 5 --parallel 8 --out results/regime_battery.json \
+    > results/regime_battery.log 2>&1 &
+```
+
 While that runs (or after), the synthetic suites on the same machine:
 
 ```bash

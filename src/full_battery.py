@@ -55,6 +55,7 @@ DATASETS = {
     'gisette':   ('gisette_scale', 'gisette_scale.t', True),
     'covtype':   ('covtype.libsvm.binary.scale', None, True),
     'synthetic': (None, None, True),      # generated; for smoke tests
+    'synthetic-sep': (None, None, True),  # generated, separable (smoke)
     # sparse-only, pending sparse-matrix support in the solvers:
     # 'real-sim': ('real-sim', None, False),
     # 'rcv1':     ('rcv1_train.binary', None, False),
@@ -63,10 +64,13 @@ DATASETS = {
 
 @functools.lru_cache(maxsize=2)
 def _load_cached(name, data_dir, max_n, seed):
-    if name == 'synthetic':
-        from data import generate_overlap
+    if name in ('synthetic', 'synthetic-sep'):
+        from data import generate_overlap, generate_two_balls
         rng = np.random.default_rng(seed)
-        V, W = generate_overlap(50, 1200, delta=4.0, rng=rng)
+        if name == 'synthetic':
+            V, W = generate_overlap(50, 1200, delta=4.0, rng=rng)
+        else:
+            V, W = generate_two_balls(50, 1200, 1.2, rng=rng)
         X = np.vstack([V, W])
         y = np.concatenate([np.ones(1200, int), np.zeros(1200, int)])
         X, Xt, y, yt = train_test_split(X, y, test_size=0.25,
@@ -210,7 +214,8 @@ def main():
     ap.add_argument('--data-dir', default='data')
     ap.add_argument('--seeds', type=int, default=10)
     ap.add_argument('--datasets', nargs='*',
-                    default=[d for d in DATASETS if d != 'synthetic'])
+                    default=[d for d in DATASETS
+                             if not d.startswith('synthetic')])
     ap.add_argument('--Cs', type=float, nargs='*', default=[0.1, 1.0, 10.0])
     ap.add_argument('--max-n', type=int, default=100_000)
     ap.add_argument('--parallel', type=int, default=1,

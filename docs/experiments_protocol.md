@@ -119,6 +119,41 @@ final primal matches ETA's certified value to ~1e-4 relative - verify
 and report this equivalence on each dataset); SMO at KKT gap 1e-3.
 State all three explicitly.
 
+## 4b. The regime battery (ETA's own regime on real data)
+
+The L2 battery above is the sparse-vs-dense boundary seen from the dense
+side: on heavily overlapping data 60-65% of points become support
+vectors with near-uniform weights, the pyramidal width of the resulting
+near-simplex shrinks like 1/n, and the geometric solver's cost is
+O(n^2)-type (Theorem 6 predicts this; a9a/w8a confirm it - ETA times
+out where LIBLINEAR finishes in seconds). `src/regime_battery.py` shows
+the boundary from the other side, on the same datasets:
+
+```bash
+OMP_NUM_THREADS=1 nohup python3 src/regime_battery.py --data-dir data \
+    --seeds 5 --parallel 8 --out results/regime_battery.json \
+    > results/regime_battery.log 2>&1 &
+```
+
+Per dataset x seed it runs: **FEAS** (TA I certifies linear
+separability - a diagnostic no baseline offers), **LIN** (linear hard
+margin where feasible: ETA with shrinking vs SVC(linear, C=1e6) vs SMO,
+same objective), **KHM** (RBF hard margin on a 10k class-balanced
+subsample: KernelETA vs SVC(rbf, C=1e6), same objective, distance
+agreement via the dual expansion), and **KL2** (RBF K + I/C at C=1:
+KernelETA vs KernelSMO, same objective; SVC(rbf, C=1) as a labelled L1
+reference). All solvers get 600 s; the summary
+(`results/regime_battery_summary.md`) reports time +/- CI95, distance,
+accuracy, oracle calls, and non-convergence counts per cell. Expected
+runtime: 1-3 h at `--parallel 8` (LIBSVM at C=1e6 on RBF is the slow
+column). Smoke test: `--datasets synthetic-sep synthetic --seeds 2
+--max-n-kernel 1200`.
+
+For the paper: report the two batteries together as one regime story -
+the dense-support L2 cells (LIBLINEAR wins, ETA times out, as the theory
+predicts) and the sparse-support hard-margin/kernel cells (ETA's
+territory) - rather than either alone.
+
 ## 5. Additional runs for the paper
 
 - **Replication + synthetic suites** (already scripted):

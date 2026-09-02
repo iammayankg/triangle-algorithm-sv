@@ -844,8 +844,9 @@ class EnhancedTriangleAlgorithm:
     # ------------------------------------------------------------------
     # Triangle Algorithm I : intersection / separation
     # ------------------------------------------------------------------
-    def solve_intersection(self, eps=1e-3, max_iter=10_000):
-        """Decide (within eps) whether conv(V) and conv(W) intersect."""
+    def solve_intersection(self, eps=1e-3, max_iter=10_000, time_cap=None):
+        """Decide (within eps) whether conv(V) and conv(W) intersect.
+        time_cap: optional wall-clock budget (seconds) -> status 'timeout'."""
         t0 = time.perf_counter()
         self._init_state()
         tol = self.tol
@@ -855,6 +856,10 @@ class EnhancedTriangleAlgorithm:
         for it in range(1, max_iter + 1):
             if it % self.refresh_every == 0:
                 self._refresh_caches()
+            if time_cap is not None and it % self.full_scan_every == 0 \
+                    and time.perf_counter() - t0 > time_cap:
+                status = 'timeout'
+                break
             if np.sqrt(self.dist2()) <= eps:
                 status = 'intersect'
                 break

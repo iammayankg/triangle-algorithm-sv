@@ -211,7 +211,7 @@ guarded step never makes less progress than pairwise FW.
 
 \begin{lemma}[Good-step progress]\label{lem:good}
 Work on the side with the larger pairwise gap. On any non-drop
-iteration, $\mathrm{gain}\ge\tfrac1{16}\min\!\big(\gPW{}^2/(2M^2),\ \gPW/2\big)$.
+iteration, $\mathrm{gain}\ge\min\!\big(\gPW{}^2/(32M^2),\ \gPW/8\big)$.
 \end{lemma}
 Case (a) uses $\gPW_{\text{side}}\ge\gPW/2$ and the exact line search
 bound; case (b) uses $\gPW_{\text{side}}=\gFW_{\text{side}}+\gA_{\text{side}}$,
@@ -219,23 +219,28 @@ so one of the toward step (always feasible with step $\le1$) or the
 interior away step realises at least a quarter of $\gPW$.
 
 \begin{theorem}[Global linear convergence]\label{thm:linear}
-Run the guarded block-transfer algorithm with away fallback, any
-$k\ge1$, from any vertex pair (initial support $s_0\le2$). Then every
-non-drop iteration satisfies $h_{t+1}\le(1-\rho)h_t$ with
-$\rho=c\,\delta^2/M^4$ for an explicit absolute constant $c$, the
-number of drop steps is at most $k\,T_{\mathrm{good}}+s_0$, and hence
+Run the guarded block-transfer algorithm with away fallback, one side
+per iteration, any $k\ge1$, from any vertex pair (initial support
+$s_0\le2$). Then every non-drop iteration satisfies
+$h_{t+1}\le(1-\rho)h_t$ with
 \[
-h_T\ \le\ h_0\,(1-\rho)^{(T-s_0)/(k+2)} .
+\rho=\tfrac1{16}\,(\delta/M)^2 ,
 \]
+the number of drop steps is at most $k\,T_{\mathrm{good}}+s_0$, and
+hence $h_T\le h_0\,(1-\rho)^{(T-s_0)/(k+1)}$. The implementation,
+which steps both sides every iteration, satisfies the same statement
+with $\rho_{\mathrm{impl}}=\tfrac1{64}(\delta/M)^2$ and exponent
+$(T-s_0)/(2k+1)$ (Lemma~\ref{lem:twosided}).
 \end{theorem}
 The rate follows from Lemma~\ref{lem:good} and the geometric
-strong-convexity bound $\gPW(z)^2\ge(\delta^2/2M^2)\,h(z)$ of
-\cite{lj2015} applied to $F$ over $Z$. The drop counting is the
-away-step argument: each drop removes one support index, non-drop
-steps add at most $k$, so drops are at most $k$ times the good steps
-plus $s_0$. There is no swap-step bound because case (b) never takes a
-capacity-clipped pairwise step---it takes an away step, which either
-contracts or drops.
+strong-convexity bound $\gPW\ge\delta\sqrt{2h}$ (Lemma~\ref{lem:gsc},
+from the pyramidal-width definition of \cite{lj2015} and $1$-strong
+convexity), together with $\gPW\ge\gFW\ge h$ for the linear branch.
+The drop counting is the away-step argument: each drop removes one
+support index, non-drop steps add at most $k$, so drops are at most
+$k$ times the good steps plus $s_0$. There is no swap-step bound
+because case (b) never takes a capacity-clipped pairwise step---it
+takes an away step, which either contracts or drops.
 
 \begin{proposition}[Near-orthogonal speed-up]\label{prop:orth}
 If $|\ip{d_i}{d_j}|\le\eta\norm{d_i}\norm{d_j}$ for $i\ne j$, the
@@ -260,7 +265,7 @@ $D$ the larger class diameter. A zero-weight point with margin $\tau_i$
 is screened as soon as $r\le\tau_i/(3D)$; consequently, once
 $h_t\le\tau^4\delta^{*2}/(2592\,R^4D^4)$---which under
 Theorem~\ref{thm:linear} holds for all
-$t\ge s_0+\tfrac{k+2}{\rho}\log\!\big(2592R^4D^4h_0/(\tau^4\delta^{*2})\big)$---every
+$t\ge s_0+\tfrac{k+1}{\rho}\log\!\big(2592R^4D^4h_0/(\tau^4\delta^{*2})\big)$---every
 zero-weight point outside $F_V\cup F_W$ is removed permanently, and
 each later scan costs $O(|F|+|\operatorname{supp}|)$ instead of $O(n+m)$.
 \end{theorem}
@@ -378,13 +383,32 @@ certificate; and the SMO/LIBSVM/LIBLINEAR solvers used as baselines.
 \section{Conclusion}
 Guarded block transfers give the Triangle Algorithm a linear rate with
 explicit constants, no combinatorial swap-step bounds, and a
-provably-effective screening rule, at the price of a $(k+2)$ factor in
+provably-effective screening rule, at the price of a $(k+1)$ factor in
 the exponent that the near-orthogonal regime more than repays. The same
 analysis predicts, and the experiments confirm, where the method stops
 being competitive. Limitations: the implementation is NumPy-level (a
 compiled inner loop would shift the practical boundary but not its
 $O(n^2)$ asymptotics), sparse-matrix inputs are not yet supported, and
 the constants in Theorem~\ref{thm:linear} are loose.
+
+\section*{Statement on the use of AI assistance}
+This work was developed with substantial assistance from an AI system
+(Claude, Anthropic), used as a research and engineering collaborator
+under the authors' direction: it produced the implementation, drafted
+the proofs and this manuscript, designed and ran the experiments, and
+proposed several of the algorithmic ideas (the guarded block step, the
+away-step fallback, the screening-activation argument). The authors
+set the research questions, reviewed every theorem and proof, and take
+full responsibility for the correctness of all claims. To make that
+review verifiable, every inequality in the analysis is accompanied by a
+numerical check in the released code (random ensembles at machine
+precision and instrumented live solver runs), all solvers are validated
+against exact QP ground truth, and all experiments are reproducible
+from the released scripts. Where results were negative (the
+dense-support regime), they are reported as found. We regard disclosing
+this division of labour as part of using such tools responsibly, and
+we note that the release of the artefacts---not the provenance of the
+prose---is what allows readers to check the work.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{9}
@@ -449,36 +473,72 @@ nonnegative and $\Delta_{\mathrm{MDM}}=\gamma_1\mathrm{gap}_1-\gamma_1^2\norm{d_
 \end{proof}
 
 \begin{proof}[Proof of Lemma~\ref{lem:good}]
-Let $g_S=\max(\gPW_V,\gPW_W)\ge\gPW/2$. For a feasible direction with
-directional derivative $G$ and maximal step $T$, exact line search on a
-$1$-smooth function yields $\mathrm{gain}\ge\min(G^2/(2\norm d^2),\,TG/2)$.
+Let $g_S=\max(\gPW_V,\gPW_W)\ge\gPW/2$. Every direction below is a
+difference of two points of one class hull, so its norm is at most
+$\operatorname{diam}(\conv V)\le M$. For a feasible direction with
+directional derivative $G>0$, squared norm $D$ and maximal step $T$,
+exact line search on a $1$-smooth function gives
+$\mathrm{gain}\ge\min(G^2/(2D),\,TG/2)$ (interior optimum, or the
+clipped step evaluated with $TD\le G$).
 Case (a): the guard's gain is at least the MDM gain, whose derivative is
 $g_S$ and whose interior optimum is attained, so
-$\mathrm{gain}\ge g_S^2/(2M^2)\ge\gPW{}^2/(8M^2)$. Case (b), non-drop:
-$g_S=\gFW_{\text{side}}+\gA_{\text{side}}$, so one term is
-$\ge g_S/2\ge\gPW/4$. If it is the FW term, the toward step (maximal
-step $1$) gives $\mathrm{gain}\ge\min(\gFW_{\text{side}}{}^2/(2M^2),\gFW_{\text{side}}/2)$;
+$\mathrm{gain}\ge g_S^2/(2M^2)\ge\gPW{}^2/(8M^2)$.
+Case (b), non-drop: $g_S=\gFW_{\text{side}}+\gA_{\text{side}}$, so one
+term is $\ge g_S/2\ge\gPW/4$. If it is the FW term, the toward step
+(maximal step $1$) gives
+$\mathrm{gain}\ge\min(\gFW_{\text{side}}{}^2/(2M^2),\gFW_{\text{side}}/2)\ge\min(\gPW{}^2/(32M^2),\gPW/8)$;
 if it is the away term, the away line search is interior (non-drop) and
-$\mathrm{gain}\ge\gA_{\text{side}}{}^2/(2M^2)$. Inserting $\gPW/4$ and
-absorbing constants gives the statement with the factor $1/16$ (the
-weakest branch, $1/32$, is dominated after the normalisation
-$h\le M^2/2$).
+$\mathrm{gain}\ge\gA_{\text{side}}{}^2/(2M^2)\ge\gPW{}^2/(32M^2)$. The
+algorithm takes the best available candidate.
+\end{proof}
+
+\begin{lemma}[Geometric strong convexity]\label{lem:gsc}
+For every $z\in Z$ with a representation whose support contains an away
+atom, $\gPW(z)\ge\delta\sqrt{2h(z)}$ and $\gPW(z)\ge\gFW(z)\ge h(z)$.
+\end{lemma}
+\begin{proof}
+By the definition of the pyramidal width \cite[Def.~3, Thm.~6]{lj2015},
+for $e=(z^*-z)/\norm{z^*-z}$ the FW atom $s$ and the away atom $v$
+satisfy $\ip{g}{s-v}\ge\delta\ip{g}{e}$. By $1$-strong convexity,
+$\ip{g}{z^*-z}\ge h+\tfrac12\norm{z^*-z}^2$, so with $r=\norm{z^*-z}$,
+$\gPW\ge\delta(h/r+r/2)\ge\delta\sqrt{2h}$ by AM--GM. Finally
+$\gPW=\gFW+\gA\ge\gFW=\max_u\ip{g}{u-z}\ge\ip{g}{z^*-z}\ge h$ by
+convexity.
 \end{proof}
 
 \begin{proof}[Proof of Theorem~\ref{thm:linear}]
-Geometric strong convexity \cite[Thm.~6]{lj2015} for the $1$-strongly
-convex $F$ over $Z$ gives $\gPW(z)^2\ge(\delta^2/2M^2)\,h(z)$. With
-Lemma~\ref{lem:good}, a non-drop step gains at least
-$\gPW{}^2/(32M^2)\ge(\delta^2/64M^4)\,h$ in the quadratic branch, and
-the linear branch is dominated for $h\le M^2/2$, which always holds
-since $h_0\le\norm{z_0}^2/2\le M^2/2$ and $h$ is monotone. Hence
-$h_{t+1}\le(1-\rho)h_t$ with $\rho=c\,\delta^2/M^4$. Drop counting: a
-drop removes one support index and adds none; a non-drop step adds at
-most $k$ and removes at most $k$; the support is always $\ge2$ and
-starts at $s_0$, so the number of removals, hence of drops, is at most
-$kT_{\mathrm{good}}+s_0$, giving $T_{\mathrm{good}}\ge(T-s_0)/(k+1)$ and
-the displayed bound with slack for the unanalysed side. Every step,
-drops included, is a descent step, so $h$ is monotone throughout.
+By Lemmas~\ref{lem:good} and~\ref{lem:gsc} a non-drop iteration gains
+at least $\min(2\delta^2h/(32M^2),\,h/8)=(\delta/M)^2h/16$, using
+$\delta\le M$; hence $h_{t+1}\le(1-\rho)h_t$. Drop counting: non-drop
+iterations add at most $k$ support indices, drop iterations add none
+and remove at least one, and the support size stays $\ge2$ from $s_0$;
+so the number of removals, hence of drops, is at most
+$kT_{\mathrm{good}}+s_0$, giving $T_{\mathrm{good}}\ge(T-s_0)/(k+1)$.
+All steps, drops included, are descent steps, so $h$ is monotone.
+\end{proof}
+
+\begin{lemma}[Two-sided implementation]\label{lem:twosided}
+If every iteration takes the $V$-side step and then the $W$-side step
+(an iteration counts as a drop if either side drops), every non-drop
+iteration gains at least $\min(\gPW{}^2/(128M^2),\,\gPW/16)$; hence
+Theorem~\ref{thm:linear} holds with $\rho_{\mathrm{impl}}=(\delta/M)^2/64$
+and $\#\text{drops}\le2kT_{\mathrm{good}}+s_0$.
+\end{lemma}
+\begin{proof}
+Let $G=\gPW(z_t)$. If $V$ carries the larger side gap, the $V$-step is
+the analysed step. Otherwise $\gPW_W(z_t)\ge G/2$ and the $V$-step moves
+$z_t$ to $z'$ with gain $\Delta_V\ge0$. Two facts: (i)
+$\norm{z'-z_t}^2\le2\Delta_V$ for an exact line search (interior:
+equality; boundary $t{=}1$: $\norm{z'-z_t}^2=D\le S\le2\Delta_V$); (ii)
+a $V$-step leaves the $W$ support unchanged and shifts each $W$ score by
+$\ip{z'-z_t}{w_j}$, so
+$\gPW_W(z')\ge\gPW_W(z_t)-\norm{z'-z_t}\operatorname{diam}(\conv W)\ge\gPW_W(z_t)-M\norm{z'-z_t}$.
+If $\Delta_V\ge G^2/(128M^2)$ we are done; otherwise
+$\norm{z'-z_t}<G/(8M)$, so $\gPW_W(z')\ge G/2-G/8\ge G/4$, and the
+proof of Lemma~\ref{lem:good} with side gap $\ge G/4$ gives the $W$-step
+$\mathrm{gain}\ge\min(G^2/(128M^2),G/16)$. The rate constant follows as
+in Theorem~\ref{thm:linear}; each non-drop iteration now adds at most
+$2k$ indices.
 \end{proof}
 
 \begin{proof}[Proof of Proposition~\ref{prop:orth}]

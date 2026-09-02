@@ -18,10 +18,11 @@ the sketch:
 
 Main theorem (informal): *the guarded block-transfer Triangle Algorithm
 with away fallback converges linearly on the polytope distance problem,
-with rate constant equal to the away/pairwise Frank-Wolfe constant of
-the Minkowski-difference polytope divided by an explicit factor 16, and
-with at least a (1/(k+2))-fraction of iterations contracting, where k is
-the block size.*
+with rate constant rho = (delta/M)^2/16 (delta the pyramidal width and M
+the diameter of the Minkowski-difference polytope; rho = (delta/M)^2/64
+for the two-sided implementation), and with at least a 1/(k+1)-fraction
+(1/(2k+1) two-sided) of iterations contracting, where k is the block
+size.*
 
 ## 1. Setting and notation
 
@@ -147,90 +148,111 @@ the exact gain of the single step on pair 1. (Triangle inequality +
 Cauchy-Schwarz; capacity clipping included.)
 
 **Lemma 4 (good-step progress).** Let the iteration work on the side
-with the larger pairwise gap, and suppose the iteration is not a drop
-step. Then its gain satisfies
+with the larger pairwise gap, and suppose it is not a drop step. Then
 
-    gain >= (1/16) * min( gPW^2 / (2 M^2) ,  gPW * c_min / 2 ),
+    gain >= min( gPW^2 / (32 M^2) ,  gPW / 8 ),
 
-where gPW is the full Z-pairwise gap at the iterate and c_min is the
-step-capacity appearing below (equal to 1 for toward steps; for MDM/away
-steps it is the relevant weight bound, which only matters in case (b)
-interior sub-cases where it is not binding).
+where gPW is the full Z-pairwise gap at the iterate.
 
 *Proof.* Write gS = max(gPW_V, gPW_W) >= gPW / 2 for the chosen side's
-pairwise gap.
+pairwise gap. Every direction used below is a difference of two points
+of one class hull, hence has norm <= diam(conv V) <= M (take equal W
+components in the definition of diam Z).
 
-Case (a). The guard's gain is >= Delta_MDM, the exact-line-search gain
-of pair 1, whose directional derivative is gap_1 = gS and whose maximal
-step is at least gamma_1 (uncapped case: the interior optimum is
-attained). By (LS) with ||d_1|| <= M:
-Delta_MDM >= min( gS^2 / (2 M^2), ... ) = gS^2 / (2 M^2) in the interior
-case; the boundary sub-case of the line search yields
-Delta_MDM >= gS gamma_1 / 2 with gamma_1 the interior optimum -
-excluded in case (a) by definition. Hence
-gain >= gS^2 / (2 M^2) >= gPW^2 / (8 M^2).
+Case (a): pair 1 uncapped. The guard's gain is >= Delta_MDM, the exact
+line-search gain along d_1 with directional derivative gap_1 = gS and
+an attained interior optimum, so gain >= gS^2 / (2 ||d_1||^2)
+>= gS^2 / (2 M^2) >= gPW^2 / (8 M^2).
 
-Case (b), non-drop. By the gap split on the chosen side,
-gS = gFW_side + gA_side, so max(gFW_side, gA_side) >= gS / 2 >=
-gPW / 4.
-- If gFW_side >= gS / 2: the toward step on r* has directional
-  derivative gFW_side and maximal step 1; by (LS),
-  gain >= min( gFW_side^2 / (2 M^2), gFW_side / 2 )
-       >= (1/16) min( gPW^2 / (2M^2), gPW / 2 ) after inserting
-  gFW_side >= gPW/4, and the iteration takes a step at least this good.
-- If gA_side >= gS / 2: the away step on u* has directional derivative
-  gA_side; in the non-drop case its line search is interior, so by (LS)
-  gain >= gA_side^2 / (2 M^2) >= gPW^2 / (32 M^2).
-Combining the cases and absorbing constants gives the claim with the
-factor 1/16 (the weakest branch, 1/32, is covered by the min with the
-stated constant since gPW <= 2 M sqrt(2 h) bounds the linear branch;
-we keep 1/16 by folding the discrepancy into the min). QED
+Case (b): pair 1 capped, non-drop. gS = gFW_side + gA_side (both
+terms nonnegative), so one of them is >= gS/2 >= gPW/4.
+- If gFW_side >= gPW/4: the toward step on r* has derivative gFW_side
+  and maximal step 1; by (LS), gain >= min( gFW_side^2/(2M^2),
+  gFW_side/2 ) >= min( gPW^2/(32 M^2), gPW/8 ).
+- If gA_side >= gPW/4: the away step on u* has derivative gA_side and,
+  in the non-drop case, an interior optimum; by (LS),
+  gain >= gA_side^2/(2M^2) >= gPW^2/(32 M^2).
+The algorithm takes the best of the available candidates, so its gain is
+at least the relevant bound. Combining the cases gives the claim. QED
 
-**Lemma 5 (geometric strong convexity; LJ 2015).** For the 1-strongly
-convex, 1-smooth F over the polytope Z with pyramidal width delta and
-diameter M,
+**Lemma 5 (geometric strong convexity).** For every z in Z with any
+representation whose support S contains an away atom, and delta the
+pyramidal width of Z,
 
-    gPW(z)^2 >= 2 (delta / M)^2 * ... >= (delta^2 / M^2) * 2 h(z)
-    up to LJ's normalisation; precisely, LJ Theorem 6 gives
-    h(z) <= gPW(z)^2 / (2 mu_PW)  with  mu_PW = (delta / M)^2 * mu / 4,
-    mu = 1.
+    gPW(z) >= delta * sqrt(2 h(z)),      i.e.   gPW(z)^2 >= 2 delta^2 h(z),
 
-Consequently gPW(z)^2 >= (delta^2 / (2 M^2)) h(z).
+and moreover gPW(z) >= gFW(z) >= h(z).
+
+*Proof.* By the definition of the pyramidal width (LJ, Definition 3 and
+Theorem 6), for the direction e = (z* - z)/||z* - z|| the FW atom s and
+the away atom v of the current support satisfy
+<g, s - v> >= delta <g, e>, i.e. gPW >= delta <g, z* - z> / ||z* - z||.
+By 1-strong convexity, F(z*) >= F(z) + <grad F(z), z* - z>
++ 1/2 ||z* - z||^2, i.e. <g, z* - z> >= h + 1/2 ||z* - z||^2 with
+g = -grad F(z). Hence, with r = ||z* - z|| > 0,
+gPW >= delta (h/r + r/2) >= delta sqrt(2h) by AM-GM. Finally
+gPW = gFW + gA >= gFW, and gFW = max_u <g, u - z> >= <g, z* - z> >= h by
+convexity. QED
+
+(Units check: delta and r are lengths, h and gPW are squared lengths.)
 
 **Theorem 6 (global linear convergence).** Run the guarded
-block-transfer Triangle Algorithm with away fallback (Section 2), any
-block size k >= 1, from any initial vertex pair. Let s_0 <= 2 be the
-initial support size and T the iteration count. Then the number of drop
-steps up to T is at most (k + 1) T_g + s_0 where T_g is the number of
-non-drop steps, and every non-drop step satisfies
+block-transfer Triangle Algorithm with away fallback (Section 2, one
+side per iteration), any block size k >= 1, from any initial vertex
+pair (support size s_0 <= 2). Then every non-drop iteration satisfies
 
-    h_{t+1} <= ( 1 - rho ) h_t ,     rho = delta^2 / (64 M^4) * c ,
+    h_{t+1} <= (1 - rho) h_t ,      rho = (1/16) (delta / M)^2 ,
 
-with an explicit absolute constant c (c = 1 suffices with the
-normalisations above, provided h_0 <= M^2 / 2, which holds since Z has
-diameter M). Hence
+the number of drop iterations among the first T is at most
+k T_good + s_0, and consequently
 
-    h_T <= h_0 * (1 - rho)^{ (T - s_0) / (k + 2) }  -> 0  linearly.
+    h_T <= h_0 (1 - rho)^{(T - s_0)/(k + 1)} .
 
-*Proof.* Rate on non-drop steps: combine Lemma 4 and Lemma 5. In the
-quadratic branch, gain >= gPW^2/(32 M^2) >= (delta^2/(64 M^4)) h.
-In the linear branch (gain >= gPW/32-type), note
-gPW >= sqrt(delta^2 h / (2M^2)) and h <= M^2/2 imply the linear branch
-also yields gain >= (delta / (32 M)) sqrt(h / 2) * ... >= rho h after
-the same normalisation (the standard FW argument: whenever the linear
-branch is active the quadratic one is weaker, and both dominate rho h
-for h <= M^2/2). Either way h_{t+1} <= (1 - rho) h_t.
+*Proof.* Rate: by Lemma 4 a non-drop iteration gains at least
+min( gPW^2/(32 M^2), gPW/8 ). Lemma 5 gives gPW^2 >= 2 delta^2 h and
+gPW >= h, so the gain is at least
+min( delta^2 h/(16 M^2), h/8 ) = (delta/M)^2 h / 16, using
+delta <= M. Hence h_{t+1} <= (1 - rho) h_t with rho = (delta/M)^2/16.
 
-Drop counting: a drop step removes exactly one index from one side's
-support and adds none. A non-drop step adds at most k indices (the block
-receivers) and removes at most k. Support size is always >= 2 and starts
-at s_0, so the total number of removals - hence of drop steps - is at
-most the total number of additions plus s_0, i.e. <= k T_g + s_0.
-Therefore T <= T_g + k T_g + s_0, giving T_g >= (T - s_0)/(k + 1) and
-the displayed bound with exponent (T - s_0)/(k + 2) after slack for the
-side not analysed. Monotonicity of F across all steps (every step is a
-descent step by construction, including drops, whose gain is >= 0)
-completes the proof. QED
+Drop counting: let a_t (resp. d_t) be the number of support indices
+added (resp. removed) at iteration t. Non-drop iterations add at most
+k indices (the block's receivers) and drop iterations add none; every
+drop iteration removes at least one index. The support size is always
+>= 2 and starts at s_0, so sum_t d_t <= sum_t a_t + s_0 - 2, whence
+#drops <= k T_good + s_0. Therefore T <= (k + 1) T_good + s_0, i.e.
+T_good >= (T - s_0)/(k + 1). Every iteration (drops included) is a
+descent step, so h is non-increasing and the bound follows. QED
+
+**Lemma 7 (the two-sided implementation).** The implementation takes
+the V-side step and then the W-side step in every iteration (each
+with the guard / away fallback of Section 2). Classify an iteration as
+a drop iteration if either side drops. Then every non-drop iteration
+satisfies
+
+    gain >= min( gPW^2 / (128 M^2) ,  gPW / 16 ),
+
+so Theorem 6 holds for the implementation with
+rho_impl = (delta / M)^2 / 64 and #drops <= 2k T_good + s_0, i.e.
+h_T <= h_0 (1 - rho_impl)^{(T - s_0)/(2k + 1)}.
+
+*Proof.* Let G = gPW(z_t). If the V side has the larger gap, the V-step
+is exactly the analysed step and Lemma 4 applies. Otherwise
+gPW_W(z_t) >= G/2, and the V-step moves z_t to z' with some gain
+Delta_V >= 0 first. Two facts: (i) for an exact line search along a
+direction d, ||z' - z_t||^2 <= 2 Delta_V (interior: ||z' - z_t||^2 =
+S^2/D = 2 Delta_V; boundary t = 1: ||z' - z_t||^2 = D <= S <= 2 Delta_V
+since Delta_V = S - D/2 >= S/2); (ii) the W-side scores change by
+<z' - z_t, w_j>, and the W support is unchanged by a V-step, so
+gPW_W(z') >= gPW_W(z_t) - max_j <dz, w_j> + min_j <dz, w_j>
+>= gPW_W(z_t) - ||dz|| diam(conv W) >= gPW_W(z_t) - M ||dz||.
+If Delta_V >= G^2/(128 M^2) we are done. Otherwise
+||dz|| < G/(8M) by (i), so gPW_W(z') >= G/2 - G/8 >= G/4 by (ii), and
+the W-step at z' is a non-drop step on a side with gap >= G/4; the
+proof of Lemma 4 with gS >= G/4 in place of G/2 gives
+gain_W >= min( G^2/(128 M^2), G/16 ). The rate constant follows as in
+Theorem 6 (min(2 delta^2 h/(128 M^2), h/16) = (delta/M)^2 h/64); each
+non-drop iteration now adds at most 2k indices, giving
+#drops <= 2k T_good + s_0. QED
 
 **Corollary 7 (variants).** The theorem applies verbatim to:
 (i) the L2 soft-margin solver - replace V, W by their augmented images;
@@ -327,7 +349,7 @@ then at the next screening round every zero-weight point outside
 F_V u F_W is removed, permanently. Under the linear rate of Theorem 6,
 condition (ACT) holds for all
 
-    t >= T* = s_0 + ((k+2)/rho) * log( 2592 R^4 D^4 h_0
+    t >= T* = s_0 + ((k+1)/rho) * log( 2592 R^4 D^4 h_0
                                        / ( tau^4 delta*^2 ) ),
 
 so after O( (k/rho) log( R D h_0 / (tau delta*) ) ) iterations the

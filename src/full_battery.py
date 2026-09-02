@@ -93,8 +93,15 @@ def _load_cached(name, data_dir, max_n, seed):
             raise NotImplementedError('sparse datasets need sparse support')
         X = np.asarray(X.todense(), dtype=np.float64)
         Xt = np.asarray(Xt.todense(), dtype=np.float64)
-        y = (y > 0).astype(int)
-        yt = (yt > 0).astype(int)
+        # binarise on the dataset's own two label values: LIBSVM files use
+        # {-1,+1} for most sets but {1,2} for covtype.binary - 'y > 0'
+        # would put every covtype point in one class (empty other class)
+        labels = np.unique(y)
+        if len(labels) != 2:
+            raise ValueError(f'{name}: expected 2 classes, got {labels}')
+        pos = labels.max()
+        y = (y == pos).astype(int)
+        yt = (yt == pos).astype(int)
     sc = StandardScaler().fit(X)
     return sc.transform(X), y, sc.transform(Xt), yt
 

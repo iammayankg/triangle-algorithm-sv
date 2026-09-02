@@ -106,6 +106,9 @@ class EnhancedTriangleAlgorithm:
         self.W = np.ascontiguousarray(W)
         self.n, self.d = self.V.shape
         self.m = self.W.shape[0]
+        if self.n == 0 or self.m == 0:
+            raise ValueError(f'both point sets must be non-empty '
+                             f'(got |V|={self.n}, |W|={self.m})')
         self.joint_update = joint_update
         self.cache_dots = cache_dots
         self.anti_zigzag = anti_zigzag and zigzag_strategy is not None
@@ -561,10 +564,14 @@ class EnhancedTriangleAlgorithm:
         else:
             part = np.argpartition(s[act_arr], k)[:k]
             don = act_arr[part[np.argsort(s[act_arr][part])]]
-        rset = set(int(x) for x in recv)
-        don = [int(u) for u in don if int(u) not in rset]
+        # keep the worst active donor as don[0] and drop receivers that are
+        # donors, so pair 1 is always the MDM pair (global argmax, worst
+        # active) that the guard and the analysis refer to
+        dset = set(int(x) for x in don)
+        recv = [int(r) for r in recv if int(r) not in dset]
+        don = [int(u) for u in don]
         pairs = []
-        for r, u in zip((int(x) for x in recv), don):
+        for r, u in zip(recv, don):
             num = s[r] - s[u]
             if num <= self.tol:
                 continue

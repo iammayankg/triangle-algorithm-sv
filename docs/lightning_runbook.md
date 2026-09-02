@@ -11,9 +11,20 @@ September 2026 - if a button has moved, the concept still applies.
 | leg | machine tier | duration | cost ballpark |
 |--|--|--|--|
 | setup + smoke test + dataset fetch | free CPU tier | ~30 min | free |
-| CPU battery (`full_battery.py`) | largest CPU tier, >= 16 vCPU / 32 GB | 2-4 h at `--parallel 12` | a few $ |
+| L2 battery (`full_battery.py`) | largest CPU tier, >= 16 vCPU / 32 GB | ~4-5 h at `--parallel 12` (600 s caps) | a few $ |
+| regime battery (`regime_battery.py`) | same CPU tier | 1-3 h at `--parallel 8` | a few $ |
 | synthetic suites re-run | same CPU tier | 1-2 h parallelised | a few $ |
 | ThunderSVM leg | T4 GPU | 1-2 h incl. install | ~$1 |
+
+**What to expect from the L2 battery** (do not mistake it for a
+problem): on the heavily overlapping datasets (a9a, w8a, ijcnn1,
+covtype) 60-65% of points are support vectors, which is the dense-support
+regime where the geometric solver is O(n^2)-type (the paper's Theorem 6
+predicts it). ETA and SMO will hit their 600 s caps and report
+`timeout` with their achieved certified gap, while LIBLINEAR finishes in
+seconds. Those cells are the honest half of the regime story; the
+regime battery supplies the other half. Gisette (d = 5000) is the L2
+dataset most likely to converge for ETA.
 
 Use **on-demand** machines for all timed runs (never interruptible: an
 interruption invalidates in-flight cells, and although shards make
@@ -34,6 +45,17 @@ resume cheap, timing statistics should come from uninterrupted runs).
    ```bash
    cd triangle-algorithm
    pip install -r requirements.txt
+   ```
+
+   Keeping the Studio current: after pushing new commits from your Mac,
+   `git pull` in the Studio terminal before launching anything.
+   **If the battery code changed since a run started** (e.g. the 600 s
+   ETA cap added in commit `c8bee1b`), stop the run and delete its shards
+   so all cells are measured under the same settings:
+
+   ```bash
+   pkill -f full_battery.py
+   rm -rf results/full_battery.json.shards results/full_battery.json
    ```
 
    (Studios persist their filesystem and environment across restarts
@@ -75,6 +97,7 @@ ls -la data   # expect a9a, w8a, ijcnn1, gisette_scale, covtype..., + .t files
 
 ```bash
 cd triangle-algorithm
+mkdir -p results                      # log redirects need it to exist
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 nohup python3 -u src/full_battery.py --data-dir data --seeds 10 \
     --parallel 12 --out results/full_battery.json \
@@ -84,11 +107,20 @@ tail -f results/full_battery.log     # detachable; the run survives
 ```
 
 - `--parallel`: (vCPUs - 2) is a good default, capped at ~12-16;
-  each worker is single-threaded BLAS.
-- Progress: every finished cell prints one line and writes a shard to
+  each worker is single-threaded BLAS and holds one dataset copy.
+- Budgets: ETA and SMO each get 600 s per cell; LIBLINEAR is unbounded
+  (it finishes in seconds to a minute). Worst case per cell is therefore
+  ~21 min, so 150 cells at `--parallel 12` is ~4.5 h.
+- Reading the log: each finished cell prints one line such as
+  `[a9a C=0.1 seed=3] ETA=600.2s/timeout gap=2.1e-01 SMO=600.1s/timeout
+  LIBLIN=14.3s (cell 1215s)`. A `/timeout` or `/maxiter` suffix with its
+  gap is a *result*, not an error - see "What to expect" above. A cell
+  with no suffix converged.
+- Progress: every finished cell also writes a shard to
   `results/full_battery.json.shards/`. Count shards to see progress:
   `ls results/full_battery.json.shards | wc -l` (target:
-  5 datasets x 3 Cs x 10 seeds = 150).
+  5 datasets x 3 Cs x 10 seeds = 150). Cells run in dataset order
+  (a9a, w8a, ijcnn1, gisette, covtype), all seeds and Cs per dataset.
 - Interim analysis any time: `python3 src/battery_analysis.py --out
   results/full_battery.json` (reads shards even before the combined
   JSON exists).
@@ -96,7 +128,10 @@ tail -f results/full_battery.log     # detachable; the run survives
   finished shards are skipped automatically.
 
 Then the regime battery (hard-margin / kernel cells, ETA's own regime;
-1-3 h at `--parallel 8`):
+1-3 h at `--parallel 8`). Smoke-test it first on the free tier -
+`python3 src/regime_battery.py --datasets synthetic-sep synthetic
+--seeds 2 --parallel 2 --max-n-kernel 1200 --out results/rsmoke.json` -
+then:
 
 ```bash
 OMP_NUM_THREADS=1 nohup python3 -u src/regime_battery.py --data-dir data \
@@ -104,14 +139,24 @@ OMP_NUM_THREADS=1 nohup python3 -u src/regime_battery.py --data-dir data \
     > results/regime_battery.log 2>&1 &
 ```
 
+Its log lines list the cells per dataset x seed
+(`FEAS:TA-I=2s LIN:ETA=41s LIN:SMO=... KHM:... KL2:...`); a dataset
+with `FEAS:TA-I=.../intersect` is not linearly separable and simply has
+no LIN cells - that is a reported finding. Kernel cells use a 10k
+class-balanced subsample (`--max-n-kernel`). The slow column is
+LIBSVM at C=1e6 on RBF; it has a 2M-iteration cap and reports `maxiter`
+if it hits it. Summary: `results/regime_battery_summary.md`.
+
 While that runs (or after), the synthetic suites on the same machine:
 
 ```bash
+mkdir -p results
 for s in experiments solver_comparison soft_experiment l1_experiment \
          kernel_experiment shrink_benchmark block_benchmark \
          final_benchmark; do
-  nohup python3 -u src/$s.py > results/$s.rerun.log 2>&1
-done   # sequential; parallelise by backgrounding groups if cores allow
+  echo "=== $s ==="; python3 -u src/$s.py > results/$s.rerun.log 2>&1
+done   # sequential, ~1-2 h; run the loop itself under nohup/tmux if
+       # you want to close the tab, or background groups if cores allow
 ```
 
 ## 5. ThunderSVM leg (GPU)
@@ -144,9 +189,14 @@ persists, so nothing is lost.
 
 ## Troubleshooting
 
-- **Battery seems stalled**: check `tail results/full_battery.log`; an
-  a9a/covtype cell at C=10 can legitimately run ~10-20 min. SMO cells
-  cap at 600 s by design.
+- **Battery seems stalled**: check `tail results/full_battery.log`. A
+  cell legitimately takes up to ~21 min when both ETA and SMO hit their
+  600 s caps (expected on a9a/w8a/ijcnn1/covtype - see "What to
+  expect"). With `--parallel 12` the first 12 lines appear together
+  after ~20 min; that is normal.
+- **Many `/timeout` lines**: expected on the dense-support datasets; the
+  achieved gaps are recorded and reported. Only an ETA timeout on
+  gisette or on regime-battery LIN/KHM cells is worth a second look.
 - **Out of memory** (unlikely below 100k x 5000): lower `--parallel` -
   each worker holds one dataset copy.
 - **ThunderSVM wheel fails to import** (CUDA mismatch): use the source

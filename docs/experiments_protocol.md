@@ -110,8 +110,12 @@ results/smoke.json`.
   accuracy; seed 0 additionally records the (time, UB, LB) convergence
   trace for the gap-vs-time plots the linear-rate theorem predicts.
 - The summary prints mean +/- 95% CI (t-distribution) over seeds.
-  Expected total runtime at defaults: several hours; covtype and
-  gisette dominate.
+  ETA and SMO each carry a 600 s budget per cell (LIBLINEAR is
+  unbounded, finishing in seconds); worst case ~21 min per cell, so
+  150 cells at `--parallel 12` take ~4.5 h. On the heavily overlapping
+  datasets ETA and SMO are expected to time out (dense-support regime,
+  Theorem 6) and report their achieved certified gaps - that is the
+  intended measurement, not a failure.
 
 Solver-comparability notes for the paper: ETA stops at certified
 relative gap 1e-3; LIBLINEAR at primal-progress tol 1e-6 (chosen so its

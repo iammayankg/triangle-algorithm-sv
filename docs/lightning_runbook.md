@@ -6,6 +6,69 @@ Lightning AI Studios. Companion to `docs/experiments_protocol.md`
 report); this file is purely operational. UI element names are as of
 September 2026 - if a button has moved, the concept still applies.
 
+## Tonight's run (OPT 2026 sprint, Sep 2-4)
+
+Exact sequence for the 32-vCPU Studio (Intel Xeon 2.60 GHz, 122 GB, as
+recorded in `machine.txt`). Both batteries run concurrently; everything
+should be finished by morning.
+
+```bash
+# 0. on the Mac: push main so the Studio can pull the capped battery +
+#    regime battery + this runbook
+git push origin main
+
+# 1. on the Studio: stop the old uncapped run and get current
+pkill -f full_battery.py ; sleep 2
+cd ~/triangle-algorithm-sv && git pull
+
+# 2. preserve the uncapped a9a/w8a shards (already committed in git, but
+#    keep them on disk under their own name) and start the capped run clean
+mv results/full_battery.json.shards results/full_battery_uncapped.shards 2>/dev/null
+rm -f results/full_battery.json
+
+# 3. launch both batteries (26 single-threaded workers on 32 vCPUs)
+mkdir -p results
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+nohup python3 -u src/full_battery.py --data-dir data --seeds 5 \
+    --parallel 14 --out results/full_battery.json \
+    > results/full_battery.log 2>&1 &
+nohup python3 -u src/regime_battery.py --data-dir data --seeds 5 \
+    --parallel 12 --out results/regime_battery.json \
+    > results/regime_battery.log 2>&1 &
+
+# 4. confirm both are alive, then close the tab
+sleep 60; pgrep -fc "full_battery.py|regime_battery.py"   # expect ~28 (workers + parents)
+tail -3 results/full_battery.log results/regime_battery.log
+```
+
+Why these settings: 5 seeds (CIs suffice for a workshop; 10 is for the
+journal), 600 s caps per solver (a9a converges uncapped in ~3,030 s -
+that number is preserved in the uncapped shards), 14 + 12 workers leave
+6 vCPUs for the OS and the Studio. Expected: L2 battery 2-3 h (75 cells,
+worst ~21 min each), regime battery 1-3 h.
+
+**Morning (Sep 3):**
+
+```bash
+ls results/full_battery.json.shards | wc -l      # target 75
+ls results/regime_battery.json.shards | wc -l    # target 25
+python3 src/battery_analysis.py --out results/full_battery.json
+python3 src/regime_battery.py --data-dir data --seeds 5 --parallel 1 \
+    --out results/regime_battery.json           # merges shards -> summary
+git add results/ && git commit -m "OPT sprint: capped L2 battery + regime battery (32-vCPU Xeon)"
+git push origin main
+```
+
+If a battery is still running in the morning, leave it: the analysis
+scripts read finished shards, and the paper draft takes whatever is
+done by Thursday afternoon.
+
+**In parallel, check the OPT 2026 CFP on OpenReview**
+(https://openreview.net/group?id=NeurIPS.cc/2026/Workshop/OPT) for the
+three things the workshop site does not state: page limit, whether
+submissions are anonymised, and the required style file (expect the
+NeurIPS 2026 template). Deadline: **Sep 4, 2026, AoE**.
+
 ## 0. What you will run, and on what
 
 | leg | machine tier | duration | cost ballpark |

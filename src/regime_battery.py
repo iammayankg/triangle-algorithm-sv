@@ -58,6 +58,14 @@ CAP = 600.0
 EPS = 1e-3
 
 
+def _gap(r):
+    """Certified relative gap; inf when the distance is zero (the hulls
+    intersect - e.g. identical points with opposite labels, which makes a
+    hard margin infeasible even in RBF feature space)."""
+    return (r.distance - r.lower_bound) / r.distance if r.distance > 0 \
+        else float('inf')
+
+
 def _subsample(X, y, max_n, seed):
     if len(X) <= max_n:
         return X, y
@@ -94,13 +102,16 @@ def cell_lin(V, W, Xt, yt):
                                    zigzag_strategy='pairwise', shrink=True,
                                    shrink_every=25, seed=0)
     r = ta.solve_distance(eps=EPS, max_iter=2_000_000, time_cap=CAP)
-    d2 = r.distance ** 2
-    w = 2.0 * (r.p - r.q) / d2
-    b = (float(r.q @ r.q) - float(r.p @ r.p)) / d2
+    if r.distance > 0:
+        d2 = r.distance ** 2
+        w = 2.0 * (r.p - r.q) / d2
+        b = (float(r.q @ r.q) - float(r.p @ r.p)) / d2
+        a_eta = acc(w, b, Xt, yt)
+    else:
+        a_eta = float('nan')
     out['ETA'] = dict(time=r.time, iters=r.iterations, oracle=ta.col_evals,
-                      dist=r.distance,
-                      gap=(r.distance - r.lower_bound) / r.distance,
-                      sv=r.sparsity, acc=acc(w, b, Xt, yt), status=r.status,
+                      dist=r.distance, gap=_gap(r),
+                      sv=r.sparsity, acc=a_eta, status=r.status,
                       alive=ta.n + ta.m)
     X = np.vstack([V, W])
     y = np.concatenate([np.ones(len(V)), -np.ones(len(W))])
@@ -123,10 +134,18 @@ def cell_khm(V, W, Xt, yt, gamma):
     kt = KernelETA(V, W, kernel='rbf', gamma=gamma, step_mode='block',
                    zigzag_strategy='pairwise', seed=0)
     r = kt.solve_distance(eps=EPS, max_iter=2_000_000, time_cap=CAP)
+    if r.status == 'intersect' or r.distance <= 1e-12:
+        # feature-space hulls intersect (conflicting duplicate points):
+        # no hard margin exists; report and skip the infeasible baseline
+        out['K-ETA'] = dict(time=r.time, iters=r.iterations,
+                            oracle=kt.col_evals, dist=0.0, gap=float('inf'),
+                            sv=r.sparsity, acc=float('nan'),
+                            status='intersect')
+        return out
     pred = (kt.decision_function(Xt, r) > 0).astype(int)
     out['K-ETA'] = dict(time=r.time, iters=r.iterations, oracle=kt.col_evals,
                         dist=r.distance,
-                        gap=(r.distance - r.lower_bound) / r.distance,
+                        gap=_gap(r),
                         sv=r.sparsity, acc=float(np.mean(pred == yt)),
                         status=r.status)
     X = np.vstack([V, W])
@@ -151,7 +170,7 @@ def cell_kl2(V, W, Xt, yt, gamma, C=1.0):
     pred = (kt.decision_function(Xt, r) > 0).astype(int)
     out['K-ETA'] = dict(time=r.time, iters=r.iterations, oracle=kt.col_evals,
                         dist=r.distance,
-                        gap=(r.distance - r.lower_bound) / r.distance,
+                        gap=_gap(r),
                         sv=r.sparsity, acc=float(np.mean(pred == yt)),
                         status=r.status)
     X = np.vstack([V, W])
@@ -242,9 +261,9 @@ def summarize(runs, path):
         sel = [r for r in runs if (r['dataset'], r['cell'], r['solver'])
                == (d, c, s)]
         tm, th = ci95([r['time'] for r in sel])
-        dist = np.mean([r['dist'] for r in sel if 'dist' in r]) \
+        dist = np.nanmean([r['dist'] for r in sel if 'dist' in r]) \
             if any('dist' in r for r in sel) else float('nan')
-        am = np.mean([r['acc'] for r in sel if 'acc' in r]) \
+        am = np.nanmean([r['acc'] for r in sel if 'acc' in r]) \
             if any('acc' in r for r in sel) else float('nan')
         om = np.mean([r['oracle'] for r in sel if 'oracle' in r]) \
             if any('oracle' in r for r in sel) else float('nan')
@@ -255,13 +274,17 @@ def summarize(runs, path):
             f"{'-' if np.isnan(dist) else f'{dist:.5f}'} | "
             f"{'-' if np.isnan(am) else f'{am:.4f}'} | "
             f"{'-' if np.isnan(om) else f'{om:,.0f}'} | {bad}/{len(sel)} |")
-    feas = [r for r in runs if r['cell'] == 'FEAS']
-    if feas:
-        lines += ['', '## Linear hard-margin feasibility (TA I)', '']
-        for d in sorted({r['dataset'] for r in feas}):
-            st = [r['status'] for r in feas if r['dataset'] == d]
-            lines.append(f"- {d}: " + ', '.join(
-                f"{s}={st.count(s)}" for s in sorted(set(st))))
+    for cell, title in (('FEAS', 'Linear hard-margin feasibility (TA I)'),
+                        ('KHM', 'RBF feature-space hard-margin feasibility '
+                                '(K-ETA; intersect = conflicting duplicates)')):
+        sub = [r for r in runs if r['cell'] == cell
+               and (cell != 'KHM' or r['solver'] == 'K-ETA')]
+        if sub:
+            lines += ['', f'## {title}', '']
+            for d in sorted({r['dataset'] for r in sub}):
+                st = [r['status'] for r in sub if r['dataset'] == d]
+                lines.append(f"- {d}: " + ', '.join(
+                    f"{s}={st.count(s)}" for s in sorted(set(st))))
     Path(path).write_text('\n'.join(lines) + '\n')
     print('\n'.join(lines))
     print('\nwrote', path)

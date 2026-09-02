@@ -43,30 +43,30 @@ Gap-Certified Screening for SVM Training}
 \begin{abstract}
 Hard-margin SVM training is the distance problem between two convex
 hulls, and the Triangle Algorithm (TA) solves it with a certified
-duality gap from supporting hyperplanes. We study the family of
-weight-transfer steps behind the enhanced TA and introduce
-\emph{guarded block transfers}: $k$ MDM-style transfers per scan,
-aggregated into one exact line search, guarded by an $O(1)$ comparison
-against the single best transfer, with an away-step fallback on
-capacity-clipped iterations. Analysing the method on the
+duality gap from supporting hyperplanes. We study the weight-transfer
+steps used by the enhanced TA and propose \emph{guarded block
+transfers}, in which $k$ MDM-style transfers per scan are aggregated
+into a single exact line search, compared in $O(1)$ time against the
+single best transfer, and replaced by an away step whenever the leading
+transfer is capacity-clipped. Analysing the method on the
 Minkowski-difference polytope---where the objective is $1$-strongly
 convex and a single pyramidal width governs the geometry---we prove
-global linear convergence with explicit constants and \emph{no}
-combinatorial swap-step bounds: the away fallback turns every
-potentially bad iteration into either a guaranteed contraction or a
-support-shrinking drop step. We further prove that the TA's certified
+global linear convergence with explicit constants and without the
+combinatorial swap-step bounds of pairwise Frank--Wolfe; the away
+fallback ensures that every iteration either contracts by a fixed
+factor or removes a vertex from the support. We further prove that the TA's certified
 gap equals the Frank--Wolfe gap over that polytope divided by the
 current distance, and use it to show that gap-certified safe screening
 removes every non-support point after an explicit
 $O\!\left(\tfrac{k}{\rho}\log\tfrac{1}{\tau}\right)$ iterations, where
-$\tau$ is the optimal-face score margin. Every inequality is verified
-numerically at machine precision. Experiments on synthetic and real
-data delineate the regime the theory predicts: on sparse-support
-problems (hard margins, kernels, high dimension) the optimised solver
-is $1.6$--$2.5\times$ faster to a certified solution than LIBSVM, while
-on dense-support $L_2$ soft margins the $1/n$ pyramidal width makes
-primal coordinate descent the right tool---a boundary the analysis
-anticipates and the experiments confirm.
+$\tau$ is the optimal-face score margin. Each inequality in the analysis is
+accompanied by a numerical check. Experiments on synthetic and real
+data agree with the regime the theory describes: on sparse-support
+problems (hard margins, kernels, high dimension) the solver reaches a
+certified solution $1.6$--$2.5\times$ faster than LIBSVM, whereas on
+dense-support $L_2$ soft margins the pyramidal width scales like $1/n$
+and primal coordinate descent is substantially faster. We report both
+sides.
 \end{abstract}
 
 \section{Introduction}
@@ -87,9 +87,10 @@ The workhorse step of such geometric solvers is the \emph{weight
 transfer}: move mass from the worst active vertex to the best candidate
 vertex---the Mitchell--Demyanov--Malozemov (MDM) step
 \cite{mdm1974}, which is exactly the pairwise Frank--Wolfe (FW) step of
-\cite{lj2015} on the relevant polytope. Each such step costs an $O(n)$
-scan for one transfer. This paper asks how much of that scan can be
-amortised, and what it costs in guarantees.
+\cite{lj2015} on the relevant polytope. Each such step requires an $O(n)$
+scan and produces a single transfer. The question addressed here is
+how much of that scan can be reused across several transfers without
+weakening the convergence guarantee.
 
 \paragraph{Contributions.}
 \begin{enumerate}\setlength\itemsep{0pt}
@@ -109,12 +110,11 @@ combinatorial swap-step bound with linear drop-step counting.
 theorem (Theorem~\ref{thm:activation}): gap-certified safe screening
 provably removes all non-support points after an explicit number of
 iterations.
-\item \textbf{A regime characterisation} (\S\ref{sec:exp}) rather than a
-speed claim: the theory predicts an $O(n^2)$-type cost when the optimal
-support is dense ($\PW \sim 1/n$), and both synthetic and real
-experiments show exactly that boundary---with the solver winning against
-LIBSVM on sparse-support problems and losing to LIBLINEAR on
-dense-support $L_2$ soft margins.
+\item \textbf{An empirical regime study} (\S\ref{sec:exp}). The
+analysis predicts $O(n^2)$-type cost when the optimal support is dense
+($\PW\sim1/n$). Synthetic and real experiments show this boundary: the
+solver is faster than LIBSVM on sparse-support problems and slower than
+LIBLINEAR on dense-support $L_2$ soft margins.
 \end{enumerate}
 All code, proofs and experiment scripts are released. \todo{repo URL}
 
@@ -336,8 +336,9 @@ tolerance on every row.
 configuration vs the best standard solver per class.}\label{fig:final}
 \end{figure}
 
-\paragraph{Dense-support regime: real data.} The one loss above,
-MNIST odd-vs-even, previews the boundary. On the LIBSVM benchmark
+\paragraph{Dense-support regime: real data.} The one case above in
+which the solver was slower, MNIST odd-vs-even, is an instance of the
+dense-support regime. On the LIBSVM benchmark
 battery ($L_2$ soft margin, $C{=}0.1$, uncapped), ETA converges to the
 certified $10^{-3}$ gap on all ten a9a splits in $2{,}908\pm183$\,s
 ($\sim95{,}000$ iterations; test accuracy $0.8493$, identical to
@@ -346,9 +347,9 @@ $12$ and $48$\,s and our SMO times out at $600$\,s with lower accuracy.
 Figure~\ref{fig:trace} shows the real-data traces: the characteristic
 linear-rate signature of Theorem~\ref{thm:linear}, but with $60$--$65\%$
 of points in the support and near-uniform weights, so that
-$\PW(Z)\sim1/n$ and the cost is $O(n^2)$-type. Neither centroid
-initialisation nor larger blocks change this (the former takes more
-iterations; the latter trades iterations for per-iteration cost).
+$\PW(Z)\sim1/n$ and the cost is $O(n^2)$-type. We tried centroid initialisation and larger blocks; neither helped
+(the former increased the iteration count, the latter traded iterations
+for per-iteration cost).
 \todo{Insert capped-battery table (5 seeds, mean$\pm$CI95, 5 datasets $\times$ 3 $C$) and regime-battery table (FEAS/LIN/KHM/KL2) from tonight's run.}
 
 \begin{figure}[t]\centering
@@ -358,15 +359,15 @@ versus iteration and wall-clock: linear-rate convergence in the
 dense-support regime, at $O(n^2)$-type cost.}\label{fig:trace}
 \end{figure}
 
-\paragraph{Reading the boundary.} The two batteries together are one
-statement: where the optimal support is sparse---hard margins, high
-dimension, kernels, $\nu$-SVM at moderate $\nu$, and linearly separable
-real datasets---the geometric solver with certificates is competitive
-or faster than LIBSVM; where the support is dense, the pyramidal width
-of the near-simplex collapses and primal coordinate descent wins by
-orders of magnitude. The theory names the quantity that decides
-($\PW(Z)$, equivalently support density), and the certificate makes the
-diagnosis available at run time.
+\paragraph{Summary of the regime study.} Where the optimal support is
+sparse (hard margins, high dimension, kernels, $\nu$-SVM at moderate
+$\nu$, linearly separable real datasets), the geometric solver is
+competitive with or faster than LIBSVM and additionally supplies a
+certificate. Where the support is dense, the pyramidal width of the
+near-simplex is small and primal coordinate descent is faster by
+orders of magnitude. The quantity that separates the two cases,
+$\PW(Z)$ or equivalently the support density, can be monitored during
+a run through the certified gap and the support size.
 
 \section{Related work}
 Distance duality and the TA \cite{kalantari2015,gupta2026}; MDM
@@ -382,33 +383,32 @@ certificate; and the SMO/LIBSVM/LIBLINEAR solvers used as baselines.
 
 \section{Conclusion}
 Guarded block transfers give the Triangle Algorithm a linear rate with
-explicit constants, no combinatorial swap-step bounds, and a
-provably-effective screening rule, at the price of a $(k+1)$ factor in
-the exponent that the near-orthogonal regime more than repays. The same
-analysis predicts, and the experiments confirm, where the method stops
-being competitive. Limitations: the implementation is NumPy-level (a
+explicit constants, without combinatorial swap-step bounds, together
+with a screening rule that is both safe and provably effective. The
+cost is a factor $(k+1)$ in the exponent, which is recovered in the
+near-orthogonal regime where the block realises close to the sum of its
+$k$ pairwise gains. The same analysis indicates, and the experiments
+confirm, the dense-support regime in which the method is not
+competitive. Limitations: the implementation is NumPy-level (a
 compiled inner loop would shift the practical boundary but not its
 $O(n^2)$ asymptotics), sparse-matrix inputs are not yet supported, and
 the constants in Theorem~\ref{thm:linear} are loose.
 
 \section*{Statement on the use of AI assistance}
-This work was developed with substantial assistance from an AI system
-(Claude, Anthropic), used as a research and engineering collaborator
-under the authors' direction: it produced the implementation, drafted
-the proofs and this manuscript, designed and ran the experiments, and
-proposed several of the algorithmic ideas (the guarded block step, the
-away-step fallback, the screening-activation argument). The authors
-set the research questions, reviewed every theorem and proof, and take
-full responsibility for the correctness of all claims. To make that
-review verifiable, every inequality in the analysis is accompanied by a
-numerical check in the released code (random ensembles at machine
-precision and instrumented live solver runs), all solvers are validated
-against exact QP ground truth, and all experiments are reproducible
-from the released scripts. Where results were negative (the
-dense-support regime), they are reported as found. We regard disclosing
-this division of labour as part of using such tools responsibly, and
-we note that the release of the artefacts---not the provenance of the
-prose---is what allows readers to check the work.
+An AI system (Claude, Anthropic) was used extensively in this work,
+under the direction of the authors. It wrote the implementation,
+drafted the proofs and this manuscript, designed and ran the
+experiments, and suggested several of the algorithmic ideas, including
+the guarded block step, the away-step fallback and the
+screening-activation argument. The authors set the research questions,
+checked every theorem and proof (a re-derivation during that check
+corrected a dimensionally inconsistent constant in an earlier version
+of Theorem~\ref{thm:linear}), and are responsible for all claims. To
+make the checking reproducible, each inequality in the analysis has a
+numerical test in the released code, every solver is validated against
+exact QP solutions on small instances, and all experiments can be
+rerun from the released scripts. Negative results are reported as
+obtained.
 
 \bibliographystyle{plain}
 \begin{thebibliography}{9}

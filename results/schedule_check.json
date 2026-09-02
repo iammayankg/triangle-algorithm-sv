@@ -1,0 +1,84 @@
+[
+  {
+    "tag": "hard-d1000-eps1e-5",
+    "drop_skip": false,
+    "time": 0.14864583301823586,
+    "iters": 16,
+    "dist": 55.339365395595046,
+    "status": "converged",
+    "n_drops": 0,
+    "n_drop_skips": 0,
+    "kinds": {
+      "block": 27
+    }
+  },
+  {
+    "tag": "hard-d1000-eps1e-5",
+    "drop_skip": true,
+    "time": 0.14545574999647215,
+    "iters": 16,
+    "dist": 55.339365395595046,
+    "status": "converged",
+    "n_drops": 0,
+    "n_drop_skips": 0,
+    "kinds": {
+      "block": 27
+    }
+  },
+  {
+    "tag": "soft-d100-C1",
+    "drop_skip": false,
+    "time": 8.626431917014997,
+    "iters": 11501,
+    "dist": 0.07840029407005762,
+    "status": "converged",
+    "n_drops": 647,
+    "n_drop_skips": 0,
+    "kinds": {
+      "block": 22165,
+      "drop": 647
+    }
+  },
+  {
+    "tag": "soft-d100-C1",
+    "drop_skip": true,
+    "time": 8.4146721669822,
+    "iters": 10911,
+    "dist": 0.07840028593895305,
+    "status": "converged",
+    "n_drops": 656,
+    "n_drop_skips": 352,
+    "kinds": {
+      "block": 20620,
+      "drop": 656
+    }
+  },
+  {
+    "tag": "soft-d1000-C1",
+    "drop_skip": false,
+    "time": 4.648797625035513,
+    "iters": 3031,
+    "dist": 0.5781430307700594,
+    "status": "converged",
+    "n_drops": 203,
+    "n_drop_skips": 0,
+    "kinds": {
+      "block": 5714,
+      "drop": 203
+    }
+  },
+  {
+    "tag": "soft-d1000-C1",
+    "drop_skip": true,
+    "time": 84.52575512498152,
+    "iters": 200000,
+    "dist": 0.5854300757623787,
+    "status": "maxiter",
+    "n_drops": 146,
+    "n_drop_skips": 78,
+    "kinds": {
+      "block": 5439,
+      "drop": 146
+    }
+  }
+]

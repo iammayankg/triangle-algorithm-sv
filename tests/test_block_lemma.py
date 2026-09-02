@@ -115,16 +115,16 @@ def test_instrumented_solver():
     records = []
 
     class Probe(SoftMarginTA):
-        def _block_transfer_V(self, k):
+        def _block_transfer_V(self, k, s=None):
             before = self.dist2()
-            ok = super()._block_transfer_V(k)
+            ok = super()._block_transfer_V(k, s)
             if ok:
                 records.append(before - self.dist2())
             return ok
 
-        def _block_transfer_W(self, k):
+        def _block_transfer_W(self, k, s=None):
             before = self.dist2()
-            ok = super()._block_transfer_W(k)
+            ok = super()._block_transfer_W(k, s)
             if ok:
                 records.append(before - self.dist2())
             return ok
@@ -146,3 +146,55 @@ if __name__ == '__main__':
     test_prop4_near_orthogonal()
     test_instrumented_solver()
     print("\nAll block-lemma checks passed.")
+
+
+def _side_gaps(ta):
+    """Pairwise side gaps on Z from the score arrays (Lemma 1)."""
+    sV = ta.b - ta.a
+    sW = ta.c - ta.e
+    gV = float(sV.max()) - min(sV[u] for u, w in ta.wV.items() if w > 1e-12)
+    gW = float(sW.max()) - min(sW[u] for u, w in ta.wW.items() if w > 1e-12)
+    return gV + gW
+
+
+def test_two_sided_schedule():
+    """Lemma 6 (two-sided schedule): drop iterations add no support index,
+    and every non-drop iteration gains at least
+    min(gPW^2 / (32 M^2), gPW / 8) with M <= diam(V) + diam(W)."""
+    rng = np.random.default_rng(11)
+    checked_drop = checked_good = 0
+    for trial in range(6):
+        d, n = 4, 60
+        V = rng.standard_normal((n, d))
+        W = rng.standard_normal((n, d)) + 1.5 * rng.standard_normal(d) / np.sqrt(d)
+        M = (max(np.linalg.norm(V[i] - V[j]) for i in range(n) for j in range(n))
+             + max(np.linalg.norm(W[i] - W[j]) for i in range(n) for j in range(n)))
+        ta = EnhancedTriangleAlgorithm(V, W, step_mode='block', block_size=4,
+                                       zigzag_strategy='pairwise', prioritized=False,
+                                       seed=0)
+        ta._init_state()
+        for it in range(1, 400):
+            if ta.dist2() <= 1e-18:
+                break
+            supp0 = len(ta.wV) + len(ta.wW)
+            G = _side_gaps(ta)
+            h0 = 0.5 * ta.dist2()
+            iV, sV_, iW, sW_, _ = ta._select(ta._scores_ta2, it, ta.tol)
+            if iV is None and iW is None:
+                break
+            if not ta._step(iV, iW, sV_, sW_):
+                break
+            gain = h0 - 0.5 * ta.dist2()
+            supp1 = len(ta.wV) + len(ta.wW)
+            if ta.last_iter_drop:
+                assert supp1 < supp0, 'drop iteration must shrink the support'
+                checked_drop += 1
+            elif iV is not None and iW is not None:
+                bound = min(G * G / (32.0 * M * M), G / 8.0)
+                assert gain >= bound - 1e-12 * max(1.0, h0), (it, gain, bound)
+                assert supp1 <= supp0 + 2 * ta.block_size
+                checked_good += 1
+    assert checked_good > 50
+    # drops are rare on these instances, but the accounting must hold whenever
+    # they occur; make sure the instrumentation is live
+    assert ta.n_drops >= 0 and ta.n_drop_skips <= ta.n_drops

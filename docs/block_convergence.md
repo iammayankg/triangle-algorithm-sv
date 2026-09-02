@@ -19,10 +19,10 @@ the sketch:
 Main theorem (informal): *the guarded block-transfer Triangle Algorithm
 with away fallback converges linearly on the polytope distance problem,
 with rate constant rho = (delta/M)^2/16 (delta the pyramidal width and M
-the diameter of the Minkowski-difference polytope; rho = (delta/M)^2/64
-for the two-sided implementation), and with at least a 1/(k+1)-fraction
-(1/(2k+1) two-sided) of iterations contracting, where k is the block
-size.*
+the diameter of the Minkowski-difference polytope; the same rho for the
+two-sided schedule of the implementation), and with at least a
+1/(k+1)-fraction (1/(2k+1) two-sided) of iterations contracting, where
+k is the block size.*
 
 ## 1. Setting and notation
 
@@ -103,8 +103,9 @@ iterate z with weights (alpha, beta):
 
 1. **Side selection.** Compute gPW_V and gPW_W (Lemma 1); work on the
    side with the larger value. (The implementation updates both sides
-   per iteration; the analysis needs only the larger side's step and the
-   other side's step never increases F, so all bounds below transfer.)
+   per iteration, larger-gap side first, and skips the second side when
+   the first step is a drop; Lemma 7 shows this schedule inherits the
+   one-sided bounds.)
 2. **Pairing.** On the chosen side (say V), select the top-k receivers
    by sV and the worst-k donors from supp(alpha), pair best-with-worst;
    pair 1 = (r*, u*) is the side's MDM pair, realising gPW_V. Per-pair
@@ -223,36 +224,35 @@ drop iteration removes at least one index. The support size is always
 T_good >= (T - s_0)/(k + 1). Every iteration (drops included) is a
 descent step, so h is non-increasing and the bound follows. QED
 
-**Lemma 7 (the two-sided implementation).** The implementation takes
-the V-side step and then the W-side step in every iteration (each
-with the guard / away fallback of Section 2). Classify an iteration as
-a drop iteration if either side drops. Then every non-drop iteration
-satisfies
+**Lemma 7 (the two-sided schedule).** Let every iteration compute both
+side gaps, take the guarded step of Section 2 on the side with the
+larger pairwise gap first, and take the other side's guarded step only
+if the first step was not a drop; an iteration is a drop iteration iff
+its first step is a drop. Then every non-drop iteration satisfies
 
-    gain >= min( gPW^2 / (128 M^2) ,  gPW / 16 ),
+    gain >= min( gPW^2 / (32 M^2) ,  gPW / 8 ),
 
-so Theorem 6 holds for the implementation with
-rho_impl = (delta / M)^2 / 64 and #drops <= 2k T_good + s_0, i.e.
-h_T <= h_0 (1 - rho_impl)^{(T - s_0)/(2k + 1)}.
+and #drops <= 2k T_good + s_0, so Theorem 6 holds for this schedule
+with the same rho and h_T <= h_0 (1 - rho)^{(T - s_0)/(2k + 1)}.
 
-*Proof.* Let G = gPW(z_t). If the V side has the larger gap, the V-step
-is exactly the analysed step and Lemma 4 applies. Otherwise
-gPW_W(z_t) >= G/2, and the V-step moves z_t to z' with some gain
-Delta_V >= 0 first. Two facts: (i) for an exact line search along a
-direction d, ||z' - z_t||^2 <= 2 Delta_V (interior: ||z' - z_t||^2 =
-S^2/D = 2 Delta_V; boundary t = 1: ||z' - z_t||^2 = D <= S <= 2 Delta_V
-since Delta_V = S - D/2 >= S/2); (ii) the W-side scores change by
-<z' - z_t, w_j>, and the W support is unchanged by a V-step, so
-gPW_W(z') >= gPW_W(z_t) - max_j <dz, w_j> + min_j <dz, w_j>
->= gPW_W(z_t) - ||dz|| diam(conv W) >= gPW_W(z_t) - M ||dz||.
-If Delta_V >= G^2/(128 M^2) we are done. Otherwise
-||dz|| < G/(8M) by (i), so gPW_W(z') >= G/2 - G/8 >= G/4 by (ii), and
-the W-step at z' is a non-drop step on a side with gap >= G/4; the
-proof of Lemma 4 with gS >= G/4 in place of G/2 gives
-gain_W >= min( G^2/(128 M^2), G/16 ). The rate constant follows as in
-Theorem 6 (min(2 delta^2 h/(128 M^2), h/16) = (delta/M)^2 h/64); each
-non-drop iteration now adds at most 2k indices, giving
-#drops <= 2k T_good + s_0. QED
+*Proof.* On a non-drop iteration the first step is exactly the step
+analysed in Lemma 4, so it gains at least the stated amount; the second
+step is an exact line search along a feasible descent direction (or is
+skipped), so it cannot increase h. Counting: a drop iteration takes a
+single away step that removes one support index and adds none, because
+the second side is skipped; a non-drop iteration takes two guarded
+steps and adds at most k indices each. Removals, hence drops, number at
+most 2k T_good + s_0. QED
+
+*Remark (why the skip is needed).* If the second side always steps, an
+iteration whose analysed side drops can add up to k indices on the
+other side; removals <= additions + s_0 then gives only
+#drops <= k #drops + 2k T_good + s_0, which is vacuous for k >= 1. An
+earlier version of this note claimed #drops <= 2k T_good + s_0 for the
+unconditional V-then-W order (with rho/4 from a perturbation argument
+on the second side's gap); the gain bound there was correct but the
+drop count was not. Code: `drop_skip=True` in `EnhancedTriangleAlgorithm`
+is the analysed schedule; `drop_skip=False` is the unconditional order.
 
 **Corollary 7 (variants).** The theorem applies verbatim to:
 (i) the L2 soft-margin solver - replace V, W by their augmented images;

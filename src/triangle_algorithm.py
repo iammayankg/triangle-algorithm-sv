@@ -69,7 +69,7 @@ class EnhancedTriangleAlgorithm:
                  anti_zigzag=True, zigzag_strategy='midpoint', prioritized=True,
                  step_mode='toward', refresh_every=100, full_scan_every=5,
                  shrink=False, shrink_every=50, shrink_min_frac=0.05,
-                 block_size=16, seed=None):
+                 block_size=16, drop_skip=True, seed=None):
         """zigzag_strategy: what to do when an i,j,i,j pivot cycle is detected.
           'midpoint' - pivot on the midpoint of the two cycling vertices
                        (the strategy suggested in the paper);
@@ -89,6 +89,12 @@ class EnhancedTriangleAlgorithm:
         magnitudes are clipped to donor capacity, and one exact line
         search is taken along the aggregated direction (guaranteed
         descent; falls back to single MDM transfers when no block forms).
+        In block mode each iteration steps the side with the larger
+        pairwise gap first and, with drop_skip=True (the analysed
+        two-sided schedule, Lemma 6 of the paper), skips the other side
+        whenever that first step is a drop step (an away step that
+        removes a support index); drop_skip=False steps V then W
+        unconditionally (the schedule used for the paper's batteries).
 
         shrink: gap-certified safe screening (solve_distance only).  With
         the current bounds [LB, UB], strong convexity of 1/2||x||^2 over
@@ -115,6 +121,13 @@ class EnhancedTriangleAlgorithm:
         self.zigzag_strategy = zigzag_strategy if self.anti_zigzag else None
         self.step_mode = step_mode
         self.block_size = int(block_size)
+        self.drop_skip = bool(drop_skip)
+        # instrumentation for the two-sided schedule (block mode)
+        self.n_drops = 0          # drop steps taken (either side)
+        self.n_drop_skips = 0     # second-side steps skipped after a drop
+        self.step_kinds: dict[str, int] = {}
+        self._last_drop = False   # set by the last block transfer
+        self.last_iter_drop = False  # set by _step: first step was a drop
         self.shrink = shrink
         self.shrink_every = int(shrink_every)
         self.shrink_min_frac = float(shrink_min_frac)
@@ -567,9 +580,15 @@ class EnhancedTriangleAlgorithm:
         # keep the worst active donor as don[0] and drop receivers that are
         # donors, so pair 1 is always the MDM pair (global argmax, worst
         # active) that the guard and the analysis refer to
-        dset = set(int(x) for x in don)
-        recv = [int(r) for r in recv if int(r) not in dset]
         don = [int(u) for u in don]
+        recv = [int(r) for r in recv]
+        if recv and recv[0] in don and recv[0] != don[0]:
+            # the global argmax is itself a (non-worst) active point: keep
+            # it as receiver 1 and remove it from the donor list, so that
+            # pair 1 stays the MDM pair (global argmax, worst active)
+            don = [u for u in don if u != recv[0]]
+        dset = set(don)
+        recv = [r for r in recv if r not in dset]
         pairs = []
         for r, u in zip(recv, don):
             num = s[r] - s[u]
@@ -582,8 +601,10 @@ class EnhancedTriangleAlgorithm:
                 pairs.append((r, u, num, g))
         return pairs
 
-    def _block_transfer_V(self, k):
-        s = self.b - self.a
+    def _block_transfer_V(self, k, s=None):
+        self._last_drop = False
+        if s is None:
+            s = self.b - self.a
         raw = self._block_pairs(s, self.wV, None, k)
         if not raw:
             return False
@@ -632,7 +653,12 @@ class EnhancedTriangleAlgorithm:
             den_a = self.pp - 2.0 * self.a[u1] + self.Vsq[u1]
             if num_a > 0.0 and den_a > _EPS_NUM and cap1 < 1.0 - 1e-12:
                 if num_a / den_a >= cap1 / (1.0 - cap1):
-                    return self._away_p(u1)          # drop step
+                    ok = self._away_p(u1)            # drop step
+                    if ok:
+                        self._last_drop = True
+                        self.n_drops += 1
+                        self.step_kinds['drop'] = self.step_kinds.get('drop', 0) + 1
+                    return ok
                 d_away = num_a * num_a / (2.0 * den_a)
                 if d_away > best:
                     best, kind = d_away, 'away'
@@ -643,6 +669,7 @@ class EnhancedTriangleAlgorithm:
                 d_tow = al * num_f - 0.5 * al * al * den_f
                 if d_tow > best:
                     best, kind = d_tow, 'toward'
+        self.step_kinds[kind] = self.step_kinds.get(kind, 0) + 1
         if kind == 'mdm':
             return self._pairwise_p(r1, u1)
         if kind == 'away':
@@ -678,8 +705,10 @@ class EnhancedTriangleAlgorithm:
             self.active_V.add(i)
         return True
 
-    def _block_transfer_W(self, k):
-        s = self.c - self.e
+    def _block_transfer_W(self, k, s=None):
+        self._last_drop = False
+        if s is None:
+            s = self.c - self.e
         raw = self._block_pairs(s, self.wW, None, k)
         if not raw:
             return False
@@ -721,7 +750,12 @@ class EnhancedTriangleAlgorithm:
             den_a = self.qq - 2.0 * self.e[u1] + self.Wsq[u1]
             if num_a > 0.0 and den_a > _EPS_NUM and cap1 < 1.0 - 1e-12:
                 if num_a / den_a >= cap1 / (1.0 - cap1):
-                    return self._away_q(u1)          # drop step
+                    ok = self._away_q(u1)            # drop step
+                    if ok:
+                        self._last_drop = True
+                        self.n_drops += 1
+                        self.step_kinds['drop'] = self.step_kinds.get('drop', 0) + 1
+                    return ok
                 d_away = num_a * num_a / (2.0 * den_a)
                 if d_away > best:
                     best, kind = d_away, 'away'
@@ -732,6 +766,7 @@ class EnhancedTriangleAlgorithm:
                 d_tow = al * num_f - 0.5 * al * al * den_f
                 if d_tow > best:
                     best, kind = d_tow, 'toward'
+        self.step_kinds[kind] = self.step_kinds.get(kind, 0) + 1
         if kind == 'mdm':
             return self._pairwise_q(r1, u1)
         if kind == 'away':
@@ -994,10 +1029,33 @@ class EnhancedTriangleAlgorithm:
         if self.step_mode in ('mdm', 'block'):
             did = False
             if self.step_mode == 'block':
-                if iV is not None:
-                    did |= self._block_transfer_V(self.block_size)
-                if iW is not None:
-                    did |= self._block_transfer_W(self.block_size)
+                self.last_iter_drop = False
+                sVa = self.b - self.a if iV is not None else None
+                sWa = self.c - self.e if iW is not None else None
+                if iV is not None and iW is not None:
+                    # larger pairwise side gap (max score - worst active) first
+                    gV = float(sVa.max()) - min(sVa[u] for u, w in self.wV.items()
+                                                if u >= 0 and w > 1e-12)
+                    gW = float(sWa.max()) - min(sWa[u] for u, w in self.wW.items()
+                                                if u >= 0 and w > 1e-12)
+                    order = ('V', 'W') if gV >= gW else ('W', 'V')
+                else:
+                    order = ('V',) if iV is not None else ('W',)
+                for pos, side in enumerate(order):
+                    # the first step changes the other side's scores, so
+                    # only the first side may reuse the precomputed array
+                    if side == 'V':
+                        did |= self._block_transfer_V(
+                            self.block_size, sVa if pos == 0 else None)
+                    else:
+                        did |= self._block_transfer_W(
+                            self.block_size, sWa if pos == 0 else None)
+                    if pos == 0 and self._last_drop:
+                        self.last_iter_drop = True
+                        if self.drop_skip:
+                            if len(order) > 1:
+                                self.n_drop_skips += 1
+                            break
                 if did:
                     return self.dist2() <= d_before + _EPS_NUM * max(1.0,
                                                                      d_before)

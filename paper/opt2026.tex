@@ -475,11 +475,10 @@ problem: at its default tolerance ($10^{-4}$) LIBLINEAR takes
 $5$--$66$\,s, comparable to ETA, but stops $5$--$24\%$ above the
 certified optimum with test accuracy $0.973$--$0.978$ against $0.981$
 (Table~\ref{tab:libdef}). We therefore claim no wall-clock advantage
-over LIBLINEAR on gisette; what ETA adds is the certificate, which is
-what reveals that the fast answer is not the optimum. Even at
-$10^{-6}$ and $C{=}10$ LIBLINEAR's progress-based rule fires $5\%$
-above the certified optimum ($0.1566$ vs $0.1490$, accuracy $0.977$ vs
-$0.981$), because on separable data the primal is nearly flat at large
+over LIBLINEAR on gisette; what ETA adds is the certificate, which
+reveals that the fast answer is not the optimum. Even at $10^{-6}$, at
+$C{=}10$ LIBLINEAR stops $5\%$ above the optimum ($0.1566$ vs
+$0.1490$), since on separable data the primal is nearly flat at large
 $C$. On the four
 overlapping datasets both geometric solvers hit the 600\,s cap on every
 cell while LIBLINEAR finishes in $0.3$--$25$\,s. At $C{=}0.1$ ETA's
@@ -500,9 +499,7 @@ weights: the active atoms form a near-regular simplex on $s\approx0.6n$
 vertices, whose pyramidal width is $2/\sqrt s$ times its side
 \cite{lj2015}, so $\rho\sim1/s$, the iteration count grows linearly in
 $n$ and, at $O(n)$ per iteration, the cost is $O(n^2)$-type.
-Centroid initialisation and larger blocks did not help (the former
-increased the iteration count, the latter traded iterations for
-per-iteration cost).
+Centroid initialisation and larger blocks did not help.
 
 \section{Related work}
 Distance duality and the TA \cite{kalantari2015,gupta2026}; MDM

@@ -27,7 +27,11 @@ anti-zig-zag pivot strategy, and prioritized searches.
 - `docs/` — convergence analysis (`block_convergence.md`), full-scale
   experiment protocol (`experiments_protocol.md`), and the Lightning.ai
   runbook (`lightning_runbook.md`)
-- `paper/` — draft paper skeleton (LaTeX)
+- `paper/` — `opt2026.tex`, the OPT 2026 (NeurIPS workshop) submission,
+  with `opt2026.pdf`; build with `cd paper && tectonic opt2026.tex`.
+  Uses `neurips_2026.sty` as a stand-in for the required OPT 2026 style
+  file (see the comment at the top of the tex). `main.tex` is the
+  earlier long-form skeleton.
 
 ## Quick start
 

@@ -1,17 +1,24 @@
-% OPT 2026 workshop submission draft.
-% Swap the preamble below for the official NeurIPS 2026 style once the
-% CFP's template requirement is confirmed:  \usepackage[final]{neurips_2026}
-\documentclass[10pt]{article}
-\usepackage[margin=1in]{geometry}
+% OPT 2026 (NeurIPS 2026 workshop) submission.
+%
+% CFP (opt-ml.org/cfp.html, checked 2 Sep 2026): soft limit 5 pages
+% excluding references and appendices; double-blind; "use the OPT 2026
+% style file for both the submission and the camera-ready version"
+% (opt-ml.org/opt2026_style.zip, 80 KB). That zip has NOT been fetched;
+% the NeurIPS 2026 style below is a stand-in with the same geometry.
+% To switch: unzip the OPT style next to this file and replace the
+% \usepackage line with the package name it provides.
+\documentclass{article}
+\usepackage[nonatbib]{neurips_2026}   % anonymous by default; [final] for camera-ready
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 \usepackage{amsmath,amssymb,amsthm,mathtools}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage[expansion=false]{microtype}
-\usepackage[hidelinks]{hyperref}
+\usepackage{xcolor}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
-\usepackage{xcolor}
-\newcommand{\todo}[1]{\textcolor{red}{[#1]}}
+\usepackage[hidelinks]{hyperref}
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
@@ -34,8 +41,9 @@
 \title{Guarded Block Transfers for Polytope Distance:\\
 Linear Convergence with Explicit Constants and\\
 Gap-Certified Screening for SVM Training}
-\author{Mayank Gupta \and Bahman Kalantari}
-\date{}
+
+% Double-blind submission: the style prints "Anonymous Author(s)".
+% Camera-ready: \author{Mayank Gupta \and Bahman Kalantari}
 
 \begin{document}
 \maketitle
@@ -45,28 +53,28 @@ Hard-margin SVM training is the distance problem between two convex
 hulls, and the Triangle Algorithm (TA) solves it with a certified
 duality gap from supporting hyperplanes. We study the weight-transfer
 steps used by the enhanced TA and propose \emph{guarded block
-transfers}, in which $k$ MDM-style transfers per scan are aggregated
-into a single exact line search, compared in $O(1)$ time against the
-single best transfer, and replaced by an away step whenever the leading
+transfers}: $k$ MDM-style transfers per scan are aggregated into a
+single exact line search, compared in $O(1)$ time against the single
+best transfer, and replaced by an away step whenever the leading
 transfer is capacity-clipped. Analysing the method on the
-Minkowski-difference polytope---where the objective is $1$-strongly
-convex and a single pyramidal width governs the geometry---we prove
-global linear convergence with explicit constants and without the
-combinatorial swap-step bounds of pairwise Frank--Wolfe; the away
-fallback ensures that every iteration either contracts by a fixed
-factor or removes a vertex from the support. We further prove that the TA's certified
-gap equals the Frank--Wolfe gap over that polytope divided by the
-current distance, and use it to show that gap-certified safe screening
-removes every non-support point after an explicit
-$O\!\left(\tfrac{k}{\rho}\log\tfrac{1}{\tau}\right)$ iterations, where
-$\tau$ is the optimal-face score margin. Each inequality in the analysis is
-accompanied by a numerical check. Experiments on synthetic and real
-data agree with the regime the theory describes: on sparse-support
-problems (hard margins, kernels, high dimension) the solver reaches a
-certified solution $1.6$--$2.5\times$ faster than LIBSVM, whereas on
-dense-support $L_2$ soft margins the pyramidal width scales like $1/n$
-and primal coordinate descent is substantially faster. We report both
-sides.
+Minkowski-difference polytope, where the objective is $1$-strongly
+convex and one pyramidal width governs the geometry, we prove global
+linear convergence with explicit constants and without the
+combinatorial swap-step bounds of pairwise Frank--Wolfe. We further
+prove that the TA's certified gap equals the Frank--Wolfe gap over that
+polytope divided by the current distance, which yields a screening
+activation theorem: gap-certified safe screening removes every
+non-support point after an explicit
+$O\!\left(\tfrac{k}{\rho}\log\tfrac{1}{\tau}\right)$ iterations, $\tau$
+being the optimal-face score margin. Every inequality in the analysis
+has a numerical check. On five LIBSVM benchmarks the solver matches the
+baselines' solutions to five digits wherever both converge, is faster
+than LIBSVM on the RBF hard margin of gisette and $3$--$4\times$ faster
+than kernel SMO on kernel $L_2$ margins with expensive kernel columns,
+and is one to two orders of magnitude slower on low-dimensional kernel
+problems with nearly touching hulls and on dense-support $L_2$ soft
+margins, where the pyramidal width scales like $1/n$ and LIBLINEAR
+finishes in seconds. We report both sides.
 \end{abstract}
 
 \section{Introduction}
@@ -76,7 +84,7 @@ points of the two classes' convex hulls: the optimal separator is the
 perpendicular bisector of the witness pair, and the margin is half the
 hull distance \cite{bennett2000duality}. Kalantari's Triangle Algorithm
 (TA) exploits this \emph{distance duality} directly \cite{kalantari2015},
-maintaining an iterate pair $(p,q)$ and, crucially, a certified interval
+maintaining an iterate pair $(p,q)$ and a certified interval
 $[\LB,\UB]$ on the distance from parallel supporting hyperplanes, so it
 can stop at a provable relative accuracy $\varepsilon$. The enhanced TA
 of \cite{gupta2026} adds joint segment updates, dot-product caching, an
@@ -85,12 +93,11 @@ speedups over SMO on synthetic data.
 
 The workhorse step of such geometric solvers is the \emph{weight
 transfer}: move mass from the worst active vertex to the best candidate
-vertex---the Mitchell--Demyanov--Malozemov (MDM) step
+vertex, the Mitchell--Demyanov--Malozemov (MDM) step
 \cite{mdm1974}, which is exactly the pairwise Frank--Wolfe (FW) step of
-\cite{lj2015} on the relevant polytope. Each such step requires an $O(n)$
-scan and produces a single transfer. The question addressed here is
-how much of that scan can be reused across several transfers without
-weakening the convergence guarantee.
+\cite{lj2015} on the relevant polytope. Each step costs an $O(n)$ scan
+and produces one transfer; we ask how much of the scan can be reused
+across several transfers without weakening the guarantee.
 
 \paragraph{Contributions.}
 \begin{enumerate}\setlength\itemsep{0pt}
@@ -100,23 +107,25 @@ along the aggregated direction, and \emph{guard} by an $O(1)$ comparison
 with the single MDM step; on capacity-clipped iterations, fall back to
 an away step. Cache updates for a whole block are one GEMV.
 \item \textbf{Linear convergence with explicit constants}
-(\S\ref{sec:theory}, Theorem~\ref{thm:linear}): by working on the
-Minkowski-difference polytope $Z=\conv(V)-\conv(W)$, the guarded block
-algorithm inherits the pyramidal-width rate of pairwise FW with a
-constant factor, and the away fallback replaces pairwise FW's
-combinatorial swap-step bound with linear drop-step counting.
+(Theorem~\ref{thm:linear}): on the Minkowski-difference polytope
+$Z=\conv(V)-\conv(W)$ the guarded block algorithm inherits the
+pyramidal-width rate of pairwise FW up to a constant, and the away
+fallback replaces pairwise FW's combinatorial swap-step bound with
+linear drop-step counting.
 \item \textbf{The certified gap is the FW gap}
 (Lemma~\ref{lem:gapid}), which yields a \emph{screening activation}
 theorem (Theorem~\ref{thm:activation}): gap-certified safe screening
 provably removes all non-support points after an explicit number of
 iterations.
-\item \textbf{An empirical regime study} (\S\ref{sec:exp}). The
+\item \textbf{A regime study on real data} (\S\ref{sec:exp}). The
 analysis predicts $O(n^2)$-type cost when the optimal support is dense
-($\PW\sim1/n$). Synthetic and real experiments show this boundary: the
-solver is faster than LIBSVM on sparse-support problems and slower than
-LIBLINEAR on dense-support $L_2$ soft margins.
+($\PW\sim1/n$). Two batteries on five LIBSVM datasets show the boundary
+from both sides: the solver wins or ties on sparse-support
+high-dimensional cells and loses by orders of magnitude on
+dense-support $L_2$ soft margins and on near-touching kernel hulls.
 \end{enumerate}
-All code, proofs and experiment scripts are released. \todo{repo URL}
+Code, proofs, numerical checks and experiment scripts are in the
+supplementary repository (anonymised for review).
 
 \section{Setting}\label{sec:setting}
 
@@ -146,8 +155,8 @@ $\LB=\min_{u\in Z}\ip{z}{u}/\norm z=(\min_i\ip{z}{v_i}-\max_j\ip{z}{w_j})/\UB$
 satisfy $\LB\le\delta^*\le\UB$; the TA stops when
 $\UB-\LB\le\varepsilon\,\UB$. The $L_2$ soft margin, $\nu$-SVM and
 kernel variants reduce to \eqref{eq:P} exactly (augmented coordinates
-$K+I/C$; reduced convex hulls; feature-space images) and are covered by
-everything below; details in the appendix.
+giving $K+I/C$; reduced convex hulls; feature-space images), see
+Appendix~\ref{app:red}.
 
 \paragraph{Gaps.} $\gFW=\max_{u\in Z}\ip{g}{u}-\ip{g}{z}$,
 $\gA=\ip{g}{z}-\min_{u\in\operatorname{supp}\lambda}\ip{g}{u}$,
@@ -239,7 +248,7 @@ convexity), together with $\gPW\ge\gFW\ge h$ for the linear branch.
 The drop counting is the away-step argument: each drop removes one
 support index, non-drop steps add at most $k$, so drops are at most
 $k$ times the good steps plus $s_0$. There is no swap-step bound
-because case (b) never takes a capacity-clipped pairwise step---it
+because case (b) never takes a capacity-clipped pairwise step: it
 takes an away step, which either contracts or drops.
 
 \begin{proposition}[Near-orthogonal speed-up]\label{prop:orth}
@@ -263,111 +272,166 @@ $\tau>0$ the minimal nonzero score margin
 $\ip{z^*}{v_i}-\min_j\ip{z^*}{v_j}$ (and symmetrically on $W$), and
 $D$ the larger class diameter. A zero-weight point with margin $\tau_i$
 is screened as soon as $r\le\tau_i/(3D)$; consequently, once
-$h_t\le\tau^4\delta^{*2}/(2592\,R^4D^4)$---which under
+$h_t\le\tau^4\delta^{*2}/(2592\,R^4D^4)$, which under
 Theorem~\ref{thm:linear} holds for all
-$t\ge s_0+\tfrac{k+1}{\rho}\log\!\big(2592R^4D^4h_0/(\tau^4\delta^{*2})\big)$---every
-zero-weight point outside $F_V\cup F_W$ is removed permanently, and
+$t\ge s_0+\tfrac{k+1}{\rho}\log\!\big(2592R^4D^4h_0/(\tau^4\delta^{*2})\big)$,
+every zero-weight point outside $F_V\cup F_W$ is removed permanently, and
 each later scan costs $O(|F|+|\operatorname{supp}|)$ instead of $O(n+m)$.
 \end{theorem}
 The $\tau$-dependence is unavoidable: no rule that is safe for all
 instances consistent with a certificate of gap $\sim\tau$ can
 distinguish a point of margin $\tau$ from a support point.
-
-\paragraph{Numerical verification.} Lemma~\ref{lem:block} was checked on
-$4{,}000$ random ensembles including heavily clipped and boundary cases
-(worst slack at machine precision), Proposition~\ref{prop:orth} on
-$500$ near-orthogonal ensembles, Lemma~\ref{lem:gapid} to $10^{-9}$ at
-arbitrary iterates, and Theorem~\ref{thm:activation} on instances whose
-optimal face was computed by an exact QP: at every activating round all
-zero-weight non-face points were screened, and the final working set
-equalled the optimal face exactly. Over $5{,}000$ instrumented live
-block steps none increased the objective.
+Each of Lemma~\ref{lem:block}, Proposition~\ref{prop:orth},
+Lemma~\ref{lem:gapid}, Lemma~\ref{lem:twosided} and
+Theorem~\ref{thm:activation} is verified numerically on random and
+adversarial ensembles at machine precision (Appendix~\ref{app:num}).
 
 \section{Experiments}\label{sec:exp}
 
-All solvers are validated against an exact QP (SLSQP over the two
-simplices) on small instances---distances agree to $10^{-9}$ or better
-for every variant. Synthetic instances follow the protocol of
-\cite{gupta2026} (two Gaussian clouds, $n=5{,}000$ per class, separation
-$k\times$diameter); stopping rule $\varepsilon=10^{-3}$ throughout
-unless stated. Hardware for the real-data runs: a dedicated 32-vCPU
-Intel Xeon 2.6\,GHz Studio (122\,GB, OpenBLAS, one BLAS thread per
-solver).
+\paragraph{Setup.} All solvers are validated against an exact QP
+(SLSQP over the two simplices) on small instances: distances agree to
+$10^{-9}$ or better for every variant. Stopping rule
+$\varepsilon=10^{-3}$ on the certified relative gap throughout unless
+stated; baselines use matched tolerances on the same objective
+(Appendix~\ref{app:details}). Synthetic instances follow the protocol
+of \cite{gupta2026} (two Gaussian clouds, $n=5{,}000$ per class). Real
+data are the LIBSVM sets a9a, w8a, ijcnn1, gisette and covtype
+(100k subsample), standardised, with official test sets where they
+exist, five seeds, and a 600\,s budget per solver and cell. All real-data
+runs share one dedicated 32-vCPU Xeon 2.6\,GHz machine (122\,GB,
+OpenBLAS, one BLAS thread per solver, 26 cells concurrently), so times
+are comparable within a battery. Every ETA-versus-baseline pair solves
+the \emph{same} objective; a differently regularised solver appears only
+as a labelled reference.
 
-\paragraph{Step ablation.} At $\varepsilon=10^{-6}$ on a
-$d{=}30$, $n{=}200$ instance, plain toward steps need $158{,}941$
-iterations and the midpoint heuristic of \cite{gupta2026} $148{,}996$;
-away steps need $106$ and pairwise $181$. On $d{=}100$, $n{=}1{,}000$
-neither toward nor midpoint converge in $300{,}000$ iterations, while
-away and pairwise converge in $15{,}886$ and $3{,}921$. Block transfers
-then cut iterations a further $4$--$30\times$ relative to single MDM
-(e.g.\ $43{,}486\to1{,}551$ on a dense-support $L_2$ instance at
-$d{=}1{,}000$) and are the only configuration that reaches the certified
-tolerance on MNIST odd-vs-even. At the paper's working tolerance
-$10^{-3}$ the pairwise/away gain is only $\sim\!11\%$, which explains why
-the midpoint heuristic sufficed in the original study.
+\paragraph{Synthetic: steps, blocks, screening.} Away and pairwise steps
+converge at $\varepsilon=10^{-6}$ where the toward and midpoint steps of
+\cite{gupta2026} do not, and block transfers cut iterations a further
+$4$--$30\times$ relative to single MDM. Screening reduces $10{,}000$
+points to $36$--$1{,}054$ survivors and wall-clock by $1.4$--$2.4\times$
+at $\varepsilon=10^{-5}$, and is neutral at $10^{-3}$, where runs end
+before the certificate activates, as Theorem~\ref{thm:activation}
+predicts. On seven synthetic and small-real problem classes the
+optimised solver is fastest to a certified solution on six
+($1.6$--$2.5\times$ ahead of LIBSVM, LIBLINEAR or NuSVC); the exception,
+MNIST odd-vs-even, is a dense-support $L_2$ problem. Details and figures
+are in Appendix~\ref{app:details}.
 
-\paragraph{Shrinking.} At $\varepsilon=10^{-5}$ on the separated
-protocol, screening reduces $10{,}000$ points to $36$--$1{,}054$
-survivors and wall-clock by $1.4$--$2.4\times$ (Fig.~\ref{fig:shrink});
-at $\varepsilon=10^{-3}$ runs end before the certificate activates and
-it is neutral---exactly Theorem~\ref{thm:activation}'s prediction.
+\begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
+\caption{Regime battery on real data: hard margins and kernels, five
+seeds, 600\,s per solver, mean $\pm$ 95\% CI. Kernel cells (RBF,
+$\gamma=1/d$) use a class-balanced subsample of $n_k$ training points.
+ETA and its baseline solve the same objective: LIN, linear hard margin
+(ETA with screening vs LIBSVM at $C{=}10^6$; our SMO in brackets); KHM,
+feature-space hard margin (K-ETA vs LIBSVM at $C{=}10^6$); KL2, kernel
+$L_2$ margin $K+I/C$, $C{=}1$ (K-ETA vs kernel SMO). conv = seeds in
+which ETA reached the certified gap; oracle = $O(nd)$ column (ETA) or
+row (SMO) evaluations, in thousands.}\label{tab:regime}
+\begin{tabular}{llrrlcllr}
+\toprule
+cell & dataset & $n_k$ / $d$ & ETA (s) & baseline (s) & conv & dist.\ ETA / base & acc.\ ETA / base & oracle \\
+\midrule
+LIN & gisette & 6000 / 5000 & $56.6\pm5.9$ & $51.4\pm13.1$ [$405\pm62$] & 5/5 & 3.6638 / 3.6640 & .981 / .981 & 1.5 [11.1] \\
+\midrule
+KHM & gisette & 6000 / 5000 & $86.2\pm14.8$ & $104.6\pm20.2$ & 5/5 & .05215 / .05215 & .979 / .979 & 2.6 \\
+KHM & ijcnn1 & 9853 / 22 & $421\pm149$ & $1.3\pm0.3$ & 4/5 & .00430 / .00430 & .946 / .946 & 2.5 \\
+KHM & a9a & 10000 / 123 & $>600$ & $26.4\pm2.9$ & 0/5 & $\le$.00009 / .0033 & .690 / .752 & 5.9 \\
+KHM & covtype & 10000 / 54 & $>600$ & $144\pm7$ (maxiter) & 0/5 & $\le$.00053 / .00025 & .704 / .712 & 7.2 \\
+KHM & w8a & 6479 / 300 & $101\pm159$ & --- & 5/5 & hulls intersect & --- & 1.9 \\
+\midrule
+KL2 & gisette & 6000 / 5000 & $131\pm34$ & $420\pm49$ & 5/5 & .06882 / .06882 & .971 / .971 & 3.6 / 15.2 \\
+KL2 & w8a & 6479 / 300 & $11.5\pm2.6$ & $41.7\pm10.0$ & 5/5 & .05682 / .05682 & .975 / .975 & 3.6 / 20.2 \\
+KL2 & a9a & 10000 / 123 & $52.8\pm71.0$ & $57.7\pm23.2$ & 5/5 & .03019 / .03019 & .795 / .795 & 7.6 / 43.6 \\
+KL2 & covtype & 10000 / 54 & $26.0\pm4.2$ & $17.6\pm0.5$ & 5/5 & .02609 / .02609 & .792 / .792 & 9.1 / 56.2 \\
+KL2 & ijcnn1 & 9853 / 22 & $9.2\pm2.5$ & $6.1\pm0.7$ & 5/5 & .04790 / .04790 & .959 / .959 & 4.6 / 26.1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Real data, sparse-support regime (Table~\ref{tab:regime}).}
+TA~I first certifies linear separability: gisette is separable and
+a9a, w8a, ijcnn1 and covtype are not (hulls intersect, certified in
+$0.2$--$42$\,s), a diagnostic none of the baselines produces. On
+gisette ($d{=}5{,}000$; $1{,}233$ of $6{,}000$ points in the support)
+ETA ties LIBSVM on the linear hard margin, both $7\times$ ahead of our
+SMO; K-ETA is $1.2\times$ faster than LIBSVM on the RBF hard margin and
+$3.2\times$ faster than kernel SMO on the kernel $L_2$ margin. Distances
+agree to five digits, support counts within three, test accuracies
+exactly. Across all five KL2 cells K-ETA returns the same distance and
+accuracy as kernel SMO with $4$--$6\times$ fewer kernel-column
+evaluations; in wall-clock it is $3$--$4\times$ faster where columns are
+expensive (gisette, w8a) and $1.5\times$ slower where they are cheap
+(ijcnn1 $d{=}22$, covtype $d{=}54$), because the $O(n)$ NumPy scan per
+iteration then dominates. The reference hinge-loss SVC (C{=}1, a
+different objective) takes $1$--$84$\,s with accuracies within one
+point (Appendix~\ref{app:details}).
+
+The KHM column shows where the geometry turns against the method.
+On ijcnn1 both solvers return the identical solution (distance
+$0.00430$, $819$ support vectors, accuracy $0.946$), but K-ETA needs
+$1.5$--$2.5\times10^5$ iterations and $420$\,s against LIBSVM's
+$1.3$\,s: the feature-space hulls are $0.004$ apart in a space of
+diameter $\approx\sqrt2$, so $\delta/M$ in Theorem~\ref{thm:linear} is
+of order $10^{-3}$, and LIBSVM's second-order working-set selection with
+heuristic shrinking is far better suited to that conditioning. On a9a
+and covtype the hulls are within $10^{-4}$ and $5\times10^{-4}$ of
+touching: K-ETA times out at gap $3$--$10$, while LIBSVM's $C{=}10^6$
+surrogate stops at its KKT tolerance at a point $6$--$30\times$ farther
+out than K-ETA's upper bound (or hits its iteration cap on covtype), so
+neither solver certifies anything, and the hard-margin kernel model is
+the wrong one there anyway (KL2 accuracies $0.79$ vs $0.70$--$0.75$). On
+w8a the feature-space hulls intersect (duplicate points with opposite
+labels); K-ETA certifies this in $101$\,s and no hard margin exists.
+
+\begin{table}[t]\centering\footnotesize
+\caption{$L_2$ soft-margin battery (dense-support regime): five seeds
+(four for ijcnn1), 600\,s per solver. ETA and our SMO time out on every
+cell; we report LIBLINEAR's time, ETA's certified relative gap at the
+cap (mean [min, max]) and test accuracies at the cap. The gisette and
+covtype cells and the fifth ijcnn1 seed had not finished when this
+draft was prepared and are omitted.}\label{tab:l2}
+\begin{tabular}{llrrlll}
+\toprule
+dataset ($n$ / $d$) & $C$ & LIBLINEAR (s) & ETA gap @ 600\,s & acc.\ ETA & acc.\ SMO & acc.\ LIBLINEAR \\
+\midrule
+a9a (32,561 / 123) & 0.1 & $3.7\pm0.8$ & 0.15 [0.10, 0.23] & .849 & .845 & .849 \\
+ & 1 & $6.8\pm1.7$ & 1.26 [1.25, 1.28] & .810 & .780 & .849 \\
+ & 10 & $2.3\pm0.5$ & 1.83 [1.80, 1.86] & .635 & .763 & .849 \\
+ijcnn1 (49,990 / 22) & 0.1 & $0.4\pm0.1$ & 0.011 [0.007, 0.016] & .918 & .918$^\dagger$ & .918 \\
+ & 1 & $0.7\pm0.1$ & 0.70 [0.61, 0.73] & .905 & .917 & .918 \\
+ & 10 & $0.4\pm0.1$ & 1.36 [1.34, 1.40] & .707 & .860 & .918 \\
+w8a (49,749 / 300) & 0.1 & $22.7\pm4.3$ & 0.57 [0.50, 0.66] & .987 & .985 & .987 \\
+ & 1 & $20.6\pm6.6$ & 1.17 [1.14, 1.21] & .923 & .979 & .987 \\
+\bottomrule
+\multicolumn{7}{l}{\scriptsize $^\dagger$our SMO converged on this cell in $542\pm63$\,s.}
+\end{tabular}
+\end{table}
+
+\paragraph{Real data, dense-support regime (Table~\ref{tab:l2}).}
+On the $L_2$ soft margins of the overlapping datasets both geometric
+solvers hit the 600\,s cap on every cell while LIBLINEAR finishes in
+$0.4$--$23$\,s. At $C{=}0.1$ ETA's iterate already has LIBLINEAR's test
+accuracy ($0.849$, $0.918$, $0.987$) when the cap is reached with the
+certificate still at $0.01$--$0.6$: the iterate converges long before
+the certificate closes. At $C\ge1$ the augmented hulls
+($K+I/C$) approach each other, the certified gap at the cap exceeds one
+and the iterate is not yet usable. Uncapped, ETA does converge to the
+certified $10^{-3}$ gap: on a9a ($C{=}0.1$, ten runs) in
+$2{,}908\pm138$\,s and $95{,}201$ iterations, with primal objective
+$687.07$, identical to LIBLINEAR's to five digits, and on w8a in
+$5{,}153$\,s. Figure~\ref{fig:trace} shows these traces: the linear-rate
+signature of Theorem~\ref{thm:linear}, but with $60$--$65\%$ of the
+points in the support and near-uniform weights, so that $\PW(Z)\sim1/n$
+and the cost is $O(n^2)$-type. Centroid initialisation and larger blocks
+did not help (the former increased the iteration count, the latter
+traded iterations for per-iteration cost).
 
 \begin{figure}[t]\centering
-\includegraphics[width=.72\linewidth]{figs/fig_shrink.png}
-\caption{Safe screening: wall-clock speed-up vs dimension at two
-tolerances; labels are surviving points of $10{,}000$.}\label{fig:shrink}
+\includegraphics[width=.8\linewidth]{figs/fig_realdata_trace.pdf}
+\caption{Certified relative gap of ETA on a9a and w8a ($L_2$, $C=0.1$,
+uncapped), versus iteration and wall-clock: linear-rate convergence in
+the dense-support regime, at $O(n^2)$-type cost.}\label{fig:trace}
 \end{figure}
-
-\paragraph{Sparse-support regime: against standard solvers.}
-Figure~\ref{fig:final} summarises seven problem classes. On hard
-margins (linear and RBF), tight tolerances, synthetic $L_2$ soft
-margins and $\nu$-SVM, the optimised solver is the fastest to a
-certified solution on six of seven---$0.24$\,s vs LIBSVM's $0.39$\,s at
-$d{=}1{,}000$, $8.6$ vs $20.5$\,s at $d{=}10{,}000$, $0.21$ vs
-$0.42$\,s at $\varepsilon{=}10^{-5}$ (where the paper-style
-configuration fails to converge), $0.76$ vs $1.28$\,s on RBF, and
-$18.5$ vs $21.9$\,s on $\nu$-SVM---with distances agreeing within
-tolerance on every row.
-
-\begin{figure}[t]\centering
-\includegraphics[width=.8\linewidth]{figs/fig_final.png}
-\caption{Time to certified solution: optimised vs paper-style
-configuration vs the best standard solver per class.}\label{fig:final}
-\end{figure}
-
-\paragraph{Dense-support regime: real data.} The one case above in
-which the solver was slower, MNIST odd-vs-even, is an instance of the
-dense-support regime. On the LIBSVM benchmark
-battery ($L_2$ soft margin, $C{=}0.1$, uncapped), ETA converges to the
-certified $10^{-3}$ gap on all ten a9a splits in $2{,}908\pm183$\,s
-($\sim95{,}000$ iterations; test accuracy $0.8493$, identical to
-LIBLINEAR's $0.8494$) and on w8a in $5{,}153$\,s, while LIBLINEAR takes
-$12$ and $48$\,s and our SMO times out at $600$\,s with lower accuracy.
-Figure~\ref{fig:trace} shows the real-data traces: the characteristic
-linear-rate signature of Theorem~\ref{thm:linear}, but with $60$--$65\%$
-of points in the support and near-uniform weights, so that
-$\PW(Z)\sim1/n$ and the cost is $O(n^2)$-type. We tried centroid initialisation and larger blocks; neither helped
-(the former increased the iteration count, the latter traded iterations
-for per-iteration cost).
-\todo{Insert capped-battery table (5 seeds, mean$\pm$CI95, 5 datasets $\times$ 3 $C$) and regime-battery table (FEAS/LIN/KHM/KL2) from tonight's run.}
-
-\begin{figure}[t]\centering
-\includegraphics[width=.95\linewidth]{figs/fig_realdata_trace.pdf}
-\caption{Certified relative gap of ETA on a9a and w8a ($L_2$, $C=0.1$),
-versus iteration and wall-clock: linear-rate convergence in the
-dense-support regime, at $O(n^2)$-type cost.}\label{fig:trace}
-\end{figure}
-
-\paragraph{Summary of the regime study.} Where the optimal support is
-sparse (hard margins, high dimension, kernels, $\nu$-SVM at moderate
-$\nu$, linearly separable real datasets), the geometric solver is
-competitive with or faster than LIBSVM and additionally supplies a
-certificate. Where the support is dense, the pyramidal width of the
-near-simplex is small and primal coordinate descent is faster by
-orders of magnitude. The quantity that separates the two cases,
-$\PW(Z)$ or equivalently the support density, can be monitored during
-a run through the certified gap and the support size.
 
 \section{Related work}
 Distance duality and the TA \cite{kalantari2015,gupta2026}; MDM
@@ -383,34 +447,25 @@ certificate; and the SMO/LIBSVM/LIBLINEAR solvers used as baselines.
 
 \section{Conclusion}
 Guarded block transfers give the Triangle Algorithm a linear rate with
-explicit constants, without combinatorial swap-step bounds, together
-with a screening rule that is both safe and provably effective. The
-cost is a factor $(k+1)$ in the exponent, which is recovered in the
-near-orthogonal regime where the block realises close to the sum of its
-$k$ pairwise gains. The same analysis indicates, and the experiments
-confirm, the dense-support regime in which the method is not
-competitive. Limitations: the implementation is NumPy-level (a
-compiled inner loop would shift the practical boundary but not its
-$O(n^2)$ asymptotics), sparse-matrix inputs are not yet supported, and
-the constants in Theorem~\ref{thm:linear} are loose.
+explicit constants and no combinatorial swap-step bounds, together with
+a screening rule that is both safe and provably effective. The cost is
+a factor $(k+1)$ in the exponent, recovered in the near-orthogonal
+regime where a block realises close to the sum of its $k$ pairwise
+gains. The experiments locate the boundary the analysis predicts. Where
+the optimal support is sparse and the hulls are well separated relative
+to their diameter (high-dimensional hard margins, kernels with
+expensive columns, linearly separable real data), the solver is
+competitive with or faster than LIBSVM and kernel SMO and supplies a
+certificate; where the support is dense or the hulls nearly touch,
+$\delta/M$ is small and primal coordinate descent or second-order SMO
+is faster by one to two orders of magnitude. Both cases can be
+recognised during a run from the certified gap and the support size.
+Limitations: the implementation is
+NumPy-level (a compiled inner loop would move the practical boundary,
+not the $O(n^2)$ asymptotics), sparse inputs are not supported, the
+reduced-hull ($\nu$-SVM) variant is validated but not analysed, and the
+constants in Theorem~\ref{thm:linear} are loose.
 
-\section*{Statement on the use of AI assistance}
-An AI system (Claude, Anthropic) was used extensively in this work,
-under the direction of the authors. It wrote the implementation,
-drafted the proofs and this manuscript, designed and ran the
-experiments, and suggested several of the algorithmic ideas, including
-the guarded block step, the away-step fallback and the
-screening-activation argument. The authors set the research questions,
-checked every theorem and proof (a re-derivation during that check
-corrected a dimensionally inconsistent constant in an earlier version
-of Theorem~\ref{thm:linear}), and are responsible for all claims. To
-make the checking reproducible, each inequality in the analysis has a
-numerical test in the released code, every solver is validated against
-exact QP solutions on small instances, and all experiments can be
-rerun from the released scripts. Negative results are reported as
-obtained.
-
-\bibliographystyle{plain}
 \begin{thebibliography}{9}
 \bibitem{kalantari2015} B.~Kalantari. A characterization theorem and an
 algorithm for a convex hull problem. \emph{Annals of Operations
@@ -436,6 +491,21 @@ Optimization}, 8(4):667--698, 2012.
 \bibitem{ogawa2013} K.~Ogawa, Y.~Suzuki, and I.~Takeuchi. Safe screening
 of non-support vectors in pathwise SVM computation. \emph{ICML}, 2013.
 \end{thebibliography}
+
+\section*{Statement on the use of AI assistance}
+An AI system (Claude, Anthropic) was used extensively in this work,
+under the direction of the authors. It wrote the implementation,
+drafted the proofs and this manuscript, designed and ran the
+experiments, and suggested several of the algorithmic ideas, including
+the guarded block step, the away-step fallback and the
+screening-activation argument. The authors set the research questions,
+checked every theorem and proof (a re-derivation during that check
+corrected a dimensionally inconsistent constant in an earlier version
+of Theorem~\ref{thm:linear}), and are responsible for all claims. Each
+inequality in the analysis has a numerical test in the released code,
+every solver is validated against exact QP solutions, and all
+experiments can be rerun from the released scripts. Negative results
+are reported as obtained.
 
 \appendix
 \section{Proofs}\label{app:proofs}
@@ -572,10 +642,150 @@ Theorem~\ref{thm:linear} with $\log(1/(1-\rho))\ge\rho$ converts it into
 the iteration bound. Permanence follows from the safety of the rule.
 \end{proof}
 
-\section{Reductions and experimental details}
-\todo{Condense from the repository report: $L_2$ augmentation $K+I/C$ with
-sparse diagonal corrections; reduced hulls with cap $\mu=2/(\nu\ell)$
-and the LIBSVM mapping $\delta=\norm w/S$; kernel plumbing; solver
-settings and tolerance equivalence; hardware paragraph.}
+\section{Exact reductions}\label{app:red}
+
+\paragraph{$L_2$ soft margin.} The problem
+$\min\tfrac12\norm w^2+\tfrac C2\sum_i\xi_i^2$ is the hard-margin problem
+on the augmented points $\tilde x_i=[x_i;\,e_i/\sqrt C]$, whose Gram
+matrix is $K+I/C$ and whose augmented hulls never intersect. The
+augmentation is never materialised: the extra coordinates of an iterate
+are exactly its convex weights, so every augmented inner product is a
+cached original-space product plus a sparse diagonal correction,
+$\ip{\tilde p}{\tilde v_i}=\ip{p}{v_i}+\alpha_i/C$ and
+$\norm{\tilde p}^2=\norm p^2+\norm\alpha^2/C$. The separator is recovered
+as $w=2(p-q)/\delta_C^2$, $b=(\norm{\tilde q}^2-\norm{\tilde p}^2)/\delta_C^2$,
+and the primal value is $P=2/\delta_C^2$. Validation: the solver agrees
+with an exact QP on the explicitly augmented problem to $10^{-10}$
+across random instances and values of $C$; the regularisation path
+$\delta_C$ is monotone in $C$; on a9a ($C{=}0.1$) its certified primal
+$687.07$ equals LIBLINEAR's to five digits.
+
+\paragraph{$\nu$-SVM.} The $L_1$ (hinge) soft margin is the nearest-point
+problem between \emph{reduced} convex hulls
+$R(V,\mu)=\{\sum a_iv_i:\ \sum a_i=1,\ 0\le a_i\le\mu\}$,
+$\mu=2/(\nu\ell)$ \cite{bennett2000duality}. Two changes: the
+extreme-point oracle becomes a capped top-$k$ blend (weight $\mu$ on the
+$\lfloor1/\mu\rfloor$ best points in the search direction, via a partial
+sort, still $O(n)$), and the primary step is the capped MDM transfer with
+blended toward steps as fallback; caching and the reduced
+support-function lower bound carry over unchanged. Validation: agreement
+with the exact box-constrained QP to $10^{-9}$--$10^{-14}$ and with
+LIBSVM's NuSVC to $\sim10^{-10}$ through the mapping
+$\delta=\norm{w_{\mathrm{svc}}}/S$, $S$ the per-class sum of the
+rescaled dual coefficients. The reduced hull is a polytope, so
+\eqref{eq:P} still applies, but its vertices are blends and the capped
+transfer is not the pairwise step analysed in \S\ref{sec:theory}; the
+analysis of this variant is left open.
+
+\paragraph{Kernels.} The algorithm touches data only through inner
+products, so kernelisation changes plumbing, not algorithm: Gram columns
+become kernel columns $k(V,x_i)$, squared norms become kernel diagonals,
+iterates exist purely as convex weights (the exact cache refresh is
+reconstructed from the support's cached kernel columns), and the
+classifier is the kernel expansion of the witness-pair bisector. A ridge
+$K+I/C$ gives the kernel $L_2$ margin by the same diagonal trick.
+Validation: the linear kernel reproduces the Euclidean solver to
+$10^{-12}$; RBF distances match the exact kernel QP to $10^{-9}$ and
+LIBSVM's hard-margin solution, via
+$\norm{w_{\mathcal H}}^2=(\alpha\circ y)^\top K(\alpha\circ y)$, to
+$10^{-5}$; kernel SMO matches the QP to $10^{-8}$.
+
+\section{Experimental details}\label{app:details}
+
+\paragraph{Solver settings and tolerance equivalence.} ETA: block
+transfers with $k=16$, guarded, away fallback, pairwise anti-zig-zag,
+stop at certified relative gap $10^{-3}$, iteration cap $2\times10^6$,
+600\,s cap; screening (every 25 iterations) only in the LIN cell, where
+it never activated at $10^{-3}$, as Theorem~\ref{thm:activation}
+predicts. Our SMO: maximal-violating-pair selection, KKT gap $10^{-3}$,
+same caps; hard margin as $C=10^{12}$; kernel SMO on $K+I/C$. LIBLINEAR
+(scikit-learn 1.8 \texttt{LinearSVC}): squared hinge with parameter
+$C/2$, so that its objective equals $\tfrac12\norm w^2+\tfrac C2\sum\xi_i^2$;
+tolerance $10^{-6}$, chosen so that its final primal matches ETA's
+certified value to five digits on every cell where ETA converges
+(a9a $687.07$ vs $687.07$; ijcnn1 $550.6$ vs $550.5$ at ETA gap
+$0.01$); intercept scaling $100$; iteration cap $2\times10^5$. LIBSVM
+(scikit-learn \texttt{SVC}): tolerance $10^{-3}$, 1000\,MB cache,
+iteration cap $2\times10^6$ (reported as \emph{maxiter} when hit); hard
+margins as $C=10^6$; RBF with $\gamma=1/d$. Oracle counts: ETA counts
+Gram or kernel columns evaluated against a full class ($O(nd)$ or
+$O(n_kd)$ each); SMO counts kernel rows, the same unit.
+
+\paragraph{Data and seeds.} a9a, w8a, ijcnn1 and gisette use the LIBSVM
+training and test files; covtype (binary, scaled) is subsampled to
+$100{,}000$ points and split 75/25 by seed. Features are standardised
+on the training set. Kernel cells use a class-balanced subsample of at
+most $5{,}000$ points per class (w8a's minority class has $1{,}479$
+points, hence $n_k=6{,}479$; gisette uses all $6{,}000$). Seeds vary
+the covtype split, the kernel subsamples and the timing environment; on
+datasets with fixed splits the deterministic solvers return identical
+solutions across seeds, which is why several accuracy CIs are zero.
+Confidence intervals are $t$-based 95\% intervals over seeds.
+
+\paragraph{Hardware and concurrency.} One dedicated 32-vCPU Intel Xeon
+2.6\,GHz Lightning Studio, 122\,GB RAM, Linux, Python 3.12, NumPy 2.4
+with OpenBLAS 0.3.31, \texttt{OMP\_NUM\_THREADS=1}; the $L_2$ battery
+ran 14 cells and the regime battery 12 cells concurrently. The uncapped
+a9a/w8a runs in Figure~\ref{fig:trace} were made earlier on the same
+machine under a different load (LIBLINEAR took $12$ and $48$\,s there
+against $4$ and $23$\,s in the capped battery), so ratios across the two
+runs carry a factor of roughly two of uncertainty; ratios within a
+battery do not.
+
+\paragraph{Reference solver in the KL2 cells.} The hinge-loss
+\texttt{SVC(rbf, C=1)}, a different objective, took $8.6\pm2.9$ (a9a),
+$3.4\pm0.3$ (covtype), $83.5\pm13.1$ (gisette), $1.1\pm0.0$ (ijcnn1) and
+$4.9\pm1.2$\,s (w8a), with test accuracies $0.789$, $0.783$, $0.977$,
+$0.950$ and $0.975$, within one point of the $L_2$ solutions and on
+either side of them.
+
+\paragraph{Step ablation, blocks and shrinking (synthetic).} Iteration
+counts at $\varepsilon=10^{-6}$ (single instances): $d{=}30$, $n{=}200$:
+toward $158{,}941$, midpoint $148{,}996$, away $106$, pairwise $181$;
+$d{=}100$, $n{=}1{,}000$: toward and midpoint fail within $300{,}000$,
+away $15{,}886$, pairwise $3{,}921$. At the working tolerance $10^{-3}$
+the pairwise/away gain over the midpoint heuristic is only $\sim\!11\%$,
+which is why the heuristic sufficed in \cite{gupta2026}. Block transfers
+cut iterations $4$--$30\times$ relative to single MDM (e.g.\
+$43{,}486\to1{,}551$ on a dense-support $L_2$ instance at $d{=}1{,}000$)
+and are the only configuration that reaches the certified tolerance on
+MNIST odd-vs-even. Figure~\ref{fig:shrink} shows the screening
+speed-ups and Figure~\ref{fig:final} the consolidated comparison: hard
+margins $0.24$ vs LIBSVM's $0.39$\,s at $d{=}1{,}000$ and $8.6$ vs
+$20.5$\,s at $d{=}10{,}000$; $0.21$ vs $0.42$\,s at
+$\varepsilon{=}10^{-5}$ (where the paper-style configuration fails to
+converge); RBF hard margin $0.76$ vs $1.28$\,s; $\nu$-SVM $18.5$ vs
+$21.9$\,s; synthetic $L_2$ ($d{=}1{,}000$, $C{=}1$) $8.9$ vs
+LIBLINEAR's $13.8$\,s; MNIST odd-vs-even $82.8$ vs LIBLINEAR's
+$55.0$\,s. Distances agree within tolerance on every row.
+
+\begin{figure}[h]\centering
+\includegraphics[width=.7\linewidth]{figs/fig_shrink.png}
+\caption{Safe screening: wall-clock speed-up vs dimension at two
+tolerances on the separated synthetic protocol; labels are surviving
+points of $10{,}000$.}\label{fig:shrink}
+\end{figure}
+
+\begin{figure}[h]\centering
+\includegraphics[width=.78\linewidth]{figs/fig_final.png}
+\caption{Time to certified solution on seven problem classes: optimised
+ETA vs the paper-style configuration vs the best standard solver per
+class.}\label{fig:final}
+\end{figure}
+
+\section{Numerical verification of the analysis}\label{app:num}
+Lemma~\ref{lem:block} was checked on $4{,}000$ random ensembles
+including heavily clipped and boundary cases (worst slack at machine
+precision); Proposition~\ref{prop:orth} on $500$ near-orthogonal
+ensembles; Lemma~\ref{lem:gapid} to $10^{-9}$ at arbitrary iterates;
+the three ingredients of Lemma~\ref{lem:twosided}
+($\norm{z'-z_t}^2\le2\Delta_V$, the $M\norm{z'-z_t}$ Lipschitz bound on
+the side gap, and the resulting per-iteration gain) at machine
+precision; and Theorem~\ref{thm:activation} on instances whose optimal
+face was computed by an exact QP: at every activating round all
+zero-weight non-face points were screened, and the final working set
+equalled the optimal face exactly. Over $5{,}000$ instrumented live
+block steps none increased the objective. All checks are test files in
+the released code.
 
 \end{document}

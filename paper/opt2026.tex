@@ -189,8 +189,10 @@ matrix--vector product with the net per-index coefficients; columns are
 computed on first use and cached, so support columns cost nothing after
 their first appearance. Feasibility is immediate, since donors lose at
 most $\theta\gamma_j\le c_j$. We call an iteration \emph{case (a)} if
-pair 1 is uncapped and \emph{case (b)} otherwise; a step that drives a
-weight to zero (line 6) is a \emph{drop} step.
+pair 1 is uncapped and \emph{case (b)} otherwise; the away step of
+line 6, which drives $\alpha_{u^*}$ to zero, is a \emph{drop} step
+(a capped block pair may also zero a donor, which only helps the
+counts below).
 
 \paragraph{Safe screening.} With $r=\sqrt{\UB^2-\max(\LB,0)^2}$ and
 $v_{\min}=\arg\min_i\ip{z}{v_i}$, a zero-weight point with
@@ -274,7 +276,8 @@ $F_V\cup F_W$ is removed permanently. Under Theorem~\ref{thm:linear},
 this condition holds for every iteration
 $t>s_0+\tfrac{k+1}{\rho}\log\!\big(2592R^4L^4h_0/(\tau^4\delta^{*2})\big)$.
 Following this iteration, each subsequent scan costs
-$O(|F_V|+|F_W|+|\operatorname{supp}\lambda|)$ instead of $O(n+m)$.
+$O(|F_V|+|F_W|+|\operatorname{supp}\alpha|+|\operatorname{supp}\beta|)$
+instead of $O(n+m)$.
 \end{theorem}
 In words: since $r^2\le2R(\UB-\LB)$, a point with margin $\tau_i$ is
 screened once the certified gap falls below $\tau_i^2/(18RL^2)$. We
@@ -613,8 +616,9 @@ hence drops, therefore number at most $2kT_{\mathrm{good}}+s_0$.
 \begin{remark}
 The skip is what makes the count work. If the second side always
 steps, an iteration whose analysed side drops can add up to $k$ indices
-on the other side, and the number of such iterations is then bounded
-only by $\tfrac{k}{k+1}T$, which gives no rate for $k\ge1$.
+on the other side, and the count becomes
+$T_{\mathrm{drop}}\le2kT_{\mathrm{good}}+kT_{\mathrm{drop}}+s_0$, which is
+vacuous for $k\ge1$.
 \end{remark}
 
 \begin{proof}[ of Proposition~\ref{prop:orth}]
@@ -641,8 +645,10 @@ $\ip{z^*}{v_{\min}}-m^*=\ip{z}{v_{\min}-v'}+\ip{z^*-z}{v_{\min}-v'}\le rL$.
 Hence $\ip{z}{v_i-v_{\min}}=\ip{z^*}{v_i-v_{\min}}+\ip{z-z^*}{v_i-v_{\min}}\ge\tau_i-rL-r\norm{v_i-v_{\min}}$,
 and the rule fires when this exceeds $r\norm{v_i-v_{\min}}$, for which
 $\tau_i>3rL$ suffices since $\norm{v_i-v_{\min}}\le L$. For the
-activation time,
-$r^2=(\UB-\LB)(\UB+\LB)\le2R(\UB-\LB)=2R\gFW/\UB\le(2R/\delta^*)(2h+R\sqrt{2h})\le(4R^2/\delta^*)\sqrt{2h}$
+activation time, $r^2\le2R(\UB-\LB)$ (for $\LB\ge0$,
+$r^2=(\UB-\LB)(\UB+\LB)$ and $\UB+\LB\le2R$; for $\LB<0$, $r^2=\UB^2$
+and $\UB\le2(\UB-\LB)$), and
+$2R(\UB-\LB)=2R\gFW/\UB\le(2R/\delta^*)(2h+R\sqrt{2h})\le(4R^2/\delta^*)\sqrt{2h}$
 for $h\le R^2/2$ (Lemma~\ref{lem:gapid}); requiring
 $r^2\le\tau^2/(9L^2)$ yields the stated condition on $h_t$, and
 Theorem~\ref{thm:linear} with $\log(1/(1-\rho))\ge\rho$ converts it into

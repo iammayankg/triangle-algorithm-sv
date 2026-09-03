@@ -198,6 +198,9 @@ BENCHES = {
     'F': kernel_bench,
     'G': nu_bench,
 }
+N_SOLVERS = {'A hard d=1000': 4, 'B hard d=10000': 4, 'C hard d=1000 tight': 4,
+             'D soft d=1000': 3, 'E mnist-oe': 3, 'F rbf d=1000': 3,
+             'G nu=0.3 d=1000': 2}
 BENCH_NAME = {'A': 'A hard d=1000', 'B': 'B hard d=10000',
               'C': 'C hard d=1000 tight', 'D': 'D soft d=1000',
               'E': 'E mnist-oe', 'F': 'F rbf d=1000', 'G': 'G nu=0.3 d=1000'}
@@ -252,7 +255,17 @@ def main():
     rows = json.loads(out.read_text()) if out.exists() else []
     for r in rows:
         r.setdefault('trial', 0)      # rows from the single-run version
-    done = {(r['bench'], r['trial']) for r in rows}
+    # a (bench, trial) pair counts as done only with its full solver set;
+    # partial rows (an interrupted sequential run) are dropped and rerun
+    counts = {}
+    for r in rows:
+        counts[(r['bench'], r['trial'])] = counts.get((r['bench'], r['trial']), 0) + 1
+    done = {k for k, c in counts.items()
+            if c >= N_SOLVERS[k[0]]}
+    partial = {k for k in counts if k not in done}
+    if partial:
+        print(f"dropping partial rows for {sorted(partial)}", flush=True)
+        rows = [r for r in rows if (r['bench'], r['trial']) not in partial]
     jobs = []
     for trial in range(args.trials):
         for key in args.benches:

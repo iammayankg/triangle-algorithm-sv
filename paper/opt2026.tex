@@ -176,8 +176,10 @@ $\gA=\ip{g}{z}-\min_{u\in\operatorname{supp}\lambda}\ip{g}{u}$,
 $\gPW=\gFW+\gA$. Because $\ip{g}{v_i-w_j}=s^V_i+s^W_j$ is separable and
 the support is a product set, each gap splits into a $V$-side and a
 $W$-side term computable from the score arrays in $O(n+m)$
-(Lemma~\ref{lem:sep}), and a transfer $v_r-v_u$ on the $V$ side is a
-pairwise direction of $Z$ (Lemma~\ref{lem:side}).
+(Lemma~\ref{lem:sep}); we write $\gPW_V,\gPW_W$ for the two terms,
+likewise $\gFW_V,\gA_V$ and so on, and $g_{\text{side}}$ for the term of
+the side currently being stepped. A transfer $v_r-v_u$ on the $V$ side
+is a pairwise direction of $Z$ (Lemma~\ref{lem:side}).
 
 \section{Guarded block transfers}\label{sec:alg}
 
@@ -259,7 +261,8 @@ $h_{t+1}\le(1-\rho)h_t$ with
 \[
 \rho=\tfrac1{16}\,(\delta/M)^2 .
 \]
-Among the first $T$ iterations, the number of drop steps is at most
+For any horizon $T$, among the first $T$ iterations the number of drop
+steps is at most
 $k\,T_{\mathrm{good}}+s_0$, where $T_{\mathrm{good}}$ is the number of
 non-drop iterations; consequently,
 $h_T\le h_0\,(1-\rho)^{(T-s_0)/(k+1)}$. Furthermore, the two-sided
@@ -310,7 +313,7 @@ A zero-weight point with margin $\tau_i$ is screened as soon as
 $r<\tau_i/(3L)$. Consequently, once
 $h_t<\tau^4\delta^{*2}/(2592\,R^4L^4)$, every zero-weight point outside
 $F_V\cup F_W$ is removed permanently. Under Theorem~\ref{thm:linear},
-this condition holds for all
+this condition holds for every iteration
 $t>s_0+\tfrac{k+1}{\rho}\log\!\big(2592R^4L^4h_0/(\tau^4\delta^{*2})\big)$.
 Following this iteration, each subsequent scan costs
 $O(|F_V|+|F_W|+|\operatorname{supp}\lambda|)$ instead of $O(n+m)$.
@@ -746,7 +749,8 @@ the iteration bound. Permanence follows from the safety of the rule.
 
 \paragraph{$L_2$ soft margin.} The problem
 $\min\tfrac12\norm w^2+\tfrac C2\sum_i\xi_i^2$ is the hard-margin problem
-on the augmented points $\tilde x_i=[x_i;\,e_i/\sqrt C]$, whose Gram
+on the augmented points $\tilde x_i=[x_i;\,e_i/\sqrt C]$, $e_i$ the
+$i$-th standard basis vector, whose Gram
 matrix is $K+I/C$ ($K$ the Gram matrix of the original points) and whose
 augmented hulls never intersect; let $\delta_C$ denote their distance. The
 augmentation is never materialised: the extra coordinates of an iterate

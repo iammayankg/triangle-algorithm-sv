@@ -49,7 +49,7 @@ hulls, which the Triangle Algorithm (TA) solves with a certified
 duality gap. We propose \emph{guarded block transfers}: $k$
 Mitchell--Demyanov--Malozemov (MDM) transfers per scan are aggregated
 into one exact line search, guarded by a comparison with the single
-best transfer at a cost independent of $n$, and replaced by an away
+best transfer at a cost independent of the number of points $n$, and replaced by an away
 step when the leading transfer is capacity-clipped. On the
 Minkowski-difference polytope, where the objective is $1$-strongly
 convex, we prove global linear convergence with explicit constants and
@@ -75,8 +75,8 @@ hull distance \cite{bennett2000duality}. Kalantari's Triangle Algorithm
 (TA) exploits this \emph{distance duality} directly \cite{kalantari2015}:
 TA~I decides whether the hulls intersect, and TA~II computes their
 distance while maintaining an iterate pair $(p,q)$ and a certified
-interval $[\LB,\UB]$ from parallel supporting hyperplanes, so it stops
-at a provable relative accuracy $\varepsilon$. The enhanced TA (ETA) of
+interval $[\LB,\UB]$ from parallel supporting hyperplanes. The enhanced
+TA (ETA) of
 \cite{gupta2026} adds dot-product caching and search heuristics.
 
 The workhorse step of such solvers is the \emph{weight transfer} from
@@ -127,7 +127,8 @@ $h(z)=F(z)-F(z^*)$, $M=\operatorname{diam}(Z)$ and
 $\delta=\PW(A)>0$ the pyramidal width \cite{lj2015} of the atom set
 $A=\{v_i-w_j\}$ (a property of the atom set, not of $Z$ alone).
 
-The algorithm keeps simplex weights $\alpha$ on $V$, $\beta$ on $W$,
+The algorithm keeps simplex weights $\alpha$ on $V$, $\beta$ on $W$
+(iterate $z_t$ after $t$ iterations),
 with $p=\sum\alpha_iv_i$, $q=\sum\beta_jw_j$; the induced product
 representation $\lambda_{ij}=\alpha_i\beta_j$ of $z$ over the atoms
 $v_i-w_j$ has support $\operatorname{supp}\alpha\times\operatorname{supp}\beta$.
@@ -137,8 +138,8 @@ from cached arrays.
 
 \paragraph{Certificate.} For any iterate, $\UB=\norm z$ and
 $\LB=\min_{u\in Z}\ip{z}{u}/\norm z=\big(\min_i\ip{z}{v_i}-\max_j\ip{z}{w_j}\big)/\UB$
-satisfy $\LB\le\delta^*\le\UB$; the TA stops when
-$\UB-\LB\le\varepsilon\,\UB$. The $L_2$ soft margin with regularisation
+satisfy $\LB\le\delta^*\le\UB$; the TA stops when the certified
+relative gap $(\UB-\LB)/\UB$ is at most $\varepsilon$. The $L_2$ soft margin with regularisation
 parameter $C$, the $\nu$-SVM and the kernel variants reduce to
 \eqref{eq:P} exactly (augmented coordinates that turn the Gram matrix
 $K$ into $K+I/C$; reduced convex hulls; feature-space images), see
@@ -161,12 +162,12 @@ $v_r-v_u$ on the $V$ side is a pairwise direction of $Z$
 \label{alg:block}
 \SetAlgoLined\DontPrintSemicolon\LinesNumbered
 top-$k$ receivers by $s^V$; worst-$k$ donors in $\operatorname{supp}\alpha$; pair best-with-worst: $(r_j,u_j)$, $j\le k'$ ($k'\le k$ pairs, limited by the support size); pair 1 is the MDM pair $(r^*,u^*)$\;
-$d_j\gets v_{r_j}-v_{u_j}$;\ $\mathrm{gap}_j\gets s^V_{r_j}-s^V_{u_j}$;\ discard pairs with $\mathrm{gap}_j\le0$ and receivers that are donors;\ $\gamma_j\gets\min(\mathrm{gap}_j/\norm{d_j}^2,\ c_j)$ \tcp*{$c_j$: donor capacity}
-\eIf{pair 1 uncapped ($\gamma_1=\mathrm{gap}_1/\norm{d_1}^2$)}{
-  $\Delta_B\gets$ gain of exact line search $t\in[0,1]$ along $d=\sum_j\gamma_jd_j$;\quad $\Delta_1\gets$ gain of the MDM step\;
+$d_j\gets v_{r_j}-v_{u_j}$;\ $\mathrm{gap}_j\gets s^V_{r_j}-s^V_{u_j}$;\ discard pairs with $\mathrm{gap}_j\le0$ and receivers that are donors;\ $\gamma_j\gets\min(\mathrm{gap}_j/\norm{d_j}^2,\ c_j)$ \tcp*{$c_j=\alpha_{u_j}$: donor capacity}
+\eIf{pair 1 uncapped ($\gamma_1=\mathrm{gap}_1/\norm{d_1}^2$) {\normalfont[case (a)]}}{
+  $\Delta_B\gets$ gain of exact line search $\theta\in[0,1]$ along $d=\sum_j\gamma_jd_j$;\quad $\Delta_1\gets$ gain of the MDM step\;
   take the step with the larger gain \tcp*{guard, $O(k'^2)$}
 }{
-  \eIf{the away step on $u^*$ is boundary-clipped}{
+  \eIf{the away step on $u^*$ is boundary-clipped {\normalfont[case (b)]}}{
     take it \tcp*{drop step: $\alpha_{u^*}\to0$}
   }{
     take the best of \{block, MDM, away($u^*$), toward($r^*$)\}\;
@@ -181,13 +182,15 @@ candidate gain is available from cached quantities at a cost
 independent of $n$: with $S=\ip{g}{d}=\sum_j\gamma_j\mathrm{gap}_j$ and
 $D=\norm d^2=\gamma^\top\Gamma\gamma$, $\Gamma$ the $k'\times k'$ Gram
 matrix of the pair directions ($O(k'^2)$ cached dot products), the block
-gain is $tS-t^2D/2$ at $t=\min(S/D,1)$; the MDM, away and toward gains
-are the usual one-dimensional expressions. The \emph{gain} of a step is
+gain is $\theta S-\theta^2D/2$ at $\theta=\min(S/D,1)$; the MDM, away and
+toward gains are the usual one-dimensional expressions. The \emph{gain} of a step is
 the decrease $h(z_t)-h(z_{t+1})$. The cache update for a block is one
 matrix--vector product with the net per-index coefficients; columns are
 computed on first use and cached, so support columns cost nothing after
 their first appearance. Feasibility is immediate, since donors lose at
-most $t\gamma_j\le c_j$.
+most $\theta\gamma_j\le c_j$. We call an iteration \emph{case (a)} if
+pair 1 is uncapped and \emph{case (b)} otherwise; a step that drives a
+weight to zero (line 6) is a \emph{drop} step.
 
 \paragraph{Safe screening.} With $r=\sqrt{\UB^2-\max(\LB,0)^2}$ and
 $v_{\min}=\arg\min_i\ip{z}{v_i}$, a zero-weight point with
@@ -204,7 +207,7 @@ Full proofs are in Appendix~\ref{app:proofs}.
 Let $b_j=\gamma_j\norm{d_j}$ over the $k'$ retained pairs, all with
 $\mathrm{gap}_j>0$. Then $S\ge\sum_jb_j^2$, $D\le k'S$, and
 the realised block gain satisfies
-$\Delta_B\ge S/(2k')\ge\Delta_{\mathrm{MDM}}/(2k')$.
+$\Delta_B\ge S/(2k')\ge\Delta_1/(2k')$, $\Delta_1$ the MDM gain.
 \end{lemma}
 With the guard, every case-(a) iteration gains
 $\max(\Delta_B,\Delta_1)\ge\Delta_1$: the guarded step never makes less
@@ -249,8 +252,7 @@ $|\ip{d_i}{d_j}|\le\eta\norm{d_i}\norm{d_j}$ for $i\ne j$, then the
 block gain is at least $(\sum_j\Delta_j)/(1+\eta(k'-1))$, where
 $\Delta_j$ is pair $j$'s individual gain.
 \end{proposition}
-As $\eta\to0$ one scan realises the sum of all $k$ pairwise gains; in
-high dimension distinct support directions are nearly orthogonal.
+As $\eta\to0$ one scan realises the sum of all $k$ pairwise gains.
 
 \begin{lemma}[The certified gap is the FW gap]\label{lem:gapid}
 At any full scan, $\UB-\LB=\gFW(z)/\UB$, and
@@ -308,7 +310,7 @@ as Theorem~\ref{thm:activation} predicts.
 
 \begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
 \caption{Regime battery on real data, five seeds, 600\,s per solver,
-mean $\pm$ 95\% CI. Kernel cells (RBF, $\gamma=1/d$) use a
+mean $\pm$ 95\% CI. Kernel cells (RBF with width parameter $1/d$) use a
 class-balanced subsample of $n_k$ points. Same objective per row: LIN,
 linear hard margin (ETA with screening vs LIBSVM at $C{=}10^6$; our SMO
 in brackets); KHM, feature-space hard margin (K-ETA vs LIBSVM at
@@ -374,9 +376,7 @@ ETA's primal: at its default $10^{-4}$ it takes $5$--$66$\,s, comparable
 to ETA, and stops $5$--$24\%$ above the certified optimum with lower
 test accuracy (Table~\ref{tab:libdef}). We claim no wall-clock advantage over LIBLINEAR
 on gisette; what ETA adds is the certificate, which reveals that the
-fast answer is not the optimum (Table~\ref{tab:t1}: ETA reaches $1\%$
-suboptimality in $34$--$44$\,s; LIBLINEAR's default-tolerance answers
-never do). On the four overlapping
+fast answer is not the optimum (Table~\ref{tab:t1}). On the four overlapping
 datasets both geometric solvers hit the cap on every cell while
 LIBLINEAR finishes in $0.3$--$39$\,s. At $C{=}0.1$ ETA's iterate already
 has LIBLINEAR's test accuracy at the cap with the certificate still at
@@ -388,8 +388,8 @@ cap is not usable; on covtype it is not usable at any $C$. The uncapped
 traces (Figure~\ref{fig:trace}, appendix) show the linear-rate signature
 of Theorem~\ref{thm:linear} with $60$--$65\%$ of the points in the
 support: the active atoms form a near-regular simplex on
-$s\approx0.6n$ vertices, whose pyramidal width is $2/\sqrt s$ times its
-side \cite{lj2015}, so $\rho\sim1/s$, iterations grow linearly in $n$
+$n_s\approx0.6n$ vertices, whose pyramidal width is $2/\sqrt{n_s}$ times
+its side \cite{lj2015}, so $\rho\sim1/n_s$, iterations grow linearly in $n$
 and, at $O(n)$ each, the cost is $O(n^2)$-type.
 
 \section{Related work}
@@ -418,9 +418,9 @@ coordinate descent or second-order SMO is faster by one to two orders
 of magnitude. Limitations: screening pays only when the certificate
 closes; the implementation is NumPy-level without sparse support;
 kernel experiments use $10$k-point subsamples; the $\nu$-SVM variant is
-not analysed; the constants are loose; and $k$ is fixed, with
-diminishing returns beyond $k{=}4$ (Table~\ref{tab:kreal}), so an
-adaptive $k$ is future work.
+not analysed; the constants are loose; and $k$ is fixed (an adaptive
+$k$ is future work; Table~\ref{tab:kreal} shows diminishing returns
+beyond $k{=}4$).
 
 \begin{thebibliography}{99}
 \bibitem{kalantari2015} B.~Kalantari. A characterization theorem and an
@@ -531,10 +531,10 @@ inequality, $\norm d\le\sum_j\gamma_j\norm{d_j}=\sum_jb_j$, and by
 Cauchy--Schwarz, $(\sum_jb_j)^2\le k'\sum_jb_j^2\le k'S$; hence
 $D\le k'S$. Exact line search on the $1$-smooth $F$ gives
 $\Delta_B=S^2/(2D)\ge S/(2k')$ in the interior case and
-$\Delta_B=S-D/2\ge S/2$ at the boundary $t=1$, where $D\le S$. Finally,
-$S\ge\gamma_1\mathrm{gap}_1\ge\Delta_{\mathrm{MDM}}$, since all terms
+$\Delta_B=S-D/2\ge S/2$ at the boundary $\theta=1$, where $D\le S$. Finally,
+$S\ge\gamma_1\mathrm{gap}_1\ge\Delta_1$, since all terms
 are nonnegative and
-$\Delta_{\mathrm{MDM}}=\gamma_1\mathrm{gap}_1-\gamma_1^2\norm{d_1}^2/2$.
+$\Delta_1=\gamma_1\mathrm{gap}_1-\gamma_1^2\norm{d_1}^2/2$.
 \end{proof}
 
 \begin{proof}[ of Lemma~\ref{lem:good}]
@@ -542,9 +542,9 @@ Let $g_S=\max(\gPW_V,\gPW_W)\ge\gPW/2$. Every direction below is a
 difference of two points of one class hull, so its norm is at most
 $\operatorname{diam}(\conv V)\le M$. For a feasible direction with
 directional derivative $\sigma>0$, squared norm $D$ and maximal step
-$\bar t$, exact line search on a $1$-smooth function gives
-$\mathrm{gain}\ge\min(\sigma^2/(2D),\,\bar t\sigma/2)$ (interior
-optimum, or the clipped step evaluated with $\bar tD\le\sigma$).
+$\bar\theta$, exact line search on a $1$-smooth function gives
+$\mathrm{gain}\ge\min(\sigma^2/(2D),\,\bar\theta\sigma/2)$ (interior
+optimum, or the clipped step evaluated with $\bar\theta D\le\sigma$).
 In case (a), the guard's gain is at least the MDM gain, whose
 derivative is $g_S$ and whose interior optimum is attained, yielding
 $\mathrm{gain}\ge g_S^2/(2M^2)\ge(\gPW)^2/(8M^2)$.
@@ -681,7 +681,8 @@ blended toward steps as fallback; caching and the reduced
 support-function lower bound carry over unchanged. Validation: agreement
 with the exact box-constrained QP to $10^{-9}$--$10^{-14}$ and with
 LIBSVM's NuSVC to $\sim10^{-10}$ through the mapping
-$\delta^*=\norm{w_{\mathrm{svc}}}/\varsigma$, $\varsigma$ the per-class
+$\delta^*=\norm{w_{\mathrm{svc}}}/\varsigma$, $w_{\mathrm{svc}}$ LIBSVM's
+weight vector and $\varsigma$ the per-class
 sum of the rescaled dual coefficients. The reduced hull is a polytope, so
 \eqref{eq:P} still applies, but its vertices are blends and the capped
 transfer is not the pairwise step analysed in \S\ref{sec:theory}; the
@@ -698,7 +699,8 @@ $K+I/C$ gives the kernel $L_2$ margin by the same diagonal trick.
 Validation: the linear kernel reproduces the Euclidean solver to
 $10^{-12}$; RBF distances match the exact kernel QP to $10^{-9}$ and
 LIBSVM's hard-margin solution, via
-$\norm{w_{\mathcal H}}^2=(\alpha\circ y)^\top K(\alpha\circ y)$ for
+$\norm{w_{\mathcal H}}^2=(\alpha\circ y)^\top K(\alpha\circ y)$, $w_{\mathcal H}$ the
+feature-space normal, for
 LIBSVM's dual coefficients $\alpha$ and labels $y$, to $10^{-5}$;
 kernel SMO matches the QP to $10^{-8}$.
 
@@ -734,7 +736,7 @@ Intercept scaling $100$; iteration cap
 $2\times10^5$. LIBSVM
 (scikit-learn \texttt{SVC}): tolerance $10^{-3}$, 1000\,MB cache,
 iteration cap $2\times10^6$ (reported as \emph{maxiter} when hit); hard
-margins as $C=10^6$; RBF with $\gamma=1/d$. Oracle counts: ETA counts
+margins as $C=10^6$; RBF kernel $\exp(-\norm{x-x'}^2/d)$. Oracle counts: ETA counts
 Gram or kernel columns evaluated against a full class ($O(nd)$ or
 $O(n_kd)$ each); SMO counts kernel rows, the same unit. Columns are
 cached without eviction and the block Gram matrix $\Gamma$ is

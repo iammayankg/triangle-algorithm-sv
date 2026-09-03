@@ -14,11 +14,16 @@ mdm as appropriate), and the standard solver, with distance agreement.
 
 Usage: python3 src/final_benchmark.py [--trials N] [--benches A B ...]
            [--out results/final_benchmark.json]
+           [--parallel P]
 Trial t draws the synthetic instance (or the MNIST split) with seed
-offset t; trial 0 reproduces the original single-instance run. Rows
-carry a `trial` field; the output is rewritten after every row and a
-rerun skips (bench, trial) pairs already present. The summary printed
-at the end (and src/final_benchmark_fig.py) averages over trials.
+offset t; trial 0 reproduces the original single-instance run. Each
+(bench, trial) job writes a shard under <out>.shards/ and the shards
+are merged into <out>; a rerun skips jobs whose shard (or rows in
+<out>) already exist. --parallel P runs P jobs concurrently, one
+single-threaded process each (set OMP_NUM_THREADS=1); keep P well
+below the core count so timings are not distorted by contention. The
+summary printed at the end (and src/final_benchmark_fig.py) averages
+over trials.
 """
 
 from __future__ import annotations
@@ -55,7 +60,6 @@ def rec(bench, solver, t, dist, status='converged', extra=''):
                         trial=TRIAL))
     print(f"[{bench} trial {TRIAL}] {solver:22s} t={t:8.2f}s d={dist:.6f} "
           f"{status} {extra}", flush=True)
-    OUT.write_text(json.dumps(RESULTS, indent=2))
 
 
 def hard(d, eps, bench):
@@ -213,28 +217,65 @@ def summarize(rows):
         print(f"{b:22s} {sv:22s} {t.mean():10.2f} ± {half:6.2f} s  {conv}/{len(sel)}")
 
 
+def _shard(out, key, trial):
+    return Path(str(out) + '.shards') / f"{key}_{trial}.json"
+
+
+def _run_job(job):
+    """Worker: one (bench, trial) -> shard file; returns its rows."""
+    global RESULTS, TRIAL
+    key, trial, out = job
+    RESULTS, TRIAL = [], trial
+    BENCHES[key]()
+    shard = _shard(out, key, trial)
+    shard.parent.mkdir(parents=True, exist_ok=True)
+    shard.write_text(json.dumps(RESULTS, indent=2))
+    return RESULTS
+
+
 def main():
-    global RESULTS, OUT, TRIAL
     import argparse
+    import os
+    from multiprocessing import Pool
     ap = argparse.ArgumentParser()
     ap.add_argument('--trials', type=int, default=1)
     ap.add_argument('--benches', nargs='*', default=list(BENCHES))
+    ap.add_argument('--parallel', type=int, default=1,
+                    help='concurrent (bench, trial) jobs; set OMP_NUM_THREADS=1')
     ap.add_argument('--out', default='results/final_benchmark.json')
     args = ap.parse_args()
-    OUT = Path(args.out)
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    RESULTS = json.loads(OUT.read_text()) if OUT.exists() else []
-    for r in RESULTS:
+    if args.parallel > 1 and os.environ.get('OMP_NUM_THREADS') != '1':
+        print('WARNING: set OMP_NUM_THREADS=1 when using --parallel', flush=True)
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    rows = json.loads(out.read_text()) if out.exists() else []
+    for r in rows:
         r.setdefault('trial', 0)      # rows from the single-run version
-    done = {(r['bench'], r['trial']) for r in RESULTS}
-    for TRIAL in range(args.trials):
+    done = {(r['bench'], r['trial']) for r in rows}
+    jobs = []
+    for trial in range(args.trials):
         for key in args.benches:
-            if (BENCH_NAME[key], TRIAL) in done:
-                print(f"[{BENCH_NAME[key]} trial {TRIAL}] already done", flush=True)
+            shard = _shard(out, key, trial)
+            if (BENCH_NAME[key], trial) in done:
                 continue
-            BENCHES[key]()
-    summarize(RESULTS)
-    print(f'\nsaved {OUT}')
+            if shard.exists():
+                rows.extend(json.loads(shard.read_text()))
+                continue
+            jobs.append((key, trial, out))
+    print(f"{len(done)} (bench, trial) pairs already in {out}, "
+          f"{len(jobs)} to run, parallel={args.parallel}", flush=True)
+    if args.parallel > 1 and jobs:
+        with Pool(args.parallel) as pool:
+            for recs in pool.imap_unordered(_run_job, jobs):
+                rows.extend(recs)
+    else:
+        for job in jobs:
+            rows.extend(_run_job(job))
+    rows.sort(key=lambda r: (r['trial'], r['bench']))
+    out.write_text(json.dumps(rows, indent=2))
+    summarize(rows)
+    print(f'\nsaved {out}')
 
 
 if __name__ == '__main__':

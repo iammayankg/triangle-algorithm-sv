@@ -50,7 +50,7 @@ python3 src/time_to_tol.py                           # reads seed-0 traces
 #    parallel; ~20 min. Trial 0 alone reproduces the single-run numbers.
 nohup python3 -u src/final_benchmark.py --trials 5 --parallel 7 \
     > results/final_benchmark.log 2>&1 &
-# then: python3 src/final_benchmark_fig.py
+# then: python3 src/final_benchmark_fig.py --out paper/figs/fig_final.pdf paper/figs/fig_final.png results/fig_final.png blog/figs/08_regimes.png
 
 # 6. Synthetic appendix tables (schedule check, block-size ablation)
 python3 src/schedule_check.py && python3 src/k_ablation_synth.py
@@ -78,7 +78,8 @@ Paper-table to script map:
 | Table 6 (time to 1%) | `time_to_tol.py` | stdout (markdown) |
 | Table 7 (synthetic k ablation) | `k_ablation_synth.py` + `make_appendix_tables.py` | `results/k_ablation_synth.json` |
 | Fig. 1 (uncapped traces) | `full_battery.py` seed-0 shards, uncapped | `results/full_battery_uncapped.shards/` |
-| Fig. 3 (consolidated benchmark) | `final_benchmark.py` + `final_benchmark_fig.py` | `results/final_benchmark.json` |
+| Fig. 2 (screening speed-up) | `shrink_benchmark.py` + `shrink_fig.py` (renders `paper/figs/fig_shrink.pdf`) | `results/shrink_benchmark.json` |
+| Fig. 3 (consolidated benchmark) | `final_benchmark.py` + `final_benchmark_fig.py --out paper/figs/fig_final.pdf ...` (vector for the paper) | `results/final_benchmark.json` |
 
 ## 0. What you will run, and on what
 

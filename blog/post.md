@@ -130,10 +130,6 @@ The step rule is not a detail. The gap between a toward-step and a weight transf
 
 And the pyramidal width tells you in advance whether a method of this kind will fly or crawl. Sparse support, fat polytope, fast. Dense support or nearly touching hulls, thin polytope, slow. If you have heavily overlapping data and want an L2 soft margin, use LIBLINEAR and don't look back. If you want a hard margin in high dimension, a kernel with expensive columns, a ν-SVM, or a certificate you can trust, this family is worth trying.
 
-The solvers, the proofs, the numerical checks, and every experiment script including the ones that made the figures in this post are in the repository linked below.
+The solvers, the proofs, the numerical checks, and every experiment script including the ones that made the figures in this post are in the repository.
 
 ---
-
-*How this was done.* Most of this project was carried out with an AI system, Claude from Anthropic, acting as a collaborator under our direction. It wrote the implementation, drafted the proofs and the paper, designed and ran the experiments, and suggested several of the ideas, including the guard and the away-step fallback. We set the questions and checked the theorems, and the checking was not a formality: the unit error in the rate constant I mentioned above was caught in exactly that pass. We're responsible for the claims. One consequence of working this way, which I didn't anticipate, is that knowing the prose came from a model made us insist that every claim be checkable by a machine as well, which is why every inequality has a numerical test and every solver is validated against exact ground truth. Whether that's a good general practice I'm not sure yet, but it made this particular paper better.
-
-*Paper, code and data: [repository link]. Corrections welcome.*

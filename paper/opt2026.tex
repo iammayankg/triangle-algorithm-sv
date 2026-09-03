@@ -620,16 +620,17 @@ $z\leftarrow z+\gamma(v_r-v_u)$ inside $Z$.
 \end{lemma}
 
 \begin{proof}[Proof of Lemma~\ref{lem:block}]
-Since $\gamma_j\le\mathrm{gap}_j/\norm{d_j}^2$ we have
-$\gamma_j\mathrm{gap}_j\ge\gamma_j^2\norm{d_j}^2=b_j^2$, so
+Since $\gamma_j\le\mathrm{gap}_j/\norm{d_j}^2$, we have
+$\gamma_j\mathrm{gap}_j\ge\gamma_j^2\norm{d_j}^2=b_j^2$. Consequently,
 $S=\sum_j\gamma_j\mathrm{gap}_j\ge\sum_jb_j^2$. By the triangle
-inequality $\norm d\le\sum_j\gamma_j\norm{d_j}=\sum_jb_j$ and by
-Cauchy--Schwarz $(\sum_jb_j)^2\le k'\sum_jb_j^2\le k'S$, hence
+inequality, $\norm d\le\sum_j\gamma_j\norm{d_j}=\sum_jb_j$, and by
+Cauchy--Schwarz, $(\sum_jb_j)^2\le k'\sum_jb_j^2\le k'S$; hence
 $D\le k'S$. Exact line search on the $1$-smooth $F$ gives
 $\Delta_B=S^2/(2D)\ge S/(2k')$ in the interior case and
-$\Delta_B=S-D/2\ge S/2$ at the boundary $t=1$ (where $D\le S$). Finally
-$S\ge\gamma_1\mathrm{gap}_1\ge\Delta_{\mathrm{MDM}}$ since all terms are
-nonnegative and $\Delta_{\mathrm{MDM}}=\gamma_1\mathrm{gap}_1-\gamma_1^2\norm{d_1}^2/2$.
+$\Delta_B=S-D/2\ge S/2$ at the boundary $t=1$, where $D\le S$. Finally,
+$S\ge\gamma_1\mathrm{gap}_1\ge\Delta_{\mathrm{MDM}}$, since all terms
+are nonnegative and
+$\Delta_{\mathrm{MDM}}=\gamma_1\mathrm{gap}_1-\gamma_1^2\norm{d_1}^2/2$.
 \end{proof}
 
 \begin{proof}[Proof of Lemma~\ref{lem:good}]
@@ -640,11 +641,11 @@ directional derivative $\sigma>0$, squared norm $D$ and maximal step
 $\bar t$, exact line search on a $1$-smooth function gives
 $\mathrm{gain}\ge\min(\sigma^2/(2D),\,\bar t\sigma/2)$ (interior
 optimum, or the clipped step evaluated with $\bar tD\le\sigma$).
-Case (a): the guard's gain is at least the MDM gain, whose derivative is
-$g_S$ and whose interior optimum is attained, so
+In case (a), the guard's gain is at least the MDM gain, whose
+derivative is $g_S$ and whose interior optimum is attained, yielding
 $\mathrm{gain}\ge g_S^2/(2M^2)\ge\gPW{}^2/(8M^2)$.
-Case (b), non-drop: $g_S=\gFW_{\text{side}}+\gA_{\text{side}}$, so one
-term is $\ge g_S/2\ge\gPW/4$. If it is the FW term, the toward step
+In case (b), non-drop, $g_S=\gFW_{\text{side}}+\gA_{\text{side}}$, so
+one term is at least $g_S/2\ge\gPW/4$. If it is the FW term, the toward step
 (maximal step $1$) gives
 $\mathrm{gain}\ge\min(\gFW_{\text{side}}{}^2/(2M^2),\gFW_{\text{side}}/2)\ge\min(\gPW{}^2/(32M^2),\gPW/8)$;
 if it is the away term, the away line search is interior (non-drop) and
@@ -688,7 +689,7 @@ first, and take the other side's guarded step only if the first step
 was not a drop; an iteration counts as a drop iff its first step is a
 drop. Then every non-drop iteration gains at least
 $\min(\gPW{}^2/(32M^2),\,\gPW/8)$ and
-$\#\text{drops}\le2kT_{\mathrm{good}}+s_0$; hence
+the number of drops is at most $2kT_{\mathrm{good}}+s_0$; hence
 Theorem~\ref{thm:linear} holds for this schedule with the same $\rho$
 and exponent $(T-s_0)/(2k+1)$.
 \end{lemma}

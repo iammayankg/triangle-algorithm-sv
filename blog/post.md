@@ -92,7 +92,7 @@ At loose tolerance it does nothing, because the run finishes before the radius i
 
 ## Where it works and where it doesn't
 
-On the problems the theory says should suit it, hard margins, kernels, high dimension, ν-SVMs, the optimized solver was the fastest method to a certified solution on six of the seven benchmark classes we tried, somewhere between 1.6 and 2.5 times faster than the best standard solver for each class (LIBSVM, LIBLINEAR or NuSVC). At a tight tolerance the paper-style configuration doesn't converge at all and the new one takes a fifth of a second.
+On the problems the theory says should suit it, hard margins, linear and RBF, in high dimension, the optimized solver ties or slightly beats LIBSVM, within about 15 percent on all four classes we tried. On the three soft-margin classes, synthetic L2, MNIST odd-vs-even, and a ν-SVM, the standard solvers are 1.3 to 2.4 times faster. (An earlier run on a shared development container had shown us winning six of seven by a comfortable margin; the dedicated machine did not agree, and the dedicated numbers are the ones in the paper.) Where the new step rule wins outright is not speed but reach: at a tight tolerance the paper-style configuration doesn't converge at all and the new one takes half a second, and on MNIST single transfers never reach the tolerance while the block does.
 
 ![Consolidated benchmark](figs/08_regimes.png)
 

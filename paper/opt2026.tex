@@ -307,7 +307,12 @@ SMO'' is our own implementation and K-ETA the kernelised ETA.
 cut iterations $4$--$30\times$ on synthetic and $6$--$9\times$ on real
 data relative to single MDM (plain pairwise FW), but wall-clock only
 where the $O(n)$ scan dominates rather than the columns
-(Tables~\ref{tab:kabl},~\ref{tab:kreal}); screening gives
+(Tables~\ref{tab:kabl},~\ref{tab:kreal}). The fixed $k{=}16$ is not
+tuned: $\rho$ is $k$-independent, the block is self-limiting
+($k'\le|\operatorname{supp}\alpha|$, non-positive gaps discarded, MDM
+fallback under the guard, so an oversized $k$ costs $O(k^2)$ cached dot
+products and never a worse step), and $k{=}4$ and $16$ agree within CI
+at $d{=}22$ and $d{=}5{,}000$. Screening gives
 $1.4$--$2.4\times$ at $\varepsilon=10^{-5}$ and is neutral at $10^{-3}$,
 as Theorem~\ref{thm:activation} predicts.
 
@@ -421,9 +426,9 @@ coordinate descent or second-order SMO is faster by one to two orders
 of magnitude. Limitations: screening pays only when the certificate
 closes; the implementation is NumPy-level without sparse support;
 kernel experiments use $10$k-point subsamples; the $\nu$-SVM variant is
-not analysed; the constants are loose; and $k$ is fixed (an adaptive
-$k$ is future work; Table~\ref{tab:kreal} shows diminishing returns
-beyond $k{=}4$).
+not analysed; the constants are loose; and $k$ is fixed (returns
+diminish beyond $k{=}4$, Table~\ref{tab:kreal}; an adaptive $k$, e.g.\
+tied to the support size, is future work).
 
 \begin{thebibliography}{99}
 \bibitem{kalantari2015} B.~Kalantari. A characterization theorem and an

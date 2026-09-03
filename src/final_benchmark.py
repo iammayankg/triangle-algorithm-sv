@@ -11,6 +11,14 @@ standard solver, across every problem class in this repository.
 
 Per benchmark: the paper-style ETA, the optimised ETA (block / shrink /
 mdm as appropriate), and the standard solver, with distance agreement.
+
+Usage: python3 src/final_benchmark.py [--trials N] [--benches A B ...]
+           [--out results/final_benchmark.json]
+Trial t draws the synthetic instance (or the MNIST split) with seed
+offset t; trial 0 reproduces the original single-instance run. Rows
+carry a `trial` field; the output is rewritten after every row and a
+rerun skips (bench, trial) pairs already present. The summary printed
+at the end (and src/final_benchmark_fig.py) averages over trials.
 """
 
 from __future__ import annotations
@@ -36,19 +44,23 @@ from sklearn.metrics.pairwise import rbf_kernel              # noqa: E402
 from sklearn.svm import SVC, LinearSVC, NuSVC                # noqa: E402
 
 RESULTS = []
+OUT = Path('results/final_benchmark.json')
+TRIAL = 0
+STEP = 100_000          # seed offset per trial
 
 
 def rec(bench, solver, t, dist, status='converged', extra=''):
     RESULTS.append(dict(bench=bench, solver=solver, time=float(t),
-                        dist=float(dist), status=status, extra=extra))
-    print(f"[{bench}] {solver:22s} t={t:8.2f}s d={dist:.6f} {status} {extra}",
-          flush=True)
-    Path('results/final_benchmark.json').write_text(
-        json.dumps(RESULTS, indent=2))
+                        dist=float(dist), status=status, extra=extra,
+                        trial=TRIAL))
+    print(f"[{bench} trial {TRIAL}] {solver:22s} t={t:8.2f}s d={dist:.6f} "
+          f"{status} {extra}", flush=True)
+    OUT.write_text(json.dumps(RESULTS, indent=2))
 
 
 def hard(d, eps, bench):
-    V, W = generate_two_balls(d, 5000, 1.2, rng=np.random.default_rng(2000 + d))
+    V, W = generate_two_balls(d, 5000, 1.2,
+                              rng=np.random.default_rng(2000 + d + STEP * TRIAL))
     r = EnhancedTriangleAlgorithm(V, W, seed=0).solve_distance(eps=eps)
     rec(bench, 'ETA paper-style', r.time, r.distance, r.status)
     r = EnhancedTriangleAlgorithm(V, W, seed=0, step_mode='block',
@@ -71,7 +83,7 @@ def hard(d, eps, bench):
 
 def soft_synth():
     V, W = generate_overlap(1000, 5000, delta=4.0,
-                            rng=np.random.default_rng(7))
+                            rng=np.random.default_rng(7 + STEP * TRIAL))
     r = SoftMarginTA(V, W, C=1.0, step_mode='mdm',
                      zigzag_strategy='pairwise', seed=0).solve_distance(
         eps=1e-3, max_iter=200_000)
@@ -102,7 +114,7 @@ def soft_mnist():
     X, y = mnist_data()
     y = (y % 2).astype(int)
     Xtr, _, ytr, _ = train_test_split(X, y, test_size=0.25, stratify=y,
-                                      random_state=0)
+                                      random_state=TRIAL)
     Xtr = StandardScaler().fit_transform(Xtr)
     V, W = Xtr[ytr == 1], Xtr[ytr == 0]
     r = SoftMarginTA(V, W, C=1.0, step_mode='mdm',
@@ -131,7 +143,7 @@ def soft_mnist():
 def kernel_bench():
     gamma = 1.0 / 1000
     V, W = generate_two_balls(1000, 3000, 1.2,
-                              rng=np.random.default_rng(12000))
+                              rng=np.random.default_rng(12000 + STEP * TRIAL))
     r = KernelETA(V, W, kernel='rbf', gamma=gamma,
                   zigzag_strategy='pairwise', seed=0).solve_distance(eps=1e-3)
     rec('F rbf d=1000', 'K-ETA pairwise', r.time, r.distance, r.status)
@@ -155,7 +167,7 @@ def kernel_bench():
 
 def nu_bench():
     V, W = generate_overlap(1000, 5000, delta=4.0,
-                            rng=np.random.default_rng(9100))
+                            rng=np.random.default_rng(9100 + STEP * TRIAL))
     rh = ReducedHullTA(V, W, nu=0.3)
     r = rh.solve_distance(eps=1e-3, max_iter=200_000)
     rec('G nu=0.3 d=1000', 'RCH-TA', r.time, r.distance, r.status)
@@ -173,12 +185,57 @@ def nu_bench():
         float(np.linalg.norm(m.coef_.ravel())) / S)
 
 
+BENCHES = {
+    'A': lambda: hard(1000, 1e-3, 'A hard d=1000'),
+    'B': lambda: hard(10000, 1e-3, 'B hard d=10000'),
+    'C': lambda: hard(1000, 1e-5, 'C hard d=1000 tight'),
+    'D': soft_synth,
+    'E': soft_mnist,
+    'F': kernel_bench,
+    'G': nu_bench,
+}
+BENCH_NAME = {'A': 'A hard d=1000', 'B': 'B hard d=10000',
+              'C': 'C hard d=1000 tight', 'D': 'D soft d=1000',
+              'E': 'E mnist-oe', 'F': 'F rbf d=1000', 'G': 'G nu=0.3 d=1000'}
+
+
+def summarize(rows):
+    from scipy import stats
+    keys = sorted({(r['bench'], r['solver']) for r in rows},
+                  key=lambda k: (k[0], [r['solver'] for r in rows].index(k[1])))
+    print(f"\n{'bench':22s} {'solver':22s} {'time mean ± CI95':>20s}  conv")
+    for b, sv in keys:
+        sel = [r for r in rows if (r['bench'], r['solver']) == (b, sv)]
+        t = np.array([r['time'] for r in sel])
+        half = (stats.t.ppf(0.975, len(t) - 1) * t.std(ddof=1) / np.sqrt(len(t))
+                if len(t) > 1 else 0.0)
+        conv = sum(r['status'] == 'converged' for r in sel)
+        print(f"{b:22s} {sv:22s} {t.mean():10.2f} ± {half:6.2f} s  {conv}/{len(sel)}")
+
+
+def main():
+    global RESULTS, OUT, TRIAL
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--trials', type=int, default=1)
+    ap.add_argument('--benches', nargs='*', default=list(BENCHES))
+    ap.add_argument('--out', default='results/final_benchmark.json')
+    args = ap.parse_args()
+    OUT = Path(args.out)
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    RESULTS = json.loads(OUT.read_text()) if OUT.exists() else []
+    for r in RESULTS:
+        r.setdefault('trial', 0)      # rows from the single-run version
+    done = {(r['bench'], r['trial']) for r in RESULTS}
+    for TRIAL in range(args.trials):
+        for key in args.benches:
+            if (BENCH_NAME[key], TRIAL) in done:
+                print(f"[{BENCH_NAME[key]} trial {TRIAL}] already done", flush=True)
+                continue
+            BENCHES[key]()
+    summarize(RESULTS)
+    print(f'\nsaved {OUT}')
+
+
 if __name__ == '__main__':
-    hard(1000, 1e-3, 'A hard d=1000')
-    hard(10000, 1e-3, 'B hard d=10000')
-    hard(1000, 1e-5, 'C hard d=1000 tight')
-    soft_synth()
-    soft_mnist()
-    kernel_bench()
-    nu_bench()
-    print('\nsaved results/final_benchmark.json')
+    main()

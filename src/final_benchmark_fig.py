@@ -49,7 +49,23 @@ def main():
         str(ROOT / 'paper/figs/fig_final.png'), str(ROOT / 'results/fig_final.png'),
         str(ROOT / 'blog/figs/08_regimes.png')])
     args = ap.parse_args()
-    runs = json.loads(Path(args.json).read_text())
+    raw = json.loads(Path(args.json).read_text())
+    # average over trials: one row per (bench, solver) with mean time, a
+    # 95% CI half-width, and status 'converged' only if every trial converged
+    groups = {}
+    for r in raw:
+        groups.setdefault((r['bench'], r['solver']), []).append(r)
+    runs = []
+    for (b, sv), rs in groups.items():
+        t = np.array([r['time'] for r in rs])
+        half = 0.0
+        if len(t) > 1:
+            from scipy import stats
+            half = float(stats.t.ppf(0.975, len(t) - 1) * t.std(ddof=1) / np.sqrt(len(t)))
+        runs.append(dict(bench=b, solver=sv, time=float(t.mean()), ci=half,
+                         n=len(t), status='converged' if all(
+                             r['status'] == 'converged' for r in rs) else 'maxiter'))
+    ntrials = max(r['n'] for r in runs)
 
     def get(bench, solver):
         return next(r for r in runs if r['bench'] == bench and r['solver'] == solver)
@@ -74,18 +90,23 @@ def main():
             bad = r['status'] != 'converged'
             ax.barh(yy, r['time'], height=h * 0.9, color=col, alpha=0.45 if bad else 1.0,
                     hatch='///' if bad else None, edgecolor='white', linewidth=0.8)
+            if r['ci'] > 0:
+                ax.errorbar(r['time'], yy, xerr=r['ci'], fmt='none', ecolor=INK2,
+                            elinewidth=0.8, capsize=2)
             note = tag or ''
             if bad:
                 note = (note + '  ' if note else '') + 'did not converge'
             if note:
-                ax.text(r['time'] * 1.12, yy, note, va='center', ha='left', fontsize=8,
+                ax.text((r['time'] + r['ci']) * 1.12, yy, note, va='center', ha='left', fontsize=8,
                         color=INK2, style='italic' if bad else 'normal')
     ax.set_yticks(range(len(ROWS)))
     ax.set_yticklabels(labels, fontsize=9)
     ax.invert_yaxis()
     ax.set_xscale('log')
     ax.set_xlim(0.1, 600)
-    ax.set_xlabel('time to certified solution, seconds (log)', color=INK2)
+    ax.set_xlabel('time to certified solution, seconds (log)'
+                  + (f'; mean of {ntrials} trials, bars = 95% CI' if ntrials > 1 else ''),
+                  color=INK2)
     ax.set_title('Consolidated benchmark: time to solution across all problem classes',
                  loc='left', fontsize=11, color=INK, pad=28)
     ax.grid(True, axis='x', color=GRID, lw=0.7)

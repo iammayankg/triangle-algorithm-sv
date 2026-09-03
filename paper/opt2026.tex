@@ -967,15 +967,16 @@ the time of the coarsest tolerance whose primal is within $1\%$ of
 $P^*$; where only $10^{-6}$ has been run it is an upper bound. On the
 remaining cells ETA is not within $1\%$ at the 600\,s cap
 ($s=30$--$99\%$).}\label{tab:t1}
+\setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{llrrrrrl}\toprule
-dataset & $C$ & $P^*$ & ETA $1\%$ & ETA $0.1\%$ & certified $1\%$ & certified $10^{-3}$ & LIBLINEAR $1\%$ \\\midrule
+dataset & $C$ & $P^*$ & ETA $1\%$ & ETA $0.1\%$ & cert.\ $1\%$ & cert.\ $10^{-3}$ & LIBLINEAR $1\%$ \\\midrule
 gisette & 0.1 & 0.14835 & 40 s & 42 s & 43 s & 43 s & $\le500$ s (tol $10^{-6}$) \\
 gisette & 1 & 0.14893 & 44 s & 46 s & 47 s & 48 s & $\le3916$ s (tol $10^{-6}$) \\
-gisette & 10 & 0.14899 & 34 s & 36 s & 37 s & 37 s & not within $1\%$ at $10^{-4}$ or $10^{-6}$ \\
+gisette & 10 & 0.14899 & 34 s & 36 s & 37 s & 37 s & none at $10^{-4}$ or $10^{-6}$ \\
 \midrule
 a9a & 0.1 & 687.07 & 811 s & 1,413 s & 2,121 s & 3,030 s & 4 s \\
 w8a & 0.1 & 108.80 & 2,084 s & 2,960 s & 4,162 s & 5,386 s & 23 s \\
-ijcnn1 & 0.1 & 550.61 & 301 s & 472 s & $>600$ s & $>600$ s ($s{=}0.05\%$ at cap) & 0.3 s \\
+ijcnn1 & 0.1 & 550.61 & 301 s & 472 s & $>600$ s & $>600$ s ($s{=}0.05\%$) & 0.3 s \\
 \bottomrule\end{tabular}\end{table}
 
 \begin{table}[h]\centering\scriptsize

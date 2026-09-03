@@ -29,8 +29,10 @@ anti-zig-zag pivot strategy, and prioritized searches.
   runbook (`lightning_runbook.md`)
 - `paper/` — `opt2026.tex`, the OPT 2026 (NeurIPS workshop) submission,
   with `opt2026.pdf`; build with `cd paper && tectonic opt2026.tex`.
-  OPT 2026 uses the NeurIPS 2026 style (`neurips_2026.sty`, included).
-  `main.tex` is the earlier long-form skeleton.
+  Uses the official OPT 2026 class (`opt2026.cls` with `jmlr.cls` and
+  `jmlrutils.sty`, from `opt2026_style.zip`); the `[anon]` class option
+  withholds the author block. `main.tex` is the earlier long-form
+  skeleton.
 
 ## Quick start
 

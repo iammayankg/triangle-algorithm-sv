@@ -245,7 +245,7 @@ guarded step never makes less progress than pairwise FW.
 
 \begin{lemma}[Good-step progress]\label{lem:good}
 Work on the side with the larger pairwise gap. On any non-drop
-iteration, $\mathrm{gain}\ge\min\!\big(\gPW{}^2/(32M^2),\ \gPW/8\big)$.
+iteration, $\mathrm{gain}\ge\min\!\big((\gPW)^2/(32M^2),\ \gPW/8\big)$.
 \end{lemma}
 Case (a) uses $\gPW_{\text{side}}\ge\gPW/2$ and the exact line search
 bound; case (b) uses $\gPW_{\text{side}}=\gFW_{\text{side}}+\gA_{\text{side}}$,
@@ -299,7 +299,8 @@ reductions.
 
 \begin{lemma}[The certified gap is the FW gap]\label{lem:gapid}
 At any full scan, $\UB-\LB=\gFW(z)/\UB$, and
-$\gFW(z)\le2h+R\sqrt{2h}$ with $R=\max_{u\in Z}\norm u$.
+$\gFW(z)\le2h+R\sqrt{2h}$ with $R=\max_{u\in Z}\norm u$, the radius of
+$Z$ about the origin.
 \end{lemma}
 
 \begin{theorem}[Screening activation]\label{thm:activation}
@@ -646,13 +647,13 @@ $\mathrm{gain}\ge\min(\sigma^2/(2D),\,\bar t\sigma/2)$ (interior
 optimum, or the clipped step evaluated with $\bar tD\le\sigma$).
 In case (a), the guard's gain is at least the MDM gain, whose
 derivative is $g_S$ and whose interior optimum is attained, yielding
-$\mathrm{gain}\ge g_S^2/(2M^2)\ge\gPW{}^2/(8M^2)$.
+$\mathrm{gain}\ge g_S^2/(2M^2)\ge(\gPW)^2/(8M^2)$.
 In case (b), non-drop, $g_S=\gFW_{\text{side}}+\gA_{\text{side}}$, so
 one term is at least $g_S/2\ge\gPW/4$. If it is the FW term, the toward step
 (maximal step $1$) gives
-$\mathrm{gain}\ge\min(\gFW_{\text{side}}{}^2/(2M^2),\gFW_{\text{side}}/2)\ge\min(\gPW{}^2/(32M^2),\gPW/8)$;
+$\mathrm{gain}\ge\min((\gFW_{\text{side}})^2/(2M^2),\gFW_{\text{side}}/2)\ge\min((\gPW)^2/(32M^2),\gPW/8)$;
 if it is the away term, the away line search is interior (non-drop) and
-$\mathrm{gain}\ge\gA_{\text{side}}{}^2/(2M^2)\ge\gPW{}^2/(32M^2)$. The
+$\mathrm{gain}\ge(\gA_{\text{side}})^2/(2M^2)\ge(\gPW)^2/(32M^2)$. The
 algorithm takes the best available candidate.
 \end{proof}
 
@@ -691,7 +692,7 @@ Algorithm~\ref{alg:block} on the side with the larger pairwise gap
 first, and take the other side's guarded step only if the first step
 was not a drop; an iteration counts as a drop iff its first step is a
 drop. Then every non-drop iteration gains at least
-$\min(\gPW{}^2/(32M^2),\,\gPW/8)$ and
+$\min((\gPW)^2/(32M^2),\,\gPW/8)$ and
 the number of drops is at most $2kT_{\mathrm{good}}+s_0$; hence
 Theorem~\ref{thm:linear} holds for this schedule with the same $\rho$
 and exponent $(T-s_0)/(2k+1)$.

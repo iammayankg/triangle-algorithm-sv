@@ -346,7 +346,7 @@ the same objective; K-ETA is the kernelised ETA.
 
 \paragraph{Blocks and screening (Appendix~\ref{app:details}).} On
 synthetic data block transfers cut iterations $4$--$30\times$ relative
-to single MDM but wall-clock only $1.2$--$2.8\times$, since each block
+to single MDM (plain pairwise FW) but wall-clock only $1.2$--$2.8\times$, since each block
 iteration touches more columns (Table~\ref{tab:kabl}). On real data
 (Table~\ref{tab:kreal}) blocks cut iterations $6\times$ on gisette's
 $L_2$ margin with no wall-clock change, because its $5{,}000$-dimensional
@@ -818,7 +818,11 @@ $2\times10^5$. LIBSVM
 iteration cap $2\times10^6$ (reported as \emph{maxiter} when hit); hard
 margins as $C=10^6$; RBF with $\gamma=1/d$. Oracle counts: ETA counts
 Gram or kernel columns evaluated against a full class ($O(nd)$ or
-$O(n_kd)$ each); SMO counts kernel rows, the same unit.
+$O(n_kd)$ each); SMO counts kernel rows, the same unit. Columns are
+cached without eviction and the block Gram matrix $\Gamma$ is
+assembled from four cached entries per pair, so peak cache memory is
+the column count times $n_k$ doubles: $0.61$\,GB for the largest cell
+(a9a KL2, $7{,}600$ columns) and $0.36$\,GB for ijcnn1 KL2.
 
 \paragraph{Data and seeds.} a9a, w8a, ijcnn1 and gisette use the LIBSVM
 training and test files; covtype (binary, scaled) is subsampled to
@@ -949,19 +953,31 @@ $C$ & tol & time (s) & iterations & primal (vs certified) & accuracy \\\midrule
 \caption{Block-size ablation on real data (ETA only, three seeds, run
 separately without concurrent load): the gisette $L_2$ margin
 ($C{=}1$, $d{=}5{,}000$) and the ijcnn1 kernel $L_2$ cell of
-Table~\ref{tab:regime} ($d{=}22$, $n_k{=}9{,}853$). Every cell
-converged to the certified gap with identical distance and accuracy
-per dataset.}\label{tab:kreal}
-\begin{tabular}{lrrrr}\toprule
-instance & $k$ & time (s) & iterations & columns \\\midrule
-gisette $L_2$, $C{=}1$ & 1 & $26.3\pm5.4$ & 4,946 & 1,300 \\
-gisette $L_2$, $C{=}1$ & 4 & $25.3\pm5.1$ & 1,071 & 1,349 \\
-gisette $L_2$, $C{=}1$ & 16 & $27.8\pm4.4$ & 831 & 1,480 \\
+Table~\ref{tab:regime} ($d{=}22$, $n_k{=}9{,}853$). $k{=}1$ is plain
+pairwise FW (single MDM transfers, no block, no guard); drops = away
+fallbacks that removed a support index. Every cell converged to the
+certified gap with identical distance and accuracy per
+dataset.}\label{tab:kreal}
+\begin{tabular}{lrrrrr}\toprule
+instance & $k$ & time (s) & iterations & columns & drops \\\midrule
+gisette $L_2$, $C{=}1$ & 1 & $26.3\pm5.4$ & 4,946 & 1,300 & 0 \\
+gisette $L_2$, $C{=}1$ & 4 & $25.3\pm5.1$ & 1,071 & 1,349 & 80 \\
+gisette $L_2$, $C{=}1$ & 16 & $27.8\pm4.4$ & 831 & 1,480 & 301 \\
 \midrule
-ijcnn1 kernel $L_2$, $C{=}1$ & 1 & $13.6\pm0.4$ & 12,796 & 4,520 \\
-ijcnn1 kernel $L_2$, $C{=}1$ & 4 & $6.6\pm0.5$ & 2,358 & 4,522 \\
-ijcnn1 kernel $L_2$, $C{=}1$ & 16 & $5.8\pm0.3$ & 1,396 & 4,590 \\
+ijcnn1 kernel $L_2$, $C{=}1$ & 1 & $13.6\pm0.4$ & 12,796 & 4,520 & 0 \\
+ijcnn1 kernel $L_2$, $C{=}1$ & 4 & $6.6\pm0.5$ & 2,358 & 4,522 & 30 \\
+ijcnn1 kernel $L_2$, $C{=}1$ & 16 & $5.8\pm0.3$ & 1,396 & 4,590 & 98 \\
 \bottomrule\end{tabular}\end{table}
+
+Table~\ref{tab:kreal} was produced by the current code, whose default
+is the schedule of Lemma~\ref{lem:twosided}; its distances and
+accuracies coincide with those of Tables~\ref{tab:regime}
+and~\ref{tab:l2}, which used the unconditional order, so the two
+schedules agree on real data as on the synthetic instances of
+Table~\ref{tab:sched}. Away fallbacks that drop an index occur on
+$1$--$36\%$ of block iterations and never with single transfers, and
+their share grows with $k$: larger blocks add more indices per
+iteration, and the drops remove them.
 
 \begin{table}[h]\centering\scriptsize
 \caption{Block-size ablation on the synthetic instances (current code): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock does not fall in proportion, because each block iteration touches more columns.}\label{tab:kabl}

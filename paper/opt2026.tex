@@ -447,13 +447,19 @@ over LIBLINEAR on gisette; what ETA adds is the certificate, which
 reveals that the fast answer is not the optimum. Even at $10^{-6}$, at
 $C{=}10$ LIBLINEAR stops $5\%$ above the optimum ($0.1566$ vs
 $0.1490$), since on separable data the primal is nearly flat at large
-$C$. On the four
+$C$. By the utility metric of time to $1\%$ relative primal
+suboptimality (Table~\ref{tab:t1}), ETA's iterate qualifies after
+$34$--$44$\,s, a few seconds before it certifies $10^{-3}$, whereas
+LIBLINEAR's default-tolerance answers never qualify. On the four
 overlapping datasets both geometric solvers hit the 600\,s cap on every
 cell while LIBLINEAR finishes in $0.3$--$39$\,s. At $C{=}0.1$ ETA's
 iterate already has LIBLINEAR's test accuracy on a9a, ijcnn1 and w8a
 ($0.849$, $0.918$, $0.987$) when the cap is reached with the
 certificate still at $0.01$--$0.6$: the iterate converges long before
-the certificate closes. At $C\ge1$ the augmented hulls ($K+I/C$)
+the certificate closes. On the uncapped a9a and w8a runs the iterate is
+within $1\%$ of the optimum after $811$ and $2{,}084$\,s, against
+$3{,}030$ and $5{,}386$\,s to certify $10^{-3}$ and LIBLINEAR's $4$ and
+$23$\,s (Table~\ref{tab:t1}). At $C\ge1$ the augmented hulls ($K+I/C$)
 approach each other, the certified gap at the cap exceeds one and the
 iterate is not yet usable; on covtype ($100{,}000$ points) it is not
 usable at any $C$. Uncapped, ETA does converge on the overlapping sets:
@@ -947,6 +953,29 @@ $C$ & tol & time (s) & iterations & primal (vs certified) & accuracy \\\midrule
 1 & $10^{-6}$ & $3916\pm115$ & 18,063 & 0.14900 ($+0.05\%$) & .981 \\
 10 & $10^{-4}$ & $4.8\pm0.1$ & 8 & 0.18487 ($+24\%$) & .973 \\
 10 & $10^{-6}$ & $5396\pm197$ & 35,411 & 0.15663 ($+5.1\%$) & .977 \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{table}[h]\centering\scriptsize
+\caption{Time to $1\%$ relative primal suboptimality, seed-0 traces.
+For ETA the certified dual value $2/\UB_t^2$ increases to the optimum,
+so $s_t=1-(2/\UB_t^2)/P^*$ with $P^*$ the best known primal (the lower
+of LIBLINEAR's $10^{-6}$ value and ETA's certified value); ``certified
+$1\%$'' is the first time the certificate itself proves
+$1-\LB_t^2/\UB_t^2\le1\%$. ETA's a9a and w8a times are from the
+uncapped runs of Figure~\ref{fig:trace}. For LIBLINEAR the entry is
+the time of the coarsest tolerance whose primal is within $1\%$ of
+$P^*$; where only $10^{-6}$ has been run it is an upper bound. On the
+remaining cells ETA is not within $1\%$ at the 600\,s cap
+($s=30$--$99\%$).}\label{tab:t1}
+\begin{tabular}{llrrrrrl}\toprule
+dataset & $C$ & $P^*$ & ETA $1\%$ & ETA $0.1\%$ & certified $1\%$ & certified $10^{-3}$ & LIBLINEAR $1\%$ \\\midrule
+gisette & 0.1 & 0.14835 & 40 s & 42 s & 43 s & 43 s & $\le500$ s (tol $10^{-6}$) \\
+gisette & 1 & 0.14893 & 44 s & 46 s & 47 s & 48 s & $\le3916$ s (tol $10^{-6}$) \\
+gisette & 10 & 0.14899 & 34 s & 36 s & 37 s & 37 s & not within $1\%$ at $10^{-4}$ or $10^{-6}$ \\
+\midrule
+a9a & 0.1 & 687.07 & 811 s & 1,413 s & 2,121 s & 3,030 s & 4 s \\
+w8a & 0.1 & 108.80 & 2,084 s & 2,960 s & 4,162 s & 5,386 s & 23 s \\
+ijcnn1 & 0.1 & 550.61 & 301 s & 472 s & $>600$ s & $>600$ s ($s{=}0.05\%$ at cap) & 0.3 s \\
 \bottomrule\end{tabular}\end{table}
 
 \begin{table}[h]\centering\scriptsize

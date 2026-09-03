@@ -428,16 +428,15 @@ w8a the feature-space hulls intersect (duplicate points with opposite
 labels); K-ETA certifies this in $101$\,s and no hard margin exists.
 
 \begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{4pt}
-\caption{$L_2$ soft-margin battery: five seeds (three for covtype at
-$C{=}0.1$), 600\,s per solver for ETA and our SMO (our own
+\caption{$L_2$ soft-margin battery: five seeds, 600\,s per solver for
+ETA and our SMO (our own
 implementation; LIBSVM does not solve this objective), LIBLINEAR
 at tolerance $10^{-6}$ (Appendix~\ref{app:details}) and unbounded;
 mean $\pm$ 95\% CI, which on the fixed-split datasets (all but
 covtype) measures timing noise only. ``cap'' = timed out in every
 seed; ETA's certified relative gap is reported at its stopping point
-(mean [min, max]); accuracies are those of the returned iterate. Two
-covtype $C{=}0.1$ seeds were still running when this draft was
-prepared.}\label{tab:l2}
+(mean [min, max]); accuracies are those of the returned
+iterate.}\label{tab:l2}
 \begin{tabular}{llrrrll}
 \toprule
 dataset ($n$ / $d$) & $C$ & ETA (s) & SMO (s) & LIBLINEAR (s) & ETA gap at stop & acc.\ ETA / SMO / LIBLINEAR \\
@@ -455,7 +454,7 @@ ijcnn1 (49,990 / 22) & 0.1 & cap & $478\pm181$ & $0.3\pm0.1$ & 0.010 [0.005, 0.0
 w8a (49,749 / 300) & 0.1 & cap & cap & $22.7\pm4.3$ & 0.57 [0.50, 0.66] & .987 / .985 / .987 \\
  & 1 & cap & cap & $20.6\pm6.6$ & 1.17 [1.14, 1.21] & .923 / .979 / .987 \\
  & 10 & cap & cap & $13.2\pm1.1$ & 2.02 [1.94, 2.14] & .720 / .971 / .987 \\
-covtype (100,000 / 54) & 0.1 & cap & cap & $14.7\pm22.8$ & 1.04 [1.03, 1.05] & .542 / .651 / .755 \\
+covtype (100,000 / 54) & 0.1 & cap & cap & $19.4\pm15.7$ & 1.04 [1.02, 1.05] & .568 / .660 / .756 \\
  & 1 & cap & cap & $6.1\pm3.6$ & 1.42 [1.23, 1.73] & .508 / .541 / .756 \\
  & 10 & cap & cap & $5.0\pm1.8$ & 2.01 [1.20, 2.37] & .517 / .514 / .756 \\
 \bottomrule
@@ -481,7 +480,7 @@ $C{=}10$ LIBLINEAR stops $5\%$ above the optimum ($0.1566$ vs
 $0.1490$), since on separable data the primal is nearly flat at large
 $C$. On the four
 overlapping datasets both geometric solvers hit the 600\,s cap on every
-cell while LIBLINEAR finishes in $0.3$--$25$\,s. At $C{=}0.1$ ETA's
+cell while LIBLINEAR finishes in $0.3$--$39$\,s. At $C{=}0.1$ ETA's
 iterate already has LIBLINEAR's test accuracy on a9a, ijcnn1 and w8a
 ($0.849$, $0.918$, $0.987$) when the cap is reached with the
 certificate still at $0.01$--$0.6$: the iterate converges long before

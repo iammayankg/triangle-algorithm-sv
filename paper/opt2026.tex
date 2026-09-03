@@ -216,7 +216,9 @@ one-dimensional expressions.
 Throughout, the \emph{gain} of a step is the decrease $h(z_t)-h(z_{t+1})$
 in the objective. The cache update
 for the whole block is a single matrix--vector product with the net
-per-index coefficients. Feasibility is immediate: donors lose at most
+per-index coefficients; Gram or kernel columns are computed on first
+use and cached for the run, so support columns cost nothing after
+their first appearance. Feasibility is immediate: donors lose at most
 $t\gamma_j\le c_j$, receivers only gain, and the weight sum is conserved.
 
 \paragraph{Safe screening.} With $r=\sqrt{\UB^2-\max(\LB,0)^2}$ and
@@ -313,6 +315,9 @@ every zero-weight point outside $F_V\cup F_W$ is removed permanently, and
 each later scan costs $O(|F_V|+|F_W|+|\operatorname{supp}\lambda|)$
 instead of $O(n+m)$.
 \end{theorem}
+In words: since $r^2\le2R(\UB-\LB)$, a point with margin $\tau_i$ is
+screened once the certified gap $\UB-\LB$ falls below
+$\tau_i^2/(18RL^2)$.
 We expect the $\tau$-dependence to be unavoidable, since a rule that is
 safe for every instance consistent with a certificate of gap $\sim\tau$
 should not be able to distinguish a point of margin $\tau$ from a
@@ -475,7 +480,9 @@ polytope distance and SVMs \cite{gartner2009,clarkson2010,tsang2005,nanculef2014
 the nearest-point and reduced-hull view of soft margins
 \cite{keerthi2000,bennett2000duality}; away steps \cite{guelat1986} and
 the pyramidal-width analysis \cite{lj2015}, whose pairwise step is our
-MDM pair. Swap-step-free pairwise variants \cite{tsuji2022,rinaldi2023}
+MDM pair, with the facial distance of \cite{pena2019} as a computable
+alternative to $\delta$. Swap-step-free pairwise variants
+\cite{tsuji2022,rinaldi2023}
 and block-coordinate FW \cite{lacoste2013bcfw} are the closest
 algorithmic relatives; gap-safe screening
 \cite{fercoq2015,ndiaye2017,shibagaki2016} and active-set
@@ -500,8 +507,10 @@ and support size. Limitations: screening pays only when the certificate closes; 
 implementation is NumPy-level (a compiled inner loop would move the
 practical boundary, not the $O(n^2)$ asymptotics) without sparse
 support; kernel experiments use $10$k-point subsamples; the
-reduced-hull ($\nu$-SVM) variant is validated but not analysed; and the
-constants in Theorem~\ref{thm:linear} are loose.
+reduced-hull ($\nu$-SVM) variant is validated but not analysed; the
+constants in Theorem~\ref{thm:linear} are loose; and $k$ is fixed,
+although Table~\ref{tab:kreal} shows diminishing returns beyond
+$k{=}4$ on expensive-column data, so an adaptive $k$ is future work.
 
 \begin{thebibliography}{99}
 \bibitem{kalantari2015} B.~Kalantari. A characterization theorem and an
@@ -573,6 +582,9 @@ rate for the MDM algorithm for the nearest point problem.
 \emph{Pattern Recognition}, 48(4):1510--1522, 2015.
 \bibitem{wolfe1976} P.~Wolfe. Finding the nearest point in a polytope.
 \emph{Mathematical Programming}, 11:128--149, 1976.
+\bibitem{pena2019} J.~Pe\~na and D.~Rodr\'iguez. Polytope conditioning
+and linear convergence of the Frank--Wolfe algorithm. \emph{Mathematics
+of Operations Research}, 44(1):1--18, 2019.
 \end{thebibliography}
 
 \paragraph{AI assistance.} AI tools were used in the preparation of the
@@ -1008,11 +1020,21 @@ strict-complementarity bounds of \cite{garber2020} give the same
 identification from the algorithm's side. Theorem~\ref{thm:activation}
 is the polytope-distance instance, with constants tied to the TA
 certificate; the SVM rules of \cite{elghaoui2012,ogawa2013} and the
-exact data reduction of \cite{wang2014} are its ancestors. Our case (b)
-chooses among block, MDM, away and toward candidates by realised gain,
-which subsumes the pairwise-versus-FW choice of blended pairwise
-conditional gradients \cite{tsuji2022}; an empirical comparison with
-that method is left for future work.
+exact data reduction of \cite{wang2014} are its ancestors.
+\paragraph{Relation to other FW variants.} The toward, away, pairwise
+and block rows of the step ablation in Appendix~\ref{app:details} are
+Frank--Wolfe, away-step FW, pairwise FW and our block step on the same
+polytope and objective; Wolfe's minimum-norm-point method
+\cite{wolfe1976} and blended pairwise conditional gradients (BPCG)
+\cite{tsuji2022} were not run. BPCG's blending rule compares the away
+and FW gaps and its linear rate has the same pyramidal-width form as
+Theorem~\ref{thm:linear}; our case (b) instead compares the realised
+gains of the block, MDM, away and toward candidates, so each step is at
+least as good as the best single candidate, and it is the away
+fallback rather than the blending that yields the drop-step count. The
+facial distance of \cite{pena2019} is a computable alternative to the
+pyramidal width; a bound on $\delta$ for the difference atom set
+$A=\{v_i-w_j\}$ in terms of the two class hulls is open.
 \paragraph{Synthetic results in brief.} Away and pairwise steps
 converge at $\varepsilon=10^{-6}$ where the toward and midpoint steps of
 \cite{gupta2026} do not. Screening reduces $10{,}000$ points to

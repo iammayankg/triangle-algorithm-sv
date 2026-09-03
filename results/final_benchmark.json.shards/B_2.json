@@ -1,0 +1,38 @@
+[
+  {
+    "bench": "B hard d=10000",
+    "solver": "ETA paper-style",
+    "time": 19.621277816999964,
+    "dist": 171.6521566043563,
+    "status": "converged",
+    "extra": "",
+    "trial": 2
+  },
+  {
+    "bench": "B hard d=10000",
+    "solver": "ETA block+shrink",
+    "time": 19.756811005999907,
+    "dist": 171.62775833566366,
+    "status": "converged",
+    "extra": "",
+    "trial": 2
+  },
+  {
+    "bench": "B hard d=10000",
+    "solver": "SMO (uncached)",
+    "time": 64.61112983400017,
+    "dist": 171.59248301971812,
+    "status": "converged",
+    "extra": "",
+    "trial": 2
+  },
+  {
+    "bench": "B hard d=10000",
+    "solver": "LIBSVM (SVC linear)",
+    "time": 24.35882309999988,
+    "dist": 171.64263792812955,
+    "status": "converged",
+    "extra": "",
+    "trial": 2
+  }
+]

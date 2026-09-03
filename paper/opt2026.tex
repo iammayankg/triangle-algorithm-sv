@@ -860,8 +860,10 @@ covtype and w8a $C{=}10$ cells of Table~\ref{tab:l2} were completed in
 later passes with 11--14 workers and no other load; the runs of
 Tables~\ref{tab:libdef} and~\ref{tab:kreal} were made separately with
 no concurrent load, which is why their gisette $k{=}16$ time is below
-Table~\ref{tab:l2}'s; the synthetic runs of Figure~\ref{fig:final} and
-Tables~\ref{tab:sched} and~\ref{tab:kabl} likewise). The uncapped
+Table~\ref{tab:l2}'s; the synthetic runs of Tables~\ref{tab:sched}
+and~\ref{tab:kabl} likewise, and the five trials of
+Figure~\ref{fig:final} ran as seven concurrent single-threaded jobs).
+The uncapped
 a9a/w8a runs in Figure~\ref{fig:trace} were made earlier on the same
 machine under a different load (LIBLINEAR took $12$ and $48$\,s there
 against $4$ and $23$\,s in the capped battery), so ratios across the two
@@ -920,16 +922,19 @@ cut iterations $4$--$30\times$ relative to single MDM (e.g.\
 $43{,}486\to1{,}551$ on a dense-support $L_2$ instance at $d{=}1{,}000$)
 and are the only configuration that reaches the certified tolerance on
 MNIST odd-vs-even. Figure~\ref{fig:shrink} shows the screening
-speed-ups and Figure~\ref{fig:final} the consolidated comparison, run
-on the Studio with no concurrent load: on the four hard-margin classes
-the optimised solver ties or edges LIBSVM ($0.61$ vs $0.61$\,s at
-$d{=}1{,}000$; $17.6$ vs $19.5$\,s at $d{=}10{,}000$; $0.58$ vs
-$0.60$\,s at $\varepsilon{=}10^{-5}$, where the paper-style
-configuration fails to converge; RBF $2.13$ vs $2.44$\,s), and on the
-three soft-margin classes it is slower: synthetic $L_2$
-($d{=}1{,}000$, $C{=}1$) $14.0$ vs LIBLINEAR's $10.9$\,s, MNIST
-odd-vs-even $144$ vs $59$\,s (single MDM does not converge), $\nu$-SVM
-$65$ vs NuSVC's $37$\,s. Distances agree within tolerance on every
+speed-ups and Figure~\ref{fig:final} the consolidated comparison,
+five trials per class (mean $\pm$ 95\% CI): on the four hard-margin
+classes the optimised solver is $1.2$--$1.3\times$ faster than LIBSVM
+on average, with overlapping intervals ($0.73\pm0.11$ vs
+$0.88\pm0.21$\,s at $d{=}1{,}000$; $18.6\pm1.9$ vs $22.5\pm4.2$\,s at
+$d{=}10{,}000$; $0.74\pm0.17$ vs $0.88\pm0.30$\,s at
+$\varepsilon{=}10^{-5}$, where the paper-style configuration fails to
+converge in every trial; RBF $2.44\pm0.34$ vs $3.14\pm0.71$\,s); on
+the synthetic $L_2$ margin ($d{=}1{,}000$, $C{=}1$) it ties LIBLINEAR
+($19.6\pm7.4$ vs $23.5\pm11.2$\,s); on MNIST odd-vs-even it is
+$2.7\times$ slower ($178\pm38$ vs $67\pm38$\,s; single MDM never
+converges) and on the $\nu$-SVM $1.7\times$ slower ($65.3\pm3.7$ vs
+NuSVC's $37.4\pm1.4$\,s). Distances agree within tolerance on every
 row. An earlier run of the same script on a shared development
 container had shown the optimised solver $1.6$--$2.5\times$ ahead on
 six of the seven classes; that machine's Python-to-C timing ratio did
@@ -1054,7 +1059,7 @@ points of $10{,}000$.}\label{fig:shrink}
 \includegraphics[width=.78\linewidth]{figs/fig_final.png}
 \caption{Time to certified solution on seven problem classes: optimised
 ETA vs the paper-style configuration vs the best standard solver per
-class. The $\nu$-SVM row has no paper-style bar because the toward-step
+class; five trials per class, mean with 95\% CI. The $\nu$-SVM row has no paper-style bar because the toward-step
 algorithm of \cite{gupta2026} has no reduced-hull variant (reduced
 hulls need capped transfers).}\label{fig:final}
 \end{figure}
@@ -1096,13 +1101,14 @@ $A=\{v_i-w_j\}$ in terms of the two class hulls is open.
 converge at $\varepsilon=10^{-6}$ where the toward and midpoint steps of
 \cite{gupta2026} do not. Screening reduces $10{,}000$ points to
 $36$--$1{,}054$ survivors at $\varepsilon=10^{-5}$. On seven synthetic
-and small-real problem classes (Figure~\ref{fig:final}) the optimised
-solver ties or edges LIBSVM on the four hard-margin classes, within
-$15\%$, and is $1.3$--$2.4\times$ slower than LIBLINEAR or NuSVC on the
-three soft-margin classes. On the four classes where single MDM also
-converges, blocks and guard change wall-clock by $0.85$--$1.8\times$;
-their clear wins are the two classes (tight tolerance, MNIST) where
-single MDM does not converge at all.
+and small-real problem classes (Figure~\ref{fig:final}, five trials
+each) the optimised solver is $1.2$--$1.3\times$ faster than LIBSVM on
+the four hard-margin classes (intervals overlap), ties LIBLINEAR on the
+synthetic $L_2$ margin, and is $1.7$--$2.7\times$ slower than NuSVC and
+LIBLINEAR on the $\nu$-SVM and MNIST classes. On the four classes where
+single MDM also converges, blocks and guard change wall-clock by
+$1.0$--$1.3\times$; their clear wins are the two classes (tight
+tolerance, MNIST) where single MDM does not converge at all.
 
 \section{Numerical verification of the analysis}\label{app:num}
 Lemma~\ref{lem:block} was checked on $4{,}000$ random ensembles

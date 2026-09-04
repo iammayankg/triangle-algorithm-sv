@@ -53,9 +53,10 @@ best transfer at a cost independent of the number of points $n$, and replaced by
 step when the leading transfer is capacity-clipped. On the
 Minkowski-difference polytope, where the objective is $1$-strongly
 convex, we prove global linear convergence with explicit constants and
-no combinatorial swap-step bounds; the rate does not depend on $k$, so
-the theory shows that aggregation is safe, while the saving in scans is
-measured rather than proved. Since the TA certificate is the
+no combinatorial swap-step bounds; the per-step contraction is
+$k$-independent and only the drop-count bound grows with $k$, so
+aggregation is provably safe while the saving in scans is measured, not
+proved. Since the TA certificate is the
 Frank--Wolfe gap divided by the current distance, gap-safe screening
 applies, and we bound the iteration after which it has removed every
 non-support point by $O\!\left(\tfrac{k}{\rho}\log\tfrac{1}{\tau}\right)$
@@ -100,18 +101,17 @@ capacity-clipped iterations.
 \item \textbf{Linear convergence with explicit constants}
 (Theorem~\ref{thm:linear}): on $Z=\conv(V)-\conv(W)$ the guarded block
 algorithm inherits the pyramidal-width rate of pairwise FW up to a
-constant (the per-scan gain is proved only under near-orthogonality,
-Prop.~\ref{prop:orth}), and the away fallback replaces the combinatorial swap-step
+constant, and the away fallback replaces the combinatorial swap-step
 bound by linear drop-step counting (cf.\ \cite{tsuji2022}).
 \item \textbf{Screening activation with explicit constants}
 (Theorem~\ref{thm:activation}): the TA certificate is the FW gap divided
 by the distance (Lemma~\ref{lem:gapid}), so gap-safe screening
 \cite{ndiaye2017} applies, and we bound the iteration by which it has
 removed every zero-weight non-support point.
-\item \textbf{A regime study on real data} (\S\ref{sec:exp}): the
-analysis predicts $O(n^2)$-type cost on dense supports (pyramidal width
-$\sim1/\sqrt n$), and two batteries on five LIBSVM datasets show the
-boundary from both sides.
+\item \textbf{A regime study on real data} (\S\ref{sec:exp}): a
+heuristic pyramidal-width estimate ($\sim1/\sqrt n$) suggests
+$O(n^2)$-type cost on dense supports, and two batteries on five LIBSVM
+datasets show the boundary from both sides.
 \end{enumerate}
 Code, proofs, numerical checks and experiment scripts are in the
 anonymised supplementary repository.
@@ -294,8 +294,7 @@ precision (Appendix~\ref{app:num}).
 \section{Experiments}\label{sec:exp}
 
 \paragraph{Setup.} All solvers are validated against an exact
-quadratic program (QP): distances agree to
-$10^{-9}$ or better for every variant. Stopping rule
+QP (distances agree to $10^{-9}$ or better). Stopping rule
 $\varepsilon=10^{-3}$ on the certified relative gap unless stated;
 baselines use matched tolerances on the same objective, LIBLINEAR up
 to its intercept penalty (Appendix~\ref{app:details}). Synthetic instances follow
@@ -311,8 +310,7 @@ cut iterations $4$--$30\times$ on synthetic and $6$--$9\times$ on real
 data relative to single MDM (plain pairwise FW), but wall-clock only
 where the $O(n)$ scan dominates rather than the columns
 (Tables~\ref{tab:kabl},~\ref{tab:kreal}). $k{=}16$ is untuned:
-$\rho$ is $k$-independent, an oversized block is harmless (MDM fallback
-under the guard), and $k{=}4$ and $16$ agree within CI (Table~\ref{tab:kreal}). Screening gives
+$\rho$ is $k$-independent, an oversized block is harmless (MDM fallback under the guard), and $k{=}4$ and $16$ agree within CI (Table~\ref{tab:kreal}). Screening gives
 $1.4$--$2.4\times$ at $\varepsilon=10^{-5}$ and is neutral at $10^{-3}$,
 as Theorem~\ref{thm:activation} predicts.
 
@@ -320,9 +318,10 @@ as Theorem~\ref{thm:activation} predicts.
 \caption{Regime battery on real data, five seeds, 600\,s per solver,
 mean $\pm$ 95\% CI. Kernel cells (RBF with width parameter $1/d$) use a
 class-balanced subsample of $n_k$ points. Same objective per row: LIN,
-linear hard margin (ETA with screening vs LIBSVM at $C{=}10^6$; our SMO
-in brackets); KHM, feature-space hard margin (K-ETA vs LIBSVM at
-$C{=}10^6$); KL2, kernel $L_2$ margin, $C{=}1$ (K-ETA vs kernel SMO).
+linear hard margin (ETA with screening vs LIBSVM's $C{=}10^6$
+surrogate; our SMO in brackets); KHM, feature-space hard margin (K-ETA
+vs the same surrogate); KL2, kernel $L_2$ margin, $C{=}1$ (K-ETA vs
+kernel SMO, exact objective).
 conv = seeds in which ETA certified; oracle = $O(nd)$ column (ETA) or
 row (SMO) evaluations, thousands.}\label{tab:regime}
 \begin{tabular}{llrrlcllr}
@@ -347,9 +346,8 @@ KL2 & ijcnn1 & 9853 / 22 & $9.2\pm2.5$ & $6.1\pm0.7$ & 5/5 & .04790 / .04790 & .
 \end{table}
 
 \paragraph{Real data, sparse-support regime (Table~\ref{tab:regime}).}
-TA~I first certifies separability: gisette is separable, the other four
-are not (certified in $0.2$--$42$\,s), a diagnostic no baseline
-produces. On gisette ($d{=}5{,}000$; $1{,}233$ of $6{,}000$ points in
+TA~I first certifies separability (gisette yes, the other four no, in
+$0.2$--$42$\,s), a diagnostic no baseline produces. On gisette ($d{=}5{,}000$; $1{,}233$ of $6{,}000$ points in
 the support) ETA ties LIBSVM on the linear hard margin, both $7\times$
 ahead of our SMO; K-ETA is $1.2\times$ faster than LIBSVM on the RBF
 hard margin and $3.2\times$ faster than kernel SMO on the kernel $L_2$
@@ -364,10 +362,10 @@ the order-of-magnitude losses below do not.
 The KHM column shows where the geometry turns against the method. On
 ijcnn1 both solvers return the identical solution ($819$ support
 vectors, accuracy $0.946$), but K-ETA needs $1.5$--$2.5\times10^5$
-iterations and $420$\,s against LIBSVM's $1.3$\,s: the feature-space
-hulls are $0.004$ apart in a space of diameter $\approx\sqrt2$, so
-$\delta/M$ in Theorem~\ref{thm:linear} is of order $10^{-3}$, which
-suits LIBSVM's second-order working-set selection far better. On a9a and covtype the hulls are within $10^{-4}$ and
+iterations and $420$\,s against LIBSVM's $1.3$\,s: the hulls are
+$0.004$ apart in a space of diameter $\approx\sqrt2$, so
+$\delta/M\approx10^{-3}$, which suits LIBSVM's second-order working-set
+selection far better. On a9a and covtype the hulls are within $10^{-4}$ and
 $5\times10^{-4}$ of touching: K-ETA times out at gap $3$--$10$ while
 LIBSVM's $C{=}10^6$ surrogate stops $6$--$30\times$
 farther out, so neither certifies anything; K-ETA's closer iterate has
@@ -381,11 +379,10 @@ separable, so its $L_2$ margin has a sparse support and ETA converges to
 the certified gap in $30$--$45$\,s at every $C$, $7\times$ faster than
 our SMO. LIBLINEAR run to the same primal accuracy (tolerance $10^{-6}$)
 takes $8$\,min to $1.5$\,h, but that is the tolerance needed to match
-ETA's primal: at its default $10^{-4}$ it takes $5$--$66$\,s, comparable
-to ETA, and stops $5$--$24\%$ above the certified optimum with lower
+ETA's primal: at its default $10^{-4}$ it takes $5$--$66$\,s and stops $5$--$24\%$ above the certified optimum with lower
 test accuracy (Table~\ref{tab:libdef}). We claim no wall-clock
-advantage over LIBLINEAR on gisette; ETA adds the certificate, which
-reveals that the fast answer is not the optimum. On the four overlapping
+advantage over LIBLINEAR on gisette; ETA adds the certificate that the
+fast answer is not the optimum. On the four overlapping
 datasets both geometric solvers hit the cap on every cell while
 LIBLINEAR finishes in $0.3$--$39$\,s. Uncapped, a9a reaches $1\%$ of
 the optimum after $811$\,s and certifies at $3{,}030$\,s, against
@@ -407,8 +404,8 @@ Distance duality and the TA \cite{kalantari2015,gupta2026}; MDM
 nearest-point and reduced-hull view \cite{keerthi2000,bennett2000duality};
 away steps \cite{guelat1986}, the pyramidal-width analysis \cite{lj2015}
 and the facial distance \cite{pena2019}. Boosted FW \cite{combettes2020},
-which also aggregates several atoms into one direction per iteration,
-swap-step-free pairwise variants \cite{tsuji2022,rinaldi2023} (BPCG
+which also aggregates atoms into one direction, swap-step-free pairwise
+variants \cite{tsuji2022,rinaldi2023} (BPCG
 guards against a FW step, we against the MDM step) and block-coordinate FW
 \cite{lacoste2013bcfw} are the closest algorithmic relatives; gap-safe
 screening \cite{fercoq2015,ndiaye2017,shibagaki2016} and active-set
@@ -418,12 +415,12 @@ as its SVM ancestors (Appendix~\ref{app:related}).
 
 \section{Conclusion}
 Guarded block transfers give the Triangle Algorithm a linear rate with
-explicit constants and no combinatorial swap-step bounds, and a safe,
-provably effective screening rule. The experiments locate the predicted boundary:
-sparse support and well-separated hulls, where the solver matches or
-beats LIBSVM and kernel SMO with a certificate, against dense support
-or nearly touching hulls, where $\delta/M$ is small and LIBLINEAR or
-LIBSVM is one to two orders of magnitude faster. Limitations: screening
+explicit constants and no combinatorial swap-step bounds, and a safe
+screening rule with a finite activation bound. The experiments locate the boundary: sparse
+support and well-separated hulls, where the solver matches or beats
+LIBSVM and kernel SMO with a certificate, against dense support or
+nearly touching hulls, where LIBLINEAR or LIBSVM is one to two orders
+of magnitude faster. Limitations: screening
 pays only when the certificate closes; the implementation is
 NumPy-level and dense; kernel cells use $10$k-point subsamples; the $\nu$-SVM variant is
 not analysed; the constants are loose; and $k$ is fixed (an adaptive
@@ -529,7 +526,12 @@ min and the global max dominates the support max.
 For $\alpha_u>0$ and any $b\in\operatorname{supp}\beta$,
 $v_r-v_u=(v_r-w_b)-(v_u-w_b)$ is a difference of an atom of $Z$ and an
 atom in the support, and the transfer $\gamma\le\alpha_u$ realises
-$z\leftarrow z+\gamma(v_r-v_u)$ inside $Z$.
+$z\leftarrow z+\gamma(v_r-v_u)$ inside $Z$. The side capacity
+$\alpha_u=\sum_{b}\alpha_u\beta_b$ is the total weight of the product
+atoms $v_u-w_b$, $b\in\operatorname{supp}\beta$: the side transfer moves
+mass $\gamma\beta_b$ off each of them at once, so it is a convex
+combination of $Z$-pairwise steps of total length $\gamma$ and stays in
+$Z$ exactly when $\gamma\le\alpha_u$.
 \end{lemma}
 
 \begin{proof}[ of Lemma~\ref{lem:block}]

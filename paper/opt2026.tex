@@ -59,10 +59,9 @@ aggregation is provably safe while the saving in scans is measured, not
 proved. Since the TA certificate is the
 Frank--Wolfe gap divided by the current distance, gap-safe screening
 applies, and we bound the iteration after which it has removed every
-non-support point by $O\!\left(\tfrac{k}{\rho}\log\tfrac{1}{\tau}\right)$
+point off the optimal faces by $O\!\left(\tfrac{k}{\rho}\log\tfrac{1}{\tau}\right)$
 up to logarithmic factors in the geometry, $\rho$ the rate constant and
-$\tau$ the optimal-face margin. Every
-inequality has a numerical check. On five LIBSVM benchmarks the solver
+$\tau$ the optimal-face margin. Each lemma is checked numerically. On five LIBSVM benchmarks the solver
 matches the baselines to five digits wherever both converge, wins or
 ties against LIBSVM and kernel SMO on sparse-support cells, and is one
 to two orders of magnitude slower on dense-support $L_2$ margins and
@@ -107,7 +106,7 @@ bound by linear drop-step counting (cf.\ \cite{tsuji2022}).
 (Theorem~\ref{thm:activation}): the TA certificate is the FW gap divided
 by the distance (Lemma~\ref{lem:gapid}), so gap-safe screening
 \cite{ndiaye2017} applies, and we bound the iteration by which it has
-removed every zero-weight non-support point.
+removed every zero-weight point off the optimal faces.
 \item \textbf{A regime study on real data} (\S\ref{sec:exp}): a
 heuristic pyramidal-width estimate ($\sim1/\sqrt n$) suggests
 $O(n^2)$-type cost on dense supports, and two batteries on five LIBSVM
@@ -166,7 +165,7 @@ $v_r-v_u$ on the $V$ side is a pairwise direction of $Z$
 \label{alg:block}
 \SetAlgoLined\DontPrintSemicolon\LinesNumbered
 top-$k$ receivers by $s^V$; worst-$k$ donors in $\operatorname{supp}\alpha$; pair best-with-worst: $(r_j,u_j)$, $j\le k'$ ($k'\le k$ pairs, limited by the support size); pair 1 is the MDM pair $(r^*,u^*)$\;
-$d_j\gets v_{r_j}-v_{u_j}$;\ $\mathrm{gap}_j\gets s^V_{r_j}-s^V_{u_j}$;\ discard pairs with $\mathrm{gap}_j\le0$ and receivers that are donors;\ $\gamma_j\gets\min(\mathrm{gap}_j/\norm{d_j}^2,\ c_j)$ \tcp*{$c_j=\alpha_{u_j}$: donor capacity}
+$d_j\gets v_{r_j}-v_{u_j}$;\ $\mathrm{gap}_j\gets s^V_{r_j}-s^V_{u_j}$;\ discard pairs with $\mathrm{gap}_j\le0$ and receivers that are donors (if $r^*$ is a donor it leaves the donor list, so pair 1 survives);\ $\gamma_j\gets\min(\mathrm{gap}_j/\norm{d_j}^2,\ c_j)$ \tcp*{$c_j=\alpha_{u_j}$: donor capacity}
 \eIf{pair 1 uncapped ($\gamma_1=\mathrm{gap}_1/\norm{d_1}^2$) {\normalfont[case (a)]}}{
   $\Delta_B\gets$ gain of exact line search $\theta\in[0,1]$ along $d=\sum_j\gamma_jd_j$;\quad $\Delta_1\gets$ gain of the MDM step\;
   take the step with the larger gain \tcp*{guard, $O(k'^2)$}
@@ -248,9 +247,10 @@ drop removes one support index and non-drop steps add at most $k$.
 There is no swap-step bound because case (b) never takes a
 capacity-clipped pairwise step. The implementation uses the two-sided
 schedule of Lemma~\ref{lem:twosided}; the batteries of \S\ref{sec:exp}
-used the earlier unconditional $V$-then-$W$ order, which differs only on
-drop iterations and agrees with it on the instances of
-Appendix~\ref{app:details}.
+used the earlier unconditional $V$-then-$W$ order, which differs in
+side order and in the skip after a drop; both reach the same solutions on
+the instances of Appendix~\ref{app:details} with different iteration
+counts (Table~\ref{tab:sched}).
 
 \begin{proposition}[Near-orthogonal speed-up]\label{prop:orth}
 If all $k'$ pairs are uncapped and
@@ -267,8 +267,9 @@ $Z$ about the origin.
 \end{lemma}
 
 \begin{theorem}[Screening activation]\label{thm:activation}
-Assume $\delta^*>0$. Let $F_V$ and $F_W$ be the optimal faces (the
-vertices that can carry weight at the optimum). Let
+Assume $\delta^*>0$. Let $F_V=\{i:\ip{z^*}{v_i}=\min_j\ip{z^*}{v_j}\}$
+and, with the max, $F_W$ be the optimal faces: the vertices of zero
+score margin, which contain the optimal supports (possibly strictly). Let
 $\tau_i=\ip{z^*}{v_i}-\min_j\ip{z^*}{v_j}$ be the score margin of $v_i$
 (and symmetrically on $W$), with $\tau>0$ the minimal nonzero margin.
 Finally, let $L$ be the larger class diameter.
@@ -310,7 +311,7 @@ cut iterations $4$--$30\times$ on synthetic and $6$--$9\times$ on real
 data relative to single MDM (plain pairwise FW), but wall-clock only
 where the $O(n)$ scan dominates rather than the columns
 (Tables~\ref{tab:kabl},~\ref{tab:kreal}). $k{=}16$ is untuned:
-$\rho$ is $k$-independent, an oversized block is harmless (MDM fallback under the guard), and $k{=}4$ and $16$ agree within CI (Table~\ref{tab:kreal}). Screening gives
+$\rho$ is $k$-independent, an oversized block costs guard work, never progress (MDM fallback), and $k{=}4$ and $16$ agree within CI (Table~\ref{tab:kreal}). Screening gives
 $1.4$--$2.4\times$ at $\varepsilon=10^{-5}$ and is neutral at $10^{-3}$,
 as Theorem~\ref{thm:activation} predicts.
 
@@ -363,9 +364,10 @@ The KHM column shows where the geometry turns against the method. On
 ijcnn1 both solvers return the identical solution ($819$ support
 vectors, accuracy $0.946$), but K-ETA needs $1.5$--$2.5\times10^5$
 iterations and $420$\,s against LIBSVM's $1.3$\,s: the hulls are
-$0.004$ apart in a space of diameter $\approx\sqrt2$, so
-$\delta/M\approx10^{-3}$, which suits LIBSVM's second-order working-set
-selection far better. On a9a and covtype the hulls are within $10^{-4}$ and
+$0.004$ apart in a space of diameter $\approx\sqrt2$, so a relative
+certificate needs an absolute gap of order $10^{-6}$ (a log-factor
+cost; $\delta/M$ is translation-invariant and unknown here), and LIBSVM's second-order working-set selection suits the
+resulting conditioning far better. On a9a and covtype the hulls are within $10^{-4}$ and
 $5\times10^{-4}$ of touching: K-ETA times out at gap $3$--$10$ while
 LIBSVM's $C{=}10^6$ surrogate stops $6$--$30\times$
 farther out, so neither certifies anything; K-ETA's closer iterate has
@@ -377,16 +379,14 @@ K-ETA certifies this in $101$\,s.
 The same boundary appears within one problem class. Gisette is
 separable, so its $L_2$ margin has a sparse support and ETA converges to
 the certified gap in $30$--$45$\,s at every $C$, $7\times$ faster than
-our SMO. LIBLINEAR run to the same primal accuracy (tolerance $10^{-6}$)
-takes $8$\,min to $1.5$\,h, but that is the tolerance needed to match
-ETA's primal: at its default $10^{-4}$ it takes $5$--$66$\,s and stops $5$--$24\%$ above the certified optimum with lower
+our SMO. LIBLINEAR at matched tolerance ($10^{-6}$) takes $8$\,min to
+$1.5$\,h; at its default $10^{-4}$ it takes $5$--$66$\,s but stops $5$--$24\%$ above the certified optimum with lower
 test accuracy (Table~\ref{tab:libdef}). We claim no wall-clock
 advantage over LIBLINEAR on gisette; ETA adds the certificate that the
 fast answer is not the optimum. On the four overlapping
 datasets both geometric solvers hit the cap on every cell while
-LIBLINEAR finishes in $0.3$--$39$\,s. Uncapped, a9a reaches $1\%$ of
-the optimum after $811$\,s and certifies at $3{,}030$\,s, against
-LIBLINEAR's $4$\,s (Table~\ref{tab:t1}). At $C\ge1$ the augmented hulls approach each
+LIBLINEAR finishes in $0.3$--$39$\,s (uncapped traces:
+Table~\ref{tab:t1}). At $C\ge1$ the augmented hulls approach each
 other and the capped iterate is not usable; on covtype at no $C$. The uncapped
 traces (Figure~\ref{fig:trace}) show the linear-rate signature of
 Theorem~\ref{thm:linear} with $60$--$65\%$ of points in the support.
@@ -422,7 +422,7 @@ LIBSVM and kernel SMO with a certificate, against dense support or
 nearly touching hulls, where LIBLINEAR or LIBSVM is one to two orders
 of magnitude faster. Limitations: screening
 pays only when the certificate closes; the implementation is
-NumPy-level and dense; kernel cells use $10$k-point subsamples; the $\nu$-SVM variant is
+NumPy-level and dense; the $\nu$-SVM variant is
 not analysed; the constants are loose; and $k$ is fixed (an adaptive
 $k$ tied to the support size is future work).
 
@@ -726,9 +726,17 @@ transfers with $k=16$, guarded, away fallback, pairwise anti-zig-zag,
 stop at certified relative gap $10^{-3}$, iteration cap $2\times10^6$,
 600\,s cap. The batteries were run with the unconditional
 $V$-then-$W$ order; the schedule of Lemma~\ref{lem:twosided} (larger
-gap first, skip after a drop) differs from it only on drop iterations,
-and Table~\ref{tab:sched} shows the two agree on the synthetic
-instances of this appendix; screening (every 25 iterations) only in the LIN cell, where
+gap first, skip after a drop) differs from it in side order on every
+iteration and in the skip, and Table~\ref{tab:sched} shows the two reach
+the same solutions with different iteration counts on the synthetic
+instances of this appendix. The batteries and ablations also ran a
+version whose single-surviving-pair path took the (possibly
+capacity-clipped) MDM transfer directly, bypassing the case-(b)
+fallback of Algorithm~\ref{alg:block}; the released code applies the
+fallback in that path too (regression test included), so the reported
+runs are not literally covered by Theorem~\ref{thm:linear} and will be
+rerun. Block assembly copies the $k'$ cached columns into a $k'\times n$
+array, an $O(k'n)$ copy, before the $O(k'^2)$ products; screening (every 25 iterations) only in the LIN cell, where
 it never activated at $10^{-3}$, as Theorem~\ref{thm:activation}
 predicts. Our SMO: maximal-violating-pair selection, KKT gap $10^{-3}$,
 same caps; hard margin as $C=10^{12}$; kernel SMO on $K+I/C$. LIBSVM
@@ -905,8 +913,11 @@ $C$ & tol & time (s) & iterations & primal (vs certified) & accuracy \\\midrule
 \bottomrule\end{tabular}\end{table}
 
 \begin{table}[h]\centering\scriptsize
-\caption{Time to $1\%$ relative primal suboptimality, seed-0 traces.
-For ETA the certified dual value $2/\UB_t^2$ increases to the optimum,
+\caption{Time to $1\%$ of the optimum, seed-0 traces. The ETA columns
+measure \emph{dual} progress and LIBLINEAR's column \emph{primal}
+progress, so this is not a matched primal comparison (the primal of
+ETA's returned $(w,b)$ is not recorded in the traces). For ETA the
+certified dual value $2/\UB_t^2$ increases to the optimum,
 so $s_t=1-(2/\UB_t^2)/P^*$ with $P^*$ the best known primal (the lower
 of LIBLINEAR's $10^{-6}$ value and ETA's certified value); ``certified
 $1\%$'' is the first time the certificate itself proves

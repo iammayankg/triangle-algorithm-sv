@@ -1,4 +1,9 @@
-"""Time to 1% relative primal suboptimality (review question 6).
+"""Time to 1% of the optimum (review question 6).
+
+NOTE: the ETA columns measure DUAL progress (certified lower bound
+2/UB_t^2 vs the best known primal) while LIBLINEAR's column measures
+PRIMAL progress; this is not a matched primal comparison.  The primal of
+ETA's returned (w, b) is not in the traces and would need a rerun.
 
 ETA: from the seed-0 (time, UB, LB) traces in the L2-battery shards.
 The dual value 2/UB_t^2 is a lower bound on the primal that increases

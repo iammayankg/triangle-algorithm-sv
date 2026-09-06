@@ -81,6 +81,22 @@ Paper-table to script map:
 | Fig. 2 (screening speed-up) | `shrink_benchmark.py` + `shrink_fig.py` (renders `paper/figs/fig_shrink.pdf`) | `results/shrink_benchmark.json` |
 | Fig. 3 (consolidated benchmark) | `final_benchmark.py` + `final_benchmark_fig.py --out paper/figs/fig_final.pdf ...` (vector for the paper) | `results/final_benchmark.json` |
 
+> **Post-submission fix (2026-09-06).** `src/triangle_algorithm.py` used to
+> return an ordinary (possibly capacity-clipped) MDM transfer when only one
+> pair survived filtering, bypassing the case-(b) away fallback that
+> Theorem 3 requires; the same happened for a degenerate block direction.
+> Both paths now go through the guard and fallback
+> (`tests/test_fallback_single_pair.py` reproduces the reviewer's instance).
+> Every battery, ablation and benchmark in `results/` was produced by the
+> old code, so the camera-ready reruns below must use the current code, in
+> this order of value: (1) `regime_battery.py` (Table 1), (2)
+> `k_ablation_real.py` and `k_ablation_synth.py` (Tables 5, 7: the k=1 row
+> now runs the corrected guarded algorithm, not plain pairwise FW),
+> (3) `schedule_check.py` (Table 3), (4) `final_benchmark.py --trials 5`
+> (Fig. 3), (5) `full_battery.py` (Table 2, the expensive one). Also still
+> open: LIBSVM on a precomputed K + I/C kernel for the five KL2 cells, a
+> BPCG baseline, and an ETA primal-progress column for Table 6.
+
 ## 0. What you will run, and on what
 
 | leg | machine tier | duration | cost ballpark |

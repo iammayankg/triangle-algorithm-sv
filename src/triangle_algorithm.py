@@ -621,8 +621,10 @@ class EnhancedTriangleAlgorithm:
             pairs.append((r, u, min(num / den, gmax)))
         if not pairs:
             return False
-        if len(pairs) == 1:
-            return self._pairwise_p(pairs[0][0], pairs[0][1])
+        # a single surviving pair is handled by the same guard and case-(b)
+        # fallback below (the block then coincides with the MDM step); an
+        # early pairwise return here would bypass the away fallback that
+        # Theorem 3 requires when pair 1 is capacity-clipped
         # exact line search along dvec = sum g_j (v_rj - v_uj)
         R = np.array([p_[0] for p_ in pairs])
         U = np.array([p_[1] for p_ in pairs])
@@ -635,13 +637,14 @@ class EnhancedTriangleAlgorithm:
         M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
         den_t = float(G @ M @ G)
         if den_t <= _EPS_NUM or num_t <= 0.0:
-            return self._pairwise_p(pairs[0][0], pairs[0][1])
-        t = min(num_t / den_t, 1.0)
+            t, delta_B = 0.0, -np.inf      # degenerate block: never chosen
+        else:
+            t = min(num_t / den_t, 1.0)
+            delta_B = t * num_t - 0.5 * t * t * den_t
         # guard (Theorem 3): fall back to the single MDM step whenever its
         # exact gain exceeds the block's - the guarded step never makes
         # less progress than pairwise FW, so the PFW linear rate is
         # inherited with identical constants
-        delta_B = t * num_t - 0.5 * t * t * den_t
         r1, u1, g1 = pairs[0]
         s1 = self.Vsq[r1] - 2.0 * cols[int(r1)][u1] + self.Vsq[u1]
         gap1 = s[r1] - s[u1]
@@ -726,8 +729,7 @@ class EnhancedTriangleAlgorithm:
             pairs.append((r, u, min(num / den, gmax)))
         if not pairs:
             return False
-        if len(pairs) == 1:
-            return self._pairwise_q(pairs[0][0], pairs[0][1])
+        # single pair: same guard and case-(b) fallback as below (see V side)
         R = np.array([p_[0] for p_ in pairs])
         U = np.array([p_[1] for p_ in pairs])
         G = np.array([p_[2] for p_ in pairs])
@@ -739,9 +741,10 @@ class EnhancedTriangleAlgorithm:
         M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
         den_t = float(G @ M @ G)
         if den_t <= _EPS_NUM or num_t <= 0.0:
-            return self._pairwise_q(pairs[0][0], pairs[0][1])
-        t = min(num_t / den_t, 1.0)
-        delta_B = t * num_t - 0.5 * t * t * den_t
+            t, delta_B = 0.0, -np.inf      # degenerate block: never chosen
+        else:
+            t = min(num_t / den_t, 1.0)
+            delta_B = t * num_t - 0.5 * t * t * den_t
         r1, u1, g1 = pairs[0]
         s1 = self.Wsq[r1] - 2.0 * cols[int(r1)][u1] + self.Wsq[u1]
         gap1 = s[r1] - s[u1]

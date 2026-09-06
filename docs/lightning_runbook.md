@@ -135,6 +135,12 @@ Paper-table to script map:
 > Then sync `results/step_profile.json` and the paper gets: the isolated
 > ratios for Sec. 5 / Tables 5 and 7, the time split for the gisette vs
 > ijcnn1 discussion, and a peak-memory number for App. C.
+> Done 2026-09-06 evening (`results/step_profile.json`, 24 rows): Table 5 is
+> now the isolated run with the time split. Headline: on gisette L2 all four
+> configurations (MDM, guarded k=1, block k=16, BPCG) tie at ~30 s because
+> 86-92% of the time is column computation; on ijcnn1 KL2 block k=16 is
+> 2.2x over MDM, 1.9x over guarded k=1, 3.0x over BPCG. The loaded run's
+> "guarded k=1 fastest on gisette" (27.7 vs 36.6 s) was a load artefact.
 
 ## 0. What you will run, and on what
 

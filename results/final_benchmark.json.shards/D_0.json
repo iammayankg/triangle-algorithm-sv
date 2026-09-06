@@ -2,8 +2,8 @@
   {
     "bench": "D soft d=1000",
     "solver": "ETA mdm",
-    "time": 159.76378983099949,
-    "dist": 0.578143161434147,
+    "time": 26.995703284999763,
+    "dist": 0.5781431656758748,
     "status": "converged",
     "extra": "",
     "trial": 0
@@ -11,8 +11,8 @@
   {
     "bench": "D soft d=1000",
     "solver": "ETA block(32)",
-    "time": 145.6824212880001,
-    "dist": 0.5781429305512655,
+    "time": 29.510536751000018,
+    "dist": 0.5781429305512663,
     "status": "converged",
     "extra": "",
     "trial": 0
@@ -20,7 +20,7 @@
   {
     "bench": "D soft d=1000",
     "solver": "LIBLINEAR sq-hinge",
-    "time": 52.292508900999565,
+    "time": 13.6711772929998,
     "dist": 0.5781422599901828,
     "status": "converged",
     "extra": "(dist from primal)",

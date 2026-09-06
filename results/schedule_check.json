@@ -2,51 +2,52 @@
   {
     "tag": "hard-d1000-eps1e-5",
     "drop_skip": false,
-    "time": 0.15388833300676197,
+    "time": 0.8120892940000886,
     "iters": 16,
-    "dist": 55.33936539481493,
+    "dist": 55.339365394814926,
     "status": "converged",
     "n_drops": 0,
     "n_drop_skips": 0,
     "kinds": {
-      "mdm": 1,
-      "block": 28
+      "mdm": 2,
+      "block": 27
     }
   },
   {
     "tag": "hard-d1000-eps1e-5",
     "drop_skip": true,
-    "time": 0.14940437499899417,
+    "time": 0.767070744999728,
     "iters": 16,
     "dist": 55.339365395595046,
     "status": "converged",
     "n_drops": 0,
     "n_drop_skips": 0,
     "kinds": {
-      "mdm": 1,
-      "block": 28
+      "mdm": 2,
+      "block": 27
     }
   },
   {
     "tag": "soft-d100-C1",
     "drop_skip": false,
-    "time": 7.9559234590269625,
+    "time": 25.196861589000036,
     "iters": 12311,
     "dist": 0.07840029456614703,
     "status": "converged",
     "n_drops": 785,
     "n_drop_skips": 0,
     "kinds": {
-      "block": 23834,
+      "block": 23833,
+      "mdm": 1,
       "drop": 785
     }
   },
   {
     "tag": "soft-d100-C1",
     "drop_skip": true,
-    "time": 8.667782000004081,
+    "time": 23.26029850399982,
     "iters": 10701,
-    "dist": 0.07840028658536388,
+    "dist": 0.07840028658535822,
     "status": "converged",
     "n_drops": 599,
     "n_drop_skips": 316,
@@ -58,29 +59,30 @@
   {
     "tag": "soft-d1000-C1",
     "drop_skip": false,
-    "time": 4.169341500004521,
+    "time": 12.891726421000385,
     "iters": 2901,
-    "dist": 0.5781430603725157,
+    "dist": 0.5781430603725188,
     "status": "converged",
     "n_drops": 182,
     "n_drop_skips": 0,
     "kinds": {
-      "mdm": 2,
-      "block": 5615,
+      "mdm": 1,
+      "block": 5616,
       "drop": 182
     }
   },
   {
     "tag": "soft-d1000-C1",
     "drop_skip": true,
-    "time": 4.478648499993142,
+    "time": 13.36937194400025,
     "iters": 3001,
-    "dist": 0.5781430103216316,
+    "dist": 0.578143010321634,
     "status": "converged",
     "n_drops": 180,
     "n_drop_skips": 121,
     "kinds": {
-      "block": 5698,
+      "block": 5697,
+      "mdm": 1,
       "drop": 180
     }
   }

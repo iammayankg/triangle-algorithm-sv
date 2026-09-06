@@ -2,8 +2,8 @@
   {
     "bench": "A hard d=1000",
     "solver": "ETA paper-style",
-    "time": 4.127058764999674,
-    "dist": 54.859648102065776,
+    "time": 0.6170201760000964,
+    "dist": 54.85964810206577,
     "status": "converged",
     "extra": "",
     "trial": 4
@@ -11,7 +11,7 @@
   {
     "bench": "A hard d=1000",
     "solver": "ETA block+shrink",
-    "time": 4.633836283999699,
+    "time": 0.593454914999711,
     "dist": 54.832838264573574,
     "status": "converged",
     "extra": "",
@@ -20,8 +20,8 @@
   {
     "bench": "A hard d=1000",
     "solver": "SMO (uncached)",
-    "time": 9.957337011999698,
-    "dist": 54.838549986703335,
+    "time": 2.6029766739998195,
+    "dist": 54.838549986703356,
     "status": "converged",
     "extra": "",
     "trial": 4
@@ -29,7 +29,7 @@
   {
     "bench": "A hard d=1000",
     "solver": "LIBSVM (SVC linear)",
-    "time": 2.304182812000363,
+    "time": 0.6543906849997256,
     "dist": 54.840183029291246,
     "status": "converged",
     "extra": "",

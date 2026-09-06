@@ -2,7 +2,7 @@
   {
     "bench": "C hard d=1000 tight",
     "solver": "ETA paper-style",
-    "time": 18.977207464000458,
+    "time": 3.683130558999892,
     "dist": 54.566222872547,
     "status": "maxiter",
     "extra": "",
@@ -11,8 +11,8 @@
   {
     "bench": "C hard d=1000 tight",
     "solver": "ETA block+shrink",
-    "time": 4.999829309999768,
-    "dist": 54.564525268451405,
+    "time": 0.8909457580002709,
+    "dist": 54.56452526845141,
     "status": "converged",
     "extra": "",
     "trial": 2
@@ -20,7 +20,7 @@
   {
     "bench": "C hard d=1000 tight",
     "solver": "SMO (uncached)",
-    "time": 23.835116741000093,
+    "time": 6.652246548999756,
     "dist": 54.564435664927075,
     "status": "converged",
     "extra": "",
@@ -29,7 +29,7 @@
   {
     "bench": "C hard d=1000 tight",
     "solver": "LIBSVM (SVC linear)",
-    "time": 5.896997075999934,
+    "time": 1.0547804859997996,
     "dist": 54.56460656339883,
     "status": "converged",
     "extra": "",

@@ -2,8 +2,8 @@
   {
     "bench": "F rbf d=1000",
     "solver": "K-ETA pairwise",
-    "time": 32.09695705299964,
-    "dist": 0.47684077434608957,
+    "time": 2.749033667999811,
+    "dist": 0.4768407743460898,
     "status": "converged",
     "extra": "",
     "trial": 0
@@ -11,7 +11,7 @@
   {
     "bench": "F rbf d=1000",
     "solver": "K-ETA block",
-    "time": 29.998816605000684,
+    "time": 2.378270663999956,
     "dist": 0.4766724180235215,
     "status": "converged",
     "extra": "",
@@ -20,7 +20,7 @@
   {
     "bench": "F rbf d=1000",
     "solver": "LIBSVM (SVC rbf)",
-    "time": 11.642716936000397,
+    "time": 2.5362593869999728,
     "dist": 0.47663778782637495,
     "status": "converged",
     "extra": "",

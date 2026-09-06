@@ -118,6 +118,23 @@ Paper-table to script map:
 > nohup python3 -u src/bpcg_baseline.py --data-dir data --seeds 3 \
 >     --out results/bpcg_baseline.json > results/bpcg_baseline.log 2>&1 &
 > ```
+>
+> Review round 3 (2026-09-06) asked for an *isolated* rerun of MDM, guarded
+> k=1, block k=16 and BPCG on the two Table 5 cells with a scan / column /
+> step time split and peak memory. `src/step_profile.py` does exactly that:
+> each (cell, solver, seed) runs alone in a fresh subprocess, sequentially
+> (~10 min total). Make sure nothing else is running first:
+>
+> ```bash
+> pgrep -af "src/.*\.py"          # must print nothing
+> OMP_NUM_THREADS=1 nohup python3 -u src/step_profile.py --data-dir data --seeds 3 \
+>     --out results/step_profile.json > results/step_profile.log 2>&1 &
+> tail -f results/step_profile.log  # summary table prints at the end
+> ```
+>
+> Then sync `results/step_profile.json` and the paper gets: the isolated
+> ratios for Sec. 5 / Tables 5 and 7, the time split for the gisette vs
+> ijcnn1 discussion, and a peak-memory number for App. C.
 
 ## 0. What you will run, and on what
 

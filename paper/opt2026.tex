@@ -207,7 +207,8 @@ same optimum and all subsequent lower bounds remain valid.
 
 \section{Analysis}\label{sec:theory}
 
-Full proofs are in Appendix~\ref{app:proofs}.
+Full proofs and the conventions for degenerate cases are in
+Appendix~\ref{app:proofs}.
 
 \begin{lemma}[Block gain]\label{lem:block}
 Let $b_j=\gamma_j\norm{d_j}$ over the $k'$ retained pairs, all with
@@ -226,7 +227,7 @@ on any non-drop iteration $\mathrm{gain}\ge\min\!\big((\gPW)^2/(32M^2),\ \gPW/8\
 \begin{theorem}[Global linear convergence]\label{thm:linear}
 Suppose the guarded block-transfer algorithm with away fallback is run
 for one side per iteration (the side with the larger pairwise gap),
-using any $k\ge1$, from any vertex pair (initial support $s_0\le2$).
+using any $k\ge1$, from any vertex pair (initial support $s_0=2$).
 Let $h_t=h(z_t)$. Then every non-drop iteration satisfies
 $h_{t+1}\le(1-\rho)h_t$ with
 \[
@@ -236,14 +237,14 @@ For any horizon $T$, among the first $T$ iterations the number of drop
 steps is at most
 $k\,T_{\mathrm{good}}+s_0$, where $T_{\mathrm{good}}$ is the number of
 non-drop iterations; consequently,
-$h_T\le h_0\,(1-\rho)^{(T-s_0)/(k+1)}$. Furthermore, the two-sided
+$h_T\le h_0\,(1-\rho)^{(T-s_0)/(k+1)}$. Under the two-sided
 schedule of the implementation (larger-gap side first, second side
-skipped after a drop) satisfies the same statement with the same
-$\rho$ and exponent $(T-s_0)/(2k+1)$ (Lemma~\ref{lem:twosided}).
+skipped after a drop) every non-drop iteration has the same
+contraction, the drop count is at most $2kT_{\mathrm{good}}+s_0$, and
+$h_T\le h_0\,(1-\rho)^{(T-s_0)/(2k+1)}$ (Lemma~\ref{lem:twosided}).
 \end{theorem}
 The rate combines Lemma~\ref{lem:good} with $\gPW\ge\delta\sqrt{2h}$
-(Lemma~\ref{lem:gsc}, from the pyramidal width and $1$-strong convexity)
-and $\gPW\ge\gFW\ge h$. Drop counting is the away-step argument: each
+and $\gPW\ge\gFW\ge h$ (Lemma~\ref{lem:gsc}). Drop counting is the away-step argument: each
 drop removes one support index and non-drop steps add at most $k$.
 No swap-step bound is needed: a case-(b) iteration either drops
 (counted above) or takes the best of four candidates, of which the
@@ -260,7 +261,8 @@ $\Delta_j$ is pair $j$'s individual gain.
 As $\eta\to0$ one scan realises the sum of all $k$ pairwise gains.
 
 \begin{lemma}[The certified gap is the FW gap]\label{lem:gapid}
-At any full scan, $\UB-\LB=\gFW(z)/\UB$, and
+At any full scan, with $\LB$ evaluated at the current $z\ne0$,
+$\UB-\LB=\gFW(z)/\UB$ (a retained best lower bound gives $\le$), and
 $\gFW(z)\le2h+R\sqrt{2h}$ with $R=\max_{u\in Z}\norm u$, the radius of
 $Z$ about the origin.
 \end{lemma}
@@ -275,18 +277,17 @@ Finally, let $L$ be the larger class diameter.
 
 A zero-weight point with margin $\tau_i$ is screened as soon as
 $r<\tau_i/(3L)$. Consequently, once
-$h_t<\tau^4\delta^{*2}/(2592\,R^4L^4)$, every zero-weight point outside
-$F_V\cup F_W$ is removed permanently. Under Theorem~\ref{thm:linear},
-this condition holds for every iteration
-$t>s_0+\tfrac{k+1}{\rho}\log\!\big(2592R^4L^4h_0/(\tau^4\delta^{*2})\big)$
-($2k+1$ for the two-sided schedule, plus one screening period).
+$h_t<H:=\tau^4\delta^{*2}/(2592\,R^4L^4)$, every zero-weight point of
+$V$ outside $F_V$ and of $W$ outside $F_W$ is removed permanently at
+the next screening round. Under Theorem~\ref{thm:linear} this holds for
+every iteration $t>s_0+\tfrac{a_k}{\rho}\log\max\{1,h_0/H\}$, with
+$a_k=k+1$ one-sided and $2k+1$ two-sided.
 Following this iteration, each subsequent scan costs
 $O(|F_V|+|F_W|+|\operatorname{supp}\alpha|+|\operatorname{supp}\beta|)$
 instead of $O(n+m)$.
 \end{theorem}
 In words: since $r^2\le2R(\UB-\LB)$, a point with margin $\tau_i$ is
-screened once the certified gap falls below $\tau_i^2/(18RL^2)$. We
-expect the $\tau$-dependence to be unavoidable, but do not prove it.
+screened once the certified gap falls below $\tau_i^2/(18RL^2)$. 
 Lemmas~\ref{lem:block}, \ref{lem:gapid} and~\ref{lem:twosided},
 Proposition~\ref{prop:orth} and Theorem~\ref{thm:activation} are
 verified numerically on random and adversarial ensembles at machine
@@ -517,6 +518,15 @@ is responsible for the content.
 \appendix
 \section{Proofs}\label{app:proofs}
 
+\paragraph{Conventions.} $M>0$ (a singleton $Z$ is solved at
+initialisation), and the algorithm stops with ``intersect'' when
+$\UB=\norm z=0$, before any division by $\UB$. Lemma~\ref{lem:block}
+and Algorithm~\ref{alg:block} presuppose $k'\ge1$: a side with no
+positive-gap pair is skipped, and on a non-drop iteration the side with
+the larger pairwise gap has one. An away direction whose donor has
+weight one is unavailable (the iterate is that vertex and the away gap
+of that side is zero). In Proposition~\ref{prop:orth}, $\eta\ge0$.
+
 \begin{lemma}[Separability]\label{lem:sep}
 With the product representation, $\gPW=\gPW_V+\gPW_W$ where
 $\gPW_V=\max_is^V_i-\min_{i\in\operatorname{supp}\alpha}s^V_i\ge0$ and
@@ -524,9 +534,11 @@ $\gPW_W$ likewise; the same holds for $\gFW$ and $\gA$.
 \end{lemma}
 \begin{proof}
 $\ip{g}{v_i-w_j}=s^V_i+s^W_j$ is separable and the support is a product
-set, so the max over atoms and the min over the support separate; each
-side term is nonnegative since the support max dominates the support
-min and the global max dominates the support max.
+set, so the max over atoms and the min over the support separate. Each
+side term is nonnegative: the FW term is the maximum score minus the
+weighted mean of the support scores, the away term is that mean minus
+the support minimum, and a weighted mean lies between the minimum and
+the maximum.
 \end{proof}
 
 \begin{lemma}[Side transfers are $Z$-pairwise directions]\label{lem:side}
@@ -535,10 +547,11 @@ $v_r-v_u=(v_r-w_b)-(v_u-w_b)$ is a difference of an atom of $Z$ and an
 atom in the support, and the transfer $\gamma\le\alpha_u$ realises
 $z\leftarrow z+\gamma(v_r-v_u)$ inside $Z$. The side capacity
 $\alpha_u=\sum_{b}\alpha_u\beta_b$ is the total weight of the product
-atoms $v_u-w_b$, $b\in\operatorname{supp}\beta$: the side transfer moves
-mass $\gamma\beta_b$ off each of them at once, so it is a convex
-combination of $Z$-pairwise steps of total length $\gamma$ and stays in
-$Z$ exactly when $\gamma\le\alpha_u$.
+atoms $v_u-w_b$, $b\in\operatorname{supp}\beta$: the side transfer is
+the sum of the atom-pair transfers of masses $\gamma\beta_b$ from
+$v_u-w_b$ to $v_r-w_b$, and for $r\ne u$ this weight update is feasible
+exactly when $0\le\gamma\le\alpha_u$; hence every such transfer remains
+in $Z$.
 \end{lemma}
 
 \begin{proof}[ of Lemma~\ref{lem:block}]
@@ -582,10 +595,12 @@ atom, $\gPW(z)\ge\delta\sqrt{2h(z)}$ and $\gPW(z)\ge\gFW(z)\ge h(z)$.
 \end{lemma}
 \begin{proof}
 This is Theorem~6 of \cite{lj2015} for a $1$-strongly convex objective;
-we include the short argument. By the definition of the pyramidal width
-\cite[Def.~3]{lj2015},
-for $e=(z^*-z)/\norm{z^*-z}$ the FW atom $s$ and the away atom $v$
-satisfy $\ip{g}{s-v}\ge\delta\ip{g}{e}$. By $1$-strong convexity,
+we include the short argument. If $z=z^*$ both inequalities are
+immediate ($h=0$ and all gaps are nonnegative). Otherwise let
+$e=(z^*-z)/\norm{z^*-z}$; the pyramidal-width inequality in the proof
+of \cite[Thm.~6]{lj2015} (Definition~3 there, applied to the direction
+$g$ together with $\ip{g}{e}\le\norm g$) gives, for the FW atom $s$ and
+the away atom $v$, $\ip{g}{s-v}\ge\delta\ip{g}{e}$. By $1$-strong convexity,
 $\ip{g}{z^*-z}\ge h+\tfrac12\norm{z^*-z}^2$, so with
 $\varrho=\norm{z^*-z}$,
 $\gPW\ge\delta(h/\varrho+\varrho/2)\ge\delta\sqrt{2h}$ by AM--GM. Finally
@@ -655,8 +670,9 @@ by $1$-strong convexity.
 
 \begin{proof}[ of Theorem~\ref{thm:activation}]
 Strong convexity gives $\norm{z-z^*}\le r$ for the screening radius
-$r=\sqrt{\UB^2-\max(\LB,0)^2}$. Let $m^*=\min_j\ip{z^*}{v_j}$ and pick
-$v'\in F_V$; since $v_{\min}$ minimises $\ip{z}{\cdot}$,
+$r=\sqrt{\UB^2-\max(\LB,0)^2}$ ($\tau$ is defined only if some point
+has positive margin; otherwise there is nothing to screen). Let
+$m^*=\min_j\ip{z^*}{v_j}$, choose $j'\in F_V$ and set $v'=v_{j'}$; since $v_{\min}$ minimises $\ip{z}{\cdot}$,
 $\ip{z^*}{v_{\min}}-m^*=\ip{z}{v_{\min}-v'}+\ip{z^*-z}{v_{\min}-v'}\le rL$.
 Hence $\ip{z}{v_i-v_{\min}}=\ip{z^*}{v_i-v_{\min}}+\ip{z-z^*}{v_i-v_{\min}}\ge\tau_i-rL-r\norm{v_i-v_{\min}}$,
 and the rule fires when this exceeds $r\norm{v_i-v_{\min}}$, for which
@@ -664,11 +680,16 @@ $\tau_i>3rL$ suffices since $\norm{v_i-v_{\min}}\le L$. For the
 activation time, $r^2\le2R(\UB-\LB)$ (for $\LB\ge0$,
 $r^2=(\UB-\LB)(\UB+\LB)$ and $\UB+\LB\le2R$; for $\LB<0$, $r^2=\UB^2$
 and $\UB\le2(\UB-\LB)$), and
-$2R(\UB-\LB)=2R\gFW/\UB\le(2R/\delta^*)(2h+R\sqrt{2h})\le(4R^2/\delta^*)\sqrt{2h}$
-for $h\le R^2/2$ (Lemma~\ref{lem:gapid}); requiring
-$r^2\le\tau^2/(9L^2)$ yields the stated condition on $h_t$, and
-Theorem~\ref{thm:linear} with $\log(1/(1-\rho))\ge\rho$ converts it into
-the iteration bound. Permanence follows from the safety of the rule.
+$2R(\UB-\LB)\le2R\gFW/\UB\le(2R/\delta^*)(2h+R\sqrt{2h})\le(4R^2/\delta^*)\sqrt{2h}$
+(Lemma~\ref{lem:gapid}, with equality in the first step for the freshly
+evaluated bound; the last step uses $h\le R^2/2$, which holds for every
+feasible iterate since $h\le\tfrac12\norm z^2$); requiring
+$r^2\le\tau^2/(9L^2)$ yields $h_t<H$, and Theorem~\ref{thm:linear} with
+$\log(1/(1-\rho))\ge\rho$ converts it into the iteration bound (the
+$\max\{1,\cdot\}$ covers $h_0\le H$, where the condition holds from the
+start by monotonicity). The removal is executed at the first screening
+round after the condition holds; permanence follows from the safety of
+the rule.
 \end{proof}
 
 \section{Exact reductions}\label{app:red}

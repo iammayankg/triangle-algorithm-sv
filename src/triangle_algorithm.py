@@ -53,7 +53,8 @@ _W_MIN = 1e-12
 
 @dataclass
 class TAResult:
-    status: str            # 'intersect' | 'separated' | 'converged' | 'maxiter'
+    status: str            # 'intersect' | 'separated' | 'converged' |
+                           # 'maxiter' | 'stalled' | 'timeout'
     distance: float        # final upper bound d(p, q)
     lower_bound: float     # final lower bound (TA II); 0.0 otherwise
     iterations: int
@@ -148,6 +149,20 @@ class EnhancedTriangleAlgorithm:
         scale = max(1.0, float(self.Vsq.max()), float(self.Wsq.max()))
         self.tol = 16.0 * float(np.finfo(self.V.dtype).eps) \
             * float(np.sqrt(self.d)) * scale
+        # denominator guard for the closest-point ratios (squared norms):
+        # an absolute 1e-12 at unit scale and above, scaled with the data
+        # below unit scale so that small instances are not stalled by an
+        # absolute threshold
+        scale_raw = max(float(self.Vsq.max()), float(self.Wsq.max()))
+        self._eps_den = _EPS_NUM * min(1.0, scale_raw)
+        # original-index bookkeeping: screening compacts V / W in place,
+        # so these maps must persist across solves (see _orig_weights)
+        self._origV = np.arange(self.n)
+        self._origW = np.arange(self.m)
+        # whether p, q (when present) are the full iterates, so that
+        # ||p - q||^2 can be formed directly; subclasses whose iterates
+        # carry implicit extra coordinates (soft margin) set this False
+        self._explicit_iterates = True
 
         # lazy Gram-column caches: idx -> (V @ x, W @ x) for x = V[idx] / W[idx]
         self._colV: dict[int, tuple[np.ndarray, np.ndarray]] = {}
@@ -216,7 +231,36 @@ class EnhancedTriangleAlgorithm:
                 (self.W @ x).astype(np.float64))
 
     def dist2(self):
+        """||p - q||^2.  Computed from the explicit iterates when they
+        exist: the cached-scalar form pp - 2 pq + qq cancels catastrophically
+        when ||p||, ||q|| >> ||p - q|| and would certify a false
+        intersection.  Implicit iterates (kernel, soft margin) only have
+        the cached form; see _ub_certified for the matching noise floor."""
+        if self._explicit_iterates and self.p is not None \
+                and self.q is not None:
+            diff = self.p - self.q
+            return float(diff @ diff)
         return max(self.pp - 2.0 * self.pq + self.qq, 0.0)
+
+    def _dist2_noise(self):
+        """Rounding-error bound on the cached-scalar pp - 2 pq + qq."""
+        return 4.0 * float(np.finfo(np.float64).eps) \
+            * (abs(self.pp) + 2.0 * abs(self.pq) + abs(self.qq))
+
+    def _ub_certified(self):
+        """Upper bound safe to test against an intersection tolerance:
+        with implicit iterates the cached distance is not trusted below
+        its cancellation noise floor."""
+        d2 = self.dist2()
+        if not self._explicit_iterates or self.p is None or self.q is None:
+            d2 = max(d2, self._dist2_noise())
+        return float(np.sqrt(d2))
+
+    def _lower_bound(self, ub):
+        """Parallel-supporting-hyperplane lower bound for h = p - q,
+        from the exact caches (call after _refresh_caches or a full scan)."""
+        return (float(np.min(self.a - self.b))
+                - float(np.max(self.c - self.e))) / ub
 
     # ------------------------------------------------------------------
     # iterate updates
@@ -285,14 +329,14 @@ class EnhancedTriangleAlgorithm:
         """Step to the closest point to q on segment [p, V[i]]."""
         num = self.b[i] - self.pq - self.a[i] + self.pp      # (q-p).(v-p)
         den = self.Vsq[i] - 2.0 * self.a[i] + self.pp        # ||v-p||^2
-        if den <= _EPS_NUM:
+        if den <= self._eps_den:
             return 0.0
         return float(np.clip(num / den, 0.0, 1.0))
 
     def _beta_single_q(self, j):
         num = self.c[j] - self.pq - self.e[j] + self.qq      # (p-q).(w-q)
         den = self.Wsq[j] - 2.0 * self.e[j] + self.qq        # ||w-q||^2
-        if den <= _EPS_NUM:
+        if den <= self._eps_den:
             return 0.0
         return float(np.clip(num / den, 0.0, 1.0))
 
@@ -309,22 +353,22 @@ class EnhancedTriangleAlgorithm:
         B = colVc[j] - self.b[i] - self.c[j] + self.pq               # u.r
         D = self.a[i] - self.b[i] - self.pp + self.pq                # u.(p-q)
         E = self.c[j] - self.e[j] - self.pq + self.qq                # r.(p-q)
-        if A <= _EPS_NUM and C <= _EPS_NUM:
+        if A <= self._eps_den and C <= self._eps_den:
             return 0.0, 0.0
         denom = A * C - B * B
         if abs(denom) > _EPS_NUM * max(A * C, 1.0):
             alpha = (B * E - C * D) / denom
             beta = (A * E - B * D) / denom
         else:  # (near-)parallel segments
-            alpha = -D / A if A > _EPS_NUM else 0.0
+            alpha = -D / A if A > self._eps_den else 0.0
             beta = 0.0
         alpha = float(np.clip(alpha, 0.0, 1.0))
         # re-optimise beta given clamped alpha, then alpha given beta
-        if C > _EPS_NUM:
+        if C > self._eps_den:
             beta = float(np.clip((E + alpha * B) / C, 0.0, 1.0))
         else:
             beta = 0.0
-        if A > _EPS_NUM:
+        if A > self._eps_den:
             alpha = float(np.clip((beta * B - D) / A, 0.0, 1.0))
         return alpha, beta
 
@@ -406,7 +450,7 @@ class EnhancedTriangleAlgorithm:
         bval = 0.5 * (self.b[i] + self.b[j])
         num = bval - self.pq - aval + self.pp
         den = vsq - 2.0 * aval + self.pp
-        if den <= _EPS_NUM:
+        if den <= self._eps_den:
             return False
         alpha = float(np.clip(num / den, 0.0, 1.0))
         if alpha <= 0.0:
@@ -426,7 +470,7 @@ class EnhancedTriangleAlgorithm:
         cval = 0.5 * (self.c[i] + self.c[j])
         num = cval - self.pq - eval_ + self.qq
         den = wsq - 2.0 * eval_ + self.qq
-        if den <= _EPS_NUM:
+        if den <= self._eps_den:
             return False
         beta = float(np.clip(num / den, 0.0, 1.0))
         if beta <= 0.0:
@@ -461,7 +505,7 @@ class EnhancedTriangleAlgorithm:
             return False
         num = self.pq - self.b[u] - self.pp + self.a[u]   # (q-p).(p-u)
         den = self.pp - 2.0 * self.a[u] + self.Vsq[u]     # ||p-u||^2
-        if den <= _EPS_NUM or num <= 0.0:
+        if den <= self._eps_den or num <= 0.0:
             return False
         g = min(num / den, wu / (1.0 - wu))
         colVa, colVc = self._gram_col_V(u)
@@ -486,7 +530,7 @@ class EnhancedTriangleAlgorithm:
             return False
         num = self.pq - self.c[u] - self.qq + self.e[u]   # (p-q).(q-u)
         den = self.qq - 2.0 * self.e[u] + self.Wsq[u]     # ||q-u||^2
-        if den <= _EPS_NUM or num <= 0.0:
+        if den <= self._eps_den or num <= 0.0:
             return False
         g = min(num / den, wu / (1.0 - wu))
         colWa, colWe = self._gram_col_W(u)
@@ -515,7 +559,7 @@ class EnhancedTriangleAlgorithm:
         colu_a, colu_c = self._gram_col_V(u)
         num = (self.b[v] - self.b[u]) - (self.a[v] - self.a[u])  # (q-p).(v-u)
         den = self.Vsq[v] - 2.0 * colv_a[u] + self.Vsq[u]        # ||v-u||^2
-        if den <= _EPS_NUM or num <= 0.0:
+        if den <= self._eps_den or num <= 0.0:
             return False
         g = min(num / den, wu)
         self.pq += g * (self.b[v] - self.b[u])
@@ -540,7 +584,7 @@ class EnhancedTriangleAlgorithm:
         colu_a, colu_e = self._gram_col_W(u)
         num = (self.c[v] - self.c[u]) - (self.e[v] - self.e[u])  # (p-q).(v-u)
         den = self.Wsq[v] - 2.0 * colv_e[u] + self.Wsq[u]
-        if den <= _EPS_NUM or num <= 0.0:
+        if den <= self._eps_den or num <= 0.0:
             return False
         g = min(num / den, wu)
         self.pq += g * (self.c[v] - self.c[u])
@@ -616,7 +660,7 @@ class EnhancedTriangleAlgorithm:
         for r, u, num, gmax in raw:
             colr = self._gram_col_V(r)[0]
             den = self.Vsq[r] - 2.0 * colr[u] + self.Vsq[u]
-            if den <= _EPS_NUM:
+            if den <= self._eps_den:
                 continue
             pairs.append((r, u, min(num / den, gmax)))
         if not pairs:
@@ -636,7 +680,7 @@ class EnhancedTriangleAlgorithm:
         CU = np.stack([cols[int(u)] for u in U])
         M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
         den_t = float(G @ M @ G)
-        if den_t <= _EPS_NUM or num_t <= 0.0:
+        if den_t <= self._eps_den or num_t <= 0.0:
             t, delta_B = 0.0, -np.inf      # degenerate block: never chosen
         else:
             t = min(num_t / den_t, 1.0)
@@ -653,11 +697,11 @@ class EnhancedTriangleAlgorithm:
         if delta_1 > best:
             best, kind = delta_1, 'mdm'
         cap1 = self.wV.get(u1, 0.0)
-        if s1 > _EPS_NUM and gap1 / s1 > cap1 * (1.0 + 1e-12):
+        if s1 > self._eps_den and gap1 / s1 > cap1 * (1.0 + 1e-12):
             # Theorem 6 case (b): pair 1 capacity-clipped -> away/toward
             num_a = self.pq - self.b[u1] - self.pp + self.a[u1]
             den_a = self.pp - 2.0 * self.a[u1] + self.Vsq[u1]
-            if num_a > 0.0 and den_a > _EPS_NUM and cap1 < 1.0 - 1e-12:
+            if num_a > 0.0 and den_a > self._eps_den and cap1 < 1.0 - 1e-12:
                 if num_a / den_a >= cap1 / (1.0 - cap1):
                     if self._away_p(u1):             # drop step
                         self._last_drop = True
@@ -672,7 +716,7 @@ class EnhancedTriangleAlgorithm:
                         best, kind = d_away, 'away'
             num_f = self.b[r1] - self.pq - self.a[r1] + self.pp
             den_f = self.Vsq[r1] - 2.0 * self.a[r1] + self.pp
-            if num_f > 0.0 and den_f > _EPS_NUM:
+            if num_f > 0.0 and den_f > self._eps_den:
                 al = min(num_f / den_f, 1.0)
                 d_tow = al * num_f - 0.5 * al * al * den_f
                 if d_tow > best:
@@ -724,7 +768,7 @@ class EnhancedTriangleAlgorithm:
         for r, u, num, gmax in raw:
             colr = self._gram_col_W(r)[1]
             den = self.Wsq[r] - 2.0 * colr[u] + self.Wsq[u]
-            if den <= _EPS_NUM:
+            if den <= self._eps_den:
                 continue
             pairs.append((r, u, min(num / den, gmax)))
         if not pairs:
@@ -740,7 +784,7 @@ class EnhancedTriangleAlgorithm:
         CU = np.stack([cols[int(u)] for u in U])
         M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
         den_t = float(G @ M @ G)
-        if den_t <= _EPS_NUM or num_t <= 0.0:
+        if den_t <= self._eps_den or num_t <= 0.0:
             t, delta_B = 0.0, -np.inf      # degenerate block: never chosen
         else:
             t = min(num_t / den_t, 1.0)
@@ -753,10 +797,10 @@ class EnhancedTriangleAlgorithm:
         if delta_1 > best:
             best, kind = delta_1, 'mdm'
         cap1 = self.wW.get(u1, 0.0)
-        if s1 > _EPS_NUM and gap1 / s1 > cap1 * (1.0 + 1e-12):
+        if s1 > self._eps_den and gap1 / s1 > cap1 * (1.0 + 1e-12):
             num_a = self.pq - self.c[u1] - self.qq + self.e[u1]
             den_a = self.qq - 2.0 * self.e[u1] + self.Wsq[u1]
-            if num_a > 0.0 and den_a > _EPS_NUM and cap1 < 1.0 - 1e-12:
+            if num_a > 0.0 and den_a > self._eps_den and cap1 < 1.0 - 1e-12:
                 if num_a / den_a >= cap1 / (1.0 - cap1):
                     if self._away_q(u1):             # drop step
                         self._last_drop = True
@@ -771,7 +815,7 @@ class EnhancedTriangleAlgorithm:
                         best, kind = d_away, 'away'
             num_f = self.c[r1] - self.pq - self.e[r1] + self.qq
             den_f = self.Wsq[r1] - 2.0 * self.e[r1] + self.qq
-            if num_f > 0.0 and den_f > _EPS_NUM:
+            if num_f > 0.0 and den_f > self._eps_den:
                 al = min(num_f / den_f, 1.0)
                 d_tow = al * num_f - 0.5 * al * al * den_f
                 if d_tow > best:
@@ -912,7 +956,7 @@ class EnhancedTriangleAlgorithm:
                     and time.perf_counter() - t0 > time_cap:
                 status = 'timeout'
                 break
-            if np.sqrt(self.dist2()) <= eps:
+            if self._ub_certified() <= eps:
                 status = 'intersect'
                 break
             iV, sV, iW, sW, full = self._select(self._scores_ta1, it, tol)
@@ -930,13 +974,13 @@ class EnhancedTriangleAlgorithm:
                 self._refresh_caches()
                 stalls += 1
                 if stalls > 5:
-                    status = 'intersect' if np.sqrt(self.dist2()) <= eps \
+                    status = 'intersect' if self._ub_certified() <= eps \
                         else 'stalled'
                     break
                 continue
             stalls = 0
         self._refresh_caches()
-        return TAResult(status=status, distance=float(np.sqrt(self.dist2())),
+        return TAResult(status=status, distance=self._ub_certified(),
                         lower_bound=0.0, iterations=it,
                         time=time.perf_counter() - t0,
                         sparsity=self._sparsity(),
@@ -960,8 +1004,6 @@ class EnhancedTriangleAlgorithm:
         t0 = time.perf_counter()
         if not warm_start or not hasattr(self, 'p'):
             self._init_state()
-        self._origV = np.arange(self.n)
-        self._origW = np.arange(self.m)
         tol = self.tol
         status = 'maxiter'
         lb_best = -np.inf
@@ -974,17 +1016,19 @@ class EnhancedTriangleAlgorithm:
                     and time.perf_counter() - t0 > time_cap:
                 status = 'timeout'
                 break
-            ub = float(np.sqrt(self.dist2()))
+            # certified upper bound: equals d(p, q) for explicit iterates
+            # and is floored at the cancellation noise for implicit ones,
+            # so neither the intersect test nor the bound below it can be
+            # fooled by a cancelled cached distance
+            ub = self._ub_certified()
             if ub <= eps_intersect:
                 status = 'intersect'
                 break
-            full = (not self.prioritized) or (it % self.full_scan_every == 1) \
-                or it == 1
+            full = (not self.prioritized) \
+                or ((it - 1) % self.full_scan_every == 0)
             if full:
                 # lower bound from the parallel supporting hyperplanes
-                lb = (float(np.min(self.a - self.b))
-                      - float(np.max(self.c - self.e))) / ub
-                lb_best = max(lb_best, lb)
+                lb_best = max(lb_best, self._lower_bound(ub))
                 if self.trace is not None:
                     self.trace.append((it, time.perf_counter() - t0,
                                        ub, lb_best))
@@ -995,12 +1039,18 @@ class EnhancedTriangleAlgorithm:
                 self._screen_and_compact(lb_best)
             iV, sV, iW, sW, _ = self._select(self._scores_ta2, it, tol)
             if iV is None and iW is None:
-                # p, q already optimal over the scanned sets
-                if not full:
-                    continue
-                status = 'converged'
+                # no descent direction over the full input (a None pair
+                # always comes from a full scan): success only with the
+                # gap certificate, otherwise this is a numerical stall
+                lb_best = max(lb_best, self._lower_bound(ub))
+                status = 'converged' if ub - lb_best <= eps * ub \
+                    else 'stalled'
                 break
             if not self._step(iV, iW, sV, sW):
+                # numerical stall: never a certificate.  Drop the
+                # offending indices from the priority sets, restore exact
+                # caches and retry; after repeated failures exit with
+                # whatever the current bounds certify
                 if iV is not None:
                     self.active_V.discard(iV)
                 if iW is not None:
@@ -1008,16 +1058,20 @@ class EnhancedTriangleAlgorithm:
                 self._refresh_caches()
                 stalls += 1
                 if stalls > 5:
-                    status = 'converged'
+                    ub = self._ub_certified()
+                    if ub <= eps_intersect:
+                        status = 'intersect'
+                    else:
+                        lb_best = max(lb_best, self._lower_bound(ub))
+                        status = 'converged' if ub - lb_best <= eps * ub \
+                            else 'stalled'
                     break
                 continue
             stalls = 0
         self._refresh_caches()
-        ub = float(np.sqrt(self.dist2()))
+        ub = self._ub_certified()
         if ub > eps_intersect:
-            lb = (float(np.min(self.a - self.b))
-                  - float(np.max(self.c - self.e))) / ub
-            lb_best = max(lb_best, lb)
+            lb_best = max(lb_best, self._lower_bound(ub))
         return TAResult(status=status, distance=ub,
                         lower_bound=float(lb_best), iterations=it,
                         time=time.perf_counter() - t0,
@@ -1043,12 +1097,19 @@ class EnhancedTriangleAlgorithm:
                 sVa = self.b - self.a if iV is not None else None
                 sWa = self.c - self.e if iW is not None else None
                 if iV is not None and iW is not None:
-                    # larger pairwise side gap (max score - worst active) first
-                    gV = float(sVa.max()) - min(sVa[u] for u, w in self.wV.items()
-                                                if u >= 0 and w > _W_MIN)
-                    gW = float(sWa.max()) - min(sWa[u] for u, w in self.wW.items()
-                                                if u >= 0 and w > _W_MIN)
-                    order = ('V', 'W') if gV >= gW else ('W', 'V')
+                    if self.drop_skip:
+                        # analysed schedule (Lemma 6): larger pairwise
+                        # side gap (max score - worst active) first
+                        gV = float(sVa.max()) - min(
+                            sVa[u] for u, w in self.wV.items()
+                            if u >= 0 and w > _W_MIN)
+                        gW = float(sWa.max()) - min(
+                            sWa[u] for u, w in self.wW.items()
+                            if u >= 0 and w > _W_MIN)
+                        order = ('V', 'W') if gV >= gW else ('W', 'V')
+                    else:
+                        # unconditional V-then-W (the batteries' schedule)
+                        order = ('V', 'W')
                 else:
                     order = ('V',) if iV is not None else ('W',)
                 for pos, side in enumerate(order):

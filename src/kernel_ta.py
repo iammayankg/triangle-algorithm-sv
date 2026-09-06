@@ -80,6 +80,10 @@ class KernelETA(EnhancedTriangleAlgorithm):
         # raw squared norms for kernel evaluation
         self._Vsq_raw = self.Vsq.copy()
         self._Wsq_raw = self.Wsq.copy()
+        # the original inputs: screening compacts V / W and the raw norms
+        # in place, while result weights are keyed by original indices
+        self._V0, self._W0 = self.V, self.W
+        self._Vsq0_raw, self._Wsq0_raw = self._Vsq_raw, self._Wsq_raw
         # replace "norms" with kernel diagonals (+ ridge for L2 soft margin)
         self.Vsq = self.kern.diag(self._Vsq_raw) + self.reg
         self.Wsq = self.kern.diag(self._Wsq_raw) + self.reg
@@ -158,18 +162,27 @@ class KernelETA(EnhancedTriangleAlgorithm):
     def decision_function(self, X, r=None):
         """f(x) = (2/d^2) [ sum wV_i k(v_i,x) - sum wW_j k(w_j,x) ] + b,
         the bisector classifier of the final witness pair.  (The ridge
-        coordinates of a soft-margin solve do not touch test points.)"""
-        wV = self.wV if r is None else r.weights_V
-        wW = self.wW if r is None else r.weights_W
+        coordinates of a soft-margin solve do not touch test points.)
+
+        Weights are taken in *original* input indices - the result's
+        weights_V / weights_W already are, and the live weights are mapped
+        through the screening bookkeeping - and applied to the original
+        (uncompacted) inputs, so the expansion is correct after shrinking."""
+        if r is None:
+            wV, wW = self._orig_weights()
+        else:
+            wV, wW = r.weights_V, r.weights_W
         X = np.asarray(X, dtype=np.float64)
         Xsq = np.einsum('ij,ij->i', X, X)
         f = np.zeros(len(X))
         for i, w in wV.items():
             if w > 0:
-                f += w * self.kern.cross(X, Xsq, self.V[i], self._Vsq_raw[i])
+                f += w * self.kern.cross(X, Xsq, self._V0[i],
+                                         self._Vsq0_raw[i])
         for j, w in wW.items():
             if w > 0:
-                f -= w * self.kern.cross(X, Xsq, self.W[j], self._Wsq_raw[j])
+                f -= w * self.kern.cross(X, Xsq, self._W0[j],
+                                         self._Wsq0_raw[j])
         d2 = self.dist2()
         return (2.0 * f + (self.qq - self.pp)) / d2
 
@@ -206,13 +219,19 @@ class KernelSMO(SMO):
 
     def solve(self):
         r = super().solve()
-        # hull distance in feature space: ||w_H||^2 = alpha' Q alpha,
-        # computed via the maintained gradient identity a'Qa = a.(g + 1)
-        # is not stored; recompute from support rows instead
-        sv = np.flatnonzero(r.alpha > 1e-10 * max(1.0, r.alpha.max()))
-        wn2 = 0.0
+        # The base class derives the distance, the intercept and the
+        # objective from the original-space linear w, which is meaningless
+        # under a kernel.  Recompute all three from the kernel rows of the
+        # support (ridge included when reg > 0):
+        #   f_i       = sum_j ay_j k(x_j, x_i)
+        #   ||w_H||^2 = ay' K ay = sum_i ay_i f_i
+        #   b         = mean over support vectors of y_i - f_i   (KKT)
+        #   objective = 1/2 ||w_H||^2 - 1' alpha                 (dual)
         ay = r.alpha * self.y
-        for i in sv:
-            wn2 += ay[i] * float(self._krow(i) @ ay)
+        sv = np.flatnonzero(r.alpha > 1e-10 * max(1.0, r.alpha.max()))
+        f_sv = np.array([float(self._krow(i) @ ay) for i in sv])
+        wn2 = float(ay[sv] @ f_sv) if len(sv) else 0.0
         r.hull_distance = 2.0 / np.sqrt(wn2) if wn2 > 0 else np.inf
+        r.b = float(np.mean(self.y[sv] - f_sv)) if len(sv) else 0.0
+        r.objective = 0.5 * wn2 - float(r.alpha.sum())
         return r

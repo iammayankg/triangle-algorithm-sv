@@ -78,6 +78,9 @@ class ReducedHullTA:
         self._colW: dict[int, tuple[np.ndarray, np.ndarray]] = {}
         scale = max(1.0, float(self.Vsq.max()), float(self.Wsq.max()))
         self.tol = 16.0 * np.finfo(np.float64).eps * np.sqrt(self.d) * scale
+        # denominator guard, scaled with the data below unit scale
+        self._eps_den = _EPS * min(1.0, max(float(self.Vsq.max()),
+                                            float(self.Wsq.max())))
 
     # ------------------------------------------------------------------
     def _refresh(self):
@@ -92,7 +95,16 @@ class ReducedHullTA:
         self.pq = float(self.p @ self.q)
 
     def dist2(self):
-        return max(self.pp - 2.0 * self.pq + self.qq, 0.0)
+        # from the explicit iterates: pp - 2 pq + qq cancels when the
+        # hulls are far from the origin relative to their distance
+        diff = self.p - self.q
+        return float(diff @ diff)
+
+    def _lower_bound(self, ub):
+        """Lower bound from the reduced support functions."""
+        _, _, vmin = self._capped_extreme(self.a - self.b, self.muV, True)
+        _, _, wmax = self._capped_extreme(self.c - self.e, self.muW, False)
+        return (vmin - wmax) / ub
 
     def _col_V(self, i):
         col = self._colV.get(i)
@@ -149,7 +161,7 @@ class ReducedHullTA:
         cva, cvc = self._col_V(v)
         cua, cuc = self._col_V(u)
         den = self.Vsq[v] - 2.0 * cva[u] + self.Vsq[u]
-        if den <= _EPS:
+        if den <= self._eps_den:
             return False
         g = min(num / den, self.wV[u], self.muV - self.wV[v])
         if g <= 0.0:
@@ -177,7 +189,7 @@ class ReducedHullTA:
         cwa, cwe = self._col_W(v)
         cua, cue = self._col_W(u)
         den = self.Wsq[v] - 2.0 * cwe[u] + self.Wsq[u]
-        if den <= _EPS:
+        if den <= self._eps_den:
             return False
         g = min(num / den, self.wW[u], self.muW - self.wW[v])
         if g <= 0.0:
@@ -201,7 +213,7 @@ class ReducedHullTA:
         gg = float(gvec @ gvec)
         den = gg - 2.0 * gp + self.pp             # ||g - p||^2
         num = gq - self.pq - gp + self.pp         # (q - p) . (g - p)
-        if den <= _EPS or num <= self.tol:
+        if den <= self._eps_den or num <= self.tol:
             return False
         lam = min(num / den, 1.0)
         om = 1.0 - lam
@@ -221,7 +233,7 @@ class ReducedHullTA:
         gg = float(gvec @ gvec)
         den = gg - 2.0 * gq + self.qq
         num = gp - self.pq - gq + self.qq         # (p - q) . (g - q)
-        if den <= _EPS or num <= self.tol:
+        if den <= self._eps_den or num <= self.tol:
             return False
         lam = min(num / den, 1.0)
         om = 1.0 - lam
@@ -252,14 +264,8 @@ class ReducedHullTA:
             if ub <= eps_intersect:
                 status = 'intersect'      # reduced hulls overlap (nu too small)
                 break
-            if it % self.full_scan_every == 1 or it == 1:
-                # lower bound from the reduced support functions
-                _, _, vmin = self._capped_extreme(self.a - self.b, self.muV,
-                                                  minimize=True)
-                _, _, wmax = self._capped_extreme(self.c - self.e, self.muW,
-                                                  minimize=False)
-                lb = (vmin - wmax) / ub
-                lb_best = max(lb_best, lb)
+            if (it - 1) % self.full_scan_every == 0:
+                lb_best = max(lb_best, self._lower_bound(ub))
                 if ub - lb_best <= eps * ub:
                     status = 'converged'
                     break
@@ -277,7 +283,15 @@ class ReducedHullTA:
                     self._refresh()
                     stalls += 1
                     if stalls > 3:
-                        status = 'converged'
+                        # every step refused: success only with the gap
+                        # certificate, otherwise report the stall
+                        ub = float(np.sqrt(self.dist2()))
+                        if ub <= eps_intersect:
+                            status = 'intersect'
+                        else:
+                            lb_best = max(lb_best, self._lower_bound(ub))
+                            status = 'converged' \
+                                if ub - lb_best <= eps * ub else 'stalled'
                         break
                 else:
                     stalls = 0
@@ -286,9 +300,7 @@ class ReducedHullTA:
         self._refresh()
         ub = float(np.sqrt(self.dist2()))
         if ub > eps_intersect:
-            _, _, vmin = self._capped_extreme(self.a - self.b, self.muV, True)
-            _, _, wmax = self._capped_extreme(self.c - self.e, self.muW, False)
-            lb_best = max(lb_best, (vmin - wmax) / ub)
+            lb_best = max(lb_best, self._lower_bound(ub))
         thr = 1e-10
         return RCHResult(
             status=status, distance=ub, lower_bound=float(lb_best),

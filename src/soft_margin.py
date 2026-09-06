@@ -51,6 +51,9 @@ class SoftMarginTA(EnhancedTriangleAlgorithm):
         inv = 1.0 / self.C
         self.Vsq = self.Vsq + inv      # ||x~_i||^2 = ||x_i||^2 + 1/C
         self.Wsq = self.Wsq + inv
+        # p, q hold only the original coordinates; the augmented distance
+        # (slack block included) exists only in the cached scalars
+        self._explicit_iterates = False
 
     # ---- augmented dot-product plumbing ------------------------------
     def _refresh_caches(self):
@@ -117,9 +120,20 @@ class SoftMarginSMO(SMO):
 
     def solve(self):
         r = super().solve()
-        # augmented ||w~||^2 = ||w||^2 + sum alpha_i^2 / C
+        # The base class only sees ||w||^2 and the linear KKT conditions;
+        # the distance, objective and intercept all live in the augmented
+        # space:  ||w~||^2 = ||w||^2 + sum alpha_i^2 / C,
+        #         objective = 1/2 ||w~||^2 - 1' alpha,
+        #         b from  y_i (w.x_i + y_i alpha_i / C + b) = 1  at the
+        #         support vectors (the slack coordinate of x~_i is e_i/sqrt(C)).
         wn2 = float(r.w @ r.w) + float(r.alpha @ r.alpha) / self.C_soft
         r.hull_distance = 2.0 / np.sqrt(wn2) if wn2 > 0 else np.inf
+        r.objective = 0.5 * wn2 - float(r.alpha.sum())
+        sv = np.flatnonzero(r.alpha > 1e-8 * max(1.0, r.alpha.max()))
+        if len(sv):
+            ay = r.alpha * self.y
+            r.b = float(np.mean(self.y[sv] - self.X[sv] @ r.w
+                                - ay[sv] / self.C_soft))
         return r
 
 

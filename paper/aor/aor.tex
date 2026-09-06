@@ -301,7 +301,7 @@ $\mathrm{gap}_j>0$. Then $S\ge\sum_jb_j^2$, $D\le k'S$, and
 the realised block gain satisfies
 $\Delta_B\ge S/(2k')\ge\Delta_1/(2k')$, $\Delta_1$ the MDM gain.
 \end{lemma}
-\begin{proof}[ of Lemma~\ref{lem:block}]
+\begin{proof}[Proof of Lemma~\ref{lem:block}]
 Since $\gamma_j\le\mathrm{gap}_j/\norm{d_j}^2$, we have
 $\gamma_j\mathrm{gap}_j\ge\gamma_j^2\norm{d_j}^2=b_j^2$. Consequently,
 $S=\sum_j\gamma_j\mathrm{gap}_j\ge\sum_jb_j^2$. By the triangle
@@ -322,7 +322,7 @@ progress than pairwise FW.
 If the iteration works on the side with the larger pairwise gap, then
 on any non-drop iteration $\mathrm{gain}\ge\min\!\big((\gPW)^2/(32M^2),\ \gPW/8\big)$.
 \end{lemma}
-\begin{proof}[ of Lemma~\ref{lem:good}]
+\begin{proof}[Proof of Lemma~\ref{lem:good}]
 Let $g_S=\max(\gPW_V,\gPW_W)\ge\gPW/2$. Every direction below is a
 difference of two points of one class hull, so its norm is at most
 $\operatorname{diam}(\conv V)\le M$. For a feasible direction with
@@ -389,7 +389,7 @@ toward or away step alone gains Lemma~\ref{lem:good}'s amount,
 whichever wins. Table~\ref{tab:l2} used the earlier unconditional
 $V$-then-$W$ order (Table~\ref{tab:sched}).
 
-\begin{proof}[ of Theorem~\ref{thm:linear}]
+\begin{proof}[Proof of Theorem~\ref{thm:linear}]
 By Lemmas~\ref{lem:good} and~\ref{lem:gsc} a non-drop iteration gains
 at least
 \[\min\big(2\delta^2h/(32M^2),\,h/8\big)=(\delta/M)^2h/16\]
@@ -438,7 +438,7 @@ $|\ip{d_i}{d_j}|\le\eta\norm{d_i}\norm{d_j}$ for $i\ne j$, then the
 block gain is at least $(\sum_j\Delta_j)/(1+\eta(k'-1))$, where
 $\Delta_j$ is pair $j$'s individual gain.
 \end{proposition}
-\begin{proof}[ of Proposition~\ref{prop:orth}]
+\begin{proof}[Proof of Proposition~\ref{prop:orth}]
 $D=\sum_{i,j}\gamma_i\gamma_j\ip{d_i}{d_j}\le\sum_jb_j^2+\eta\sum_{i\ne j}b_ib_j\le(1+\eta(k'-1))\sum_jb_j^2\le(1+\eta(k'-1))S$
 by Cauchy--Schwarz on the cross terms. If $D\ge S$ the line search is
 interior and $\Delta_B=S^2/(2D)\ge S/(2(1+\eta(k'-1)))$; if $D<S$ then
@@ -453,7 +453,7 @@ $\UB-\LB=\gFW(z)/\UB$ (a retained best lower bound gives $\le$), and
 $\gFW(z)\le2h+R\sqrt{2h}$ with $R=\max_{u\in Z}\norm u$, the radius of
 $Z$ about the origin.
 \end{lemma}
-\begin{proof}[ of Lemma~\ref{lem:gapid}]
+\begin{proof}[Proof of Lemma~\ref{lem:gapid}]
 $\LB=\min_{u\in Z}\ip{z}{u}/\norm z$ by definition of the supporting
 hyperplane bound and $\UB=\norm z$; subtracting,
 $\UB-\LB=(\ip{z}{z}-\min_u\ip{z}{u})/\norm z=\gFW/\UB$. At the optimum
@@ -483,7 +483,7 @@ instead of $O(n+m)$.
 \end{theorem}
 In words: since $r^2\le2R(\UB-\LB)$, a point with margin $\tau_i$ is
 screened once the certified gap falls below $\tau_i^2/(18RL^2)$. 
-\begin{proof}[ of Theorem~\ref{thm:activation}]
+\begin{proof}[Proof of Theorem~\ref{thm:activation}]
 Strong convexity gives $\norm{z-z^*}\le r$ for the screening radius
 $r=\sqrt{\UB^2-\max(\LB,0)^2}$ ($\tau$ is defined only if some point
 has positive margin; otherwise there is nothing to screen). Let

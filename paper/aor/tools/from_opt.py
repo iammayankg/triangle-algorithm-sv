@@ -102,6 +102,9 @@ rel = rel.replace(r'\section{Related work}', r'\section{Related work}\label{sec:
 new_body = '\n\n'.join([intro_to_analysis.rstrip(), red.strip(), exp.rstrip(), details.strip(), num.strip(),
                         rel.rstrip(), related_ext.strip(), con.rstrip()])
 
+# amsthm/sn-jnl: the optional argument replaces the whole header
+new_body = new_body.replace(r'\begin{proof}[ of ', r'\begin{proof}[Proof of ')
+
 # ---- appendix references become section references ----------------------
 for a, b in [(r'Appendix~\ref{', r'Section~\ref{'),
              (r'(Table~\ref{tab:l2}, appendix)', r'(Table~\ref{tab:l2})'),

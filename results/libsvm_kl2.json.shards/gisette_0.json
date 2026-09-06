@@ -1,0 +1,1 @@
+{"dataset": "gisette", "seed": 0, "solver": "LIBSVM-precomp", "n_kernel": 6000, "d": 5000, "time": 0.5288498720001371, "time_kernel": 3.2655947019998166, "dist": 0.06882219317258553, "sv": 3644, "acc": 0.971, "status": "converged"}

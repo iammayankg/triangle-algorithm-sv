@@ -1,0 +1,1 @@
+{"dataset": "a9a", "seed": 3, "solver": "LIBSVM-precomp", "n_kernel": 10000, "d": 123, "time": 2.4240520930002276, "time_kernel": 2.156823594999878, "dist": 0.02997271836821461, "sv": 7685, "acc": 0.7950371598796143, "status": "converged"}

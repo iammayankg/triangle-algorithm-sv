@@ -1,0 +1,1 @@
+{"dataset": "w8a", "seed": 2, "solver": "LIBSVM-precomp", "n_kernel": 6479, "d": 300, "time": 0.593994572000156, "time_kernel": 0.7791894470001353, "dist": 0.05629608119264298, "sv": 3561, "acc": 0.9755200321048759, "status": "converged"}

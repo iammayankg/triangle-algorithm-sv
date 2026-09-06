@@ -1,0 +1,182 @@
+[
+  {
+    "tag": "soft-d100-C1",
+    "mode": "mdm",
+    "k": 1,
+    "time": 10.680552584002726,
+    "iters": 75021,
+    "oracle": 1343,
+    "dist": 0.07840028899366669,
+    "rel": 0.0,
+    "status": "converged",
+    "n_drops": 0,
+    "kinds": {}
+  },
+  {
+    "tag": "soft-d100-C1",
+    "mode": "block",
+    "k": 4,
+    "time": 11.171865792013705,
+    "iters": 24606,
+    "oracle": 1632,
+    "dist": 0.07840028848044533,
+    "rel": 6.546166613556718e-09,
+    "status": "converged",
+    "n_drops": 416,
+    "kinds": {
+      "block": 48050,
+      "drop": 416
+    }
+  },
+  {
+    "tag": "soft-d100-C1",
+    "mode": "block",
+    "k": 16,
+    "time": 9.039832792012021,
+    "iters": 10701,
+    "oracle": 2404,
+    "dist": 0.07840028658536105,
+    "rel": 3.071807093008012e-08,
+    "status": "converged",
+    "n_drops": 599,
+    "kinds": {
+      "block": 20482,
+      "drop": 599
+    }
+  },
+  {
+    "tag": "soft-d100-C1",
+    "mode": "block",
+    "k": 32,
+    "time": 10.37423516594572,
+    "iters": 7606,
+    "oracle": 3076,
+    "dist": 0.07840028751986804,
+    "rel": 1.879838290751252e-08,
+    "status": "converged",
+    "n_drops": 305,
+    "kinds": {
+      "block": 14770,
+      "drop": 305
+    }
+  },
+  {
+    "tag": "soft-d1000-C1",
+    "mode": "mdm",
+    "k": 1,
+    "time": 12.160226167005021,
+    "iters": 43521,
+    "oracle": 1251,
+    "dist": 0.5781431875979177,
+    "rel": 0.0,
+    "status": "converged",
+    "n_drops": 0,
+    "kinds": {}
+  },
+  {
+    "tag": "soft-d1000-C1",
+    "mode": "block",
+    "k": 4,
+    "time": 6.711662999994587,
+    "iters": 10071,
+    "oracle": 1330,
+    "dist": 0.5781432331953603,
+    "rel": 7.88687708816819e-08,
+    "status": "converged",
+    "n_drops": 177,
+    "kinds": {
+      "block": 19865,
+      "drop": 177
+    }
+  },
+  {
+    "tag": "soft-d1000-C1",
+    "mode": "block",
+    "k": 16,
+    "time": 4.278316707990598,
+    "iters": 3001,
+    "oracle": 1348,
+    "dist": 0.5781430103216324,
+    "rel": 3.0663041461165086e-07,
+    "status": "converged",
+    "n_drops": 180,
+    "kinds": {
+      "block": 5696,
+      "drop": 180
+    }
+  },
+  {
+    "tag": "soft-d1000-C1",
+    "mode": "block",
+    "k": 32,
+    "time": 4.647635750006884,
+    "iters": 1741,
+    "oracle": 1396,
+    "dist": 0.5781429305512655,
+    "rel": 4.4460724903393747e-07,
+    "status": "converged",
+    "n_drops": 170,
+    "kinds": {
+      "block": 3189,
+      "drop": 170
+    }
+  },
+  {
+    "tag": "hard-d1000-eps1e-5",
+    "mode": "mdm",
+    "k": 1,
+    "time": 0.29948458302533254,
+    "iters": 296,
+    "oracle": 104,
+    "dist": 55.339365434802886,
+    "rel": 0.0,
+    "status": "converged",
+    "n_drops": 0,
+    "kinds": {}
+  },
+  {
+    "tag": "hard-d1000-eps1e-5",
+    "mode": "block",
+    "k": 4,
+    "time": 0.18592729204101488,
+    "iters": 36,
+    "oracle": 103,
+    "dist": 55.33936540273286,
+    "rel": 5.795156193484686e-10,
+    "status": "converged",
+    "n_drops": 0,
+    "kinds": {
+      "block": 67
+    }
+  },
+  {
+    "tag": "hard-d1000-eps1e-5",
+    "mode": "block",
+    "k": 16,
+    "time": 0.1878024999750778,
+    "iters": 16,
+    "oracle": 103,
+    "dist": 55.339365395595046,
+    "rel": 7.084981951227832e-10,
+    "status": "converged",
+    "n_drops": 0,
+    "kinds": {
+      "block": 27
+    }
+  },
+  {
+    "tag": "hard-d1000-eps1e-5",
+    "mode": "block",
+    "k": 32,
+    "time": 0.1964017089921981,
+    "iters": 16,
+    "oracle": 109,
+    "dist": 55.3393653935268,
+    "rel": 7.458720930524074e-10,
+    "status": "converged",
+    "n_drops": 0,
+    "kinds": {
+      "block": 27
+    }
+  }
+]

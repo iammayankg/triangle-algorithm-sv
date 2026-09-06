@@ -1,0 +1,1 @@
+{"dataset": "ijcnn1", "seed": 1, "solver": "LIBSVM-precomp", "n_kernel": 9853, "d": 22, "time": 0.9954436789998908, "time_kernel": 1.6691117509999458, "dist": 0.04766508880986052, "sv": 4487, "acc": 0.9621160074590245, "status": "converged"}

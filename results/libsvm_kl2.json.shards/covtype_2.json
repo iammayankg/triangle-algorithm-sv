@@ -1,0 +1,1 @@
+{"dataset": "covtype", "seed": 2, "solver": "LIBSVM-precomp", "n_kernel": 10000, "d": 54, "time": 1.9916034220000256, "time_kernel": 1.3689507629997024, "dist": 0.026095406910427638, "sv": 9068, "acc": 0.792789133443027, "status": "converged"}

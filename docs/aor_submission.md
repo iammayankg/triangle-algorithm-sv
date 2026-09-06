@@ -63,6 +63,45 @@ additions. Ordered by value.
 7. **Abstract and title.** Rewrite the abstract for the journal scope once
    (3) is done; the title can stay.
 
+## Journal contribution: when does aggregation pay? (started 2026-09-06)
+
+Plan (from the round-5 advice): (1) exact gain ratio at one state,
+Delta_B/Delta_1 = Q(2-kappa) for kappa<=1 and Q/kappa for kappa>1, with
+Q = sum_j Delta_j / Delta_1 and kappa = D/S (verified); (2) a cost model
+that includes column copies and score updates; (3) instrument and
+measure; (4) bridge one-state progress-per-cost to total runtime;
+(5) adaptive k from the measured ratio.
+
+Step 3 is implemented: `ETA.diag = []` makes `_block_transfer_V/W` record
+Delta_B, Delta_1, Q_unc, Q_real, kappa, candidate chosen, capped pairs,
+cache misses, support size and a time split (pair selection, columns,
+assembly, guard, update) plus a dry-run timing of the single MDM update
+from the same state.  Driver: `src/block_diagnostics.py` (summaries to
+`results/block_diag.json`).  Run on the Studio, nothing else running:
+
+```bash
+OMP_NUM_THREADS=1 nohup python3 -u src/block_diagnostics.py --data-dir data \
+    --cells gisette-l2 ijcnn1-kl2 --ks 1 4 16 32 --out results/block_diag.json \
+    > results/block_diag.log 2>&1 &
+```
+
+Local pilot (synthetic L2 overlap, d=1000, n=5000/class, seed 0):
+
+| k | time | iters | gain ratio (median) | Q_unc | kappa | C_B/C_1 (step / incl. overhead) | progress per cost | block wins |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 13.4 s | 39,271 | 1.00 | 1.00 | 1.00 | 2.40 / 1.77 | 0.42 / 0.57 | — |
+| 16 | 3.8 s | 2,801 | 10.1 | 10.8 | 1.06 | 6.9 / 4.3 | 1.45 / 2.33 | 93–95 % |
+
+Readings: on this dense-support instance the directions are nearly
+orthogonal (kappa ~ 1.06), Q ~ 0.7 k, and the block costs ~7x a bare
+MDM step per call, so it wins ~1.5-2.3x per unit of work and 3.5x over
+the run (the trajectory effect on top of the per-call ratio is the
+step-4 question).  The k=1 row shows the guarded single-pair machinery
+itself costs 2.4x a bare pairwise step per call (pair selection and
+assembly in Python), which is why guarded k=1 saved iterations but not
+time in Table 5.  Caveat: C_1 counts only the scan, the receiver's
+column and the two-column update, so it slightly favours MDM.
+
 ## Hand-fix list left by the bootstrap
 
 - Two `\todo{}` markers on the title page (affiliation), one for the

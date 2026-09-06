@@ -128,6 +128,10 @@ class EnhancedTriangleAlgorithm:
         self.drop_skip = bool(drop_skip)
         # instrumentation for the two-sided schedule (block mode)
         self.n_drops = 0          # drop steps taken (either side)
+        # per-block-step diagnostics (src/block_diagnostics.py): set to a
+        # list to record gains, Q, kappa, candidate choice and a time
+        # split for every block transfer; None = off (no overhead)
+        self.diag = None
         self.n_drop_skips = 0     # second-side steps skipped after a drop
         self.step_kinds: dict[str, int] = {}
         self._last_drop = False   # set by the last block transfer
@@ -649,20 +653,50 @@ class EnhancedTriangleAlgorithm:
         return pairs
 
     def _block_transfer_V(self, k, s=None):
+        if self.diag is None:
+            return self._block_transfer_V_impl(k, s)
+        self._diag_rec = None
+        t0 = time.perf_counter()
+        ce0, nd0, d2_0 = self.col_evals, self.n_drops, self.dist2()
+        self._diag_ce = ce0
+        ok = self._block_transfer_V_impl(k, s)
+        rec = self._diag_rec
+        if rec is not None:
+            rec.update(side='V', ok=ok, t_total=time.perf_counter() - t0,
+                       misses=self.col_evals - ce0, drop=self.n_drops > nd0,
+                       d2_before=d2_0, d2_after=self.dist2())
+            rec['t_update'] = max(rec['t_total'] - rec['t_pairs'] - rec['t_cols']
+                                  - rec['t_assemble'] - rec['t_guard']
+                                  - rec['t_single'], 0.0)
+            self.diag.append(rec)
+        return ok
+
+    def _block_transfer_V_impl(self, k, s=None):
         self._last_drop = False
+        dg = self.diag is not None
+        if dg:
+            t0 = time.perf_counter()
         if s is None:
             s = self.b - self.a
         raw = self._block_pairs(s, self.wV, None, k)
+        if dg:
+            t1 = time.perf_counter()
+            t_col1, miss1, dens = 0.0, 0, []
         if not raw:
             return False
         # per-pair unclipped optimum, clipped to capacity
         pairs = []
-        for r, u, num, gmax in raw:
+        for j_, (r, u, num, gmax) in enumerate(raw):
             colr = self._gram_col_V(r)[0]
+            if dg and j_ == 0:
+                t_col1 = time.perf_counter() - t1
+                miss1 = self.col_evals - self._diag_ce
             den = self.Vsq[r] - 2.0 * colr[u] + self.Vsq[u]
             if den <= self._eps_den:
                 continue
             pairs.append((r, u, min(num / den, gmax)))
+            if dg:
+                dens.append((num, den, gmax))
         if not pairs:
             return False
         # a single surviving pair is handled by the same guard and case-(b)
@@ -676,6 +710,8 @@ class EnhancedTriangleAlgorithm:
         num_t = float(G @ (s[R] - s[U]))
         cols = {i: self._gram_col_V(i)[0]
                 for pr in pairs for i in pr[:2]}
+        if dg:
+            t2 = time.perf_counter()
         CR = np.stack([cols[int(r)] for r in R])   # k x n
         CU = np.stack([cols[int(u)] for u in U])
         M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
@@ -685,6 +721,8 @@ class EnhancedTriangleAlgorithm:
         else:
             t = min(num_t / den_t, 1.0)
             delta_B = t * num_t - 0.5 * t * t * den_t
+        if dg:
+            t3 = time.perf_counter()
         # guard (Theorem 3): fall back to the single MDM step whenever its
         # exact gain exceeds the block's - the guarded step never makes
         # less progress than pairwise FW, so the PFW linear rate is
@@ -697,6 +735,19 @@ class EnhancedTriangleAlgorithm:
         if delta_1 > best:
             best, kind = delta_1, 'mdm'
         cap1 = self.wV.get(u1, 0.0)
+        if dg:
+            tiny = max(abs(delta_1), 1e-300)
+            self._diag_rec = dict(
+                it=getattr(self, '_diag_it', -1), k=k, kp=len(pairs),
+                capped=sum(1 for nu_, de_, gm_ in dens if nu_ / de_ > gm_),
+                cap1=bool(dens and dens[0][0] / dens[0][1] > dens[0][2]),
+                dB=float(delta_B), d1=float(delta_1), S=num_t, D=den_t,
+                Q_unc=sum(nu_ * nu_ / (2.0 * de_) for nu_, de_, gm_ in dens) / tiny,
+                Q_real=sum(min(nu_ / de_, gm_) * nu_ - 0.5 * min(nu_ / de_, gm_) ** 2 * de_
+                           for nu_, de_, gm_ in dens) / tiny,
+                support=len(self.wV), n_drops=self.n_drops,
+                t_pairs=t1 - t0, t_cols=t2 - t1, t_col1=t_col1, miss1=miss1,
+                t_assemble=t3 - t2, t_guard=0.0, t_single=0.0, kind=kind)
         if s1 > self._eps_den and gap1 / s1 > cap1 * (1.0 + 1e-12):
             # Theorem 6 case (b): pair 1 capacity-clipped -> away/toward
             num_a = self.pq - self.b[u1] - self.pp + self.a[u1]
@@ -704,6 +755,9 @@ class EnhancedTriangleAlgorithm:
             if num_a > 0.0 and den_a > self._eps_den and cap1 < 1.0 - 1e-12:
                 if num_a / den_a >= cap1 / (1.0 - cap1):
                     if self._away_p(u1):             # drop step
+                        if dg:
+                            self._diag_rec['kind'] = 'drop'
+                            self._diag_rec['t_guard'] = time.perf_counter() - t3
                         self._last_drop = True
                         self.n_drops += 1
                         self.step_kinds['drop'] = self.step_kinds.get('drop', 0) + 1
@@ -721,6 +775,17 @@ class EnhancedTriangleAlgorithm:
                 d_tow = al * num_f - 0.5 * al * al * den_f
                 if d_tow > best:
                     best, kind = d_tow, 'toward'
+        if dg:
+            t4 = time.perf_counter()
+            rec = self._diag_rec
+            rec['kind'] = kind
+            rec['t_guard'] = t4 - t3
+            # cost of the single MDM update from this same state, dry run
+            ar_, cr_ = self._gram_col_V(r1)
+            au_, cu_ = self._gram_col_V(u1)
+            _ = self.a + g1 * (ar_ - au_)
+            _ = self.c + g1 * (cr_ - cu_)
+            rec['t_single'] = time.perf_counter() - t4
         self.step_kinds[kind] = self.step_kinds.get(kind, 0) + 1
         if kind == 'mdm':
             return self._pairwise_p(r1, u1)
@@ -758,19 +823,50 @@ class EnhancedTriangleAlgorithm:
         return True
 
     def _block_transfer_W(self, k, s=None):
+        if self.diag is None:
+            return self._block_transfer_W_impl(k, s)
+        self._diag_rec = None
+        t0 = time.perf_counter()
+        ce0, nd0, d2_0 = self.col_evals, self.n_drops, self.dist2()
+        self._diag_ce = ce0
+        ok = self._block_transfer_W_impl(k, s)
+        rec = self._diag_rec
+        if rec is not None:
+            rec.update(side='W', ok=ok, t_total=time.perf_counter() - t0,
+                       misses=self.col_evals - ce0, drop=self.n_drops > nd0,
+                       d2_before=d2_0, d2_after=self.dist2())
+            rec['t_update'] = max(rec['t_total'] - rec['t_pairs'] - rec['t_cols']
+                                  - rec['t_assemble'] - rec['t_guard']
+                                  - rec['t_single'], 0.0)
+            self.diag.append(rec)
+        return ok
+
+    def _block_transfer_W_impl(self, k, s=None):
         self._last_drop = False
+        dg = self.diag is not None
+        if dg:
+            t0 = time.perf_counter()
         if s is None:
             s = self.c - self.e
         raw = self._block_pairs(s, self.wW, None, k)
+        if dg:
+            t1 = time.perf_counter()
+            t_col1, miss1, dens = 0.0, 0, []
         if not raw:
             return False
+        # per-pair unclipped optimum, clipped to capacity
         pairs = []
-        for r, u, num, gmax in raw:
+        for j_, (r, u, num, gmax) in enumerate(raw):
             colr = self._gram_col_W(r)[1]
+            if dg and j_ == 0:
+                t_col1 = time.perf_counter() - t1
+                miss1 = self.col_evals - self._diag_ce
             den = self.Wsq[r] - 2.0 * colr[u] + self.Wsq[u]
             if den <= self._eps_den:
                 continue
             pairs.append((r, u, min(num / den, gmax)))
+            if dg:
+                dens.append((num, den, gmax))
         if not pairs:
             return False
         # single pair: same guard and case-(b) fallback as below (see V side)
@@ -780,6 +876,8 @@ class EnhancedTriangleAlgorithm:
         num_t = float(G @ (s[R] - s[U]))
         cols = {j: self._gram_col_W(j)[1]
                 for pr in pairs for j in pr[:2]}
+        if dg:
+            t2 = time.perf_counter()
         CR = np.stack([cols[int(r)] for r in R])
         CU = np.stack([cols[int(u)] for u in U])
         M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
@@ -789,6 +887,8 @@ class EnhancedTriangleAlgorithm:
         else:
             t = min(num_t / den_t, 1.0)
             delta_B = t * num_t - 0.5 * t * t * den_t
+        if dg:
+            t3 = time.perf_counter()
         r1, u1, g1 = pairs[0]
         s1 = self.Wsq[r1] - 2.0 * cols[int(r1)][u1] + self.Wsq[u1]
         gap1 = s[r1] - s[u1]
@@ -797,12 +897,28 @@ class EnhancedTriangleAlgorithm:
         if delta_1 > best:
             best, kind = delta_1, 'mdm'
         cap1 = self.wW.get(u1, 0.0)
+        if dg:
+            tiny = max(abs(delta_1), 1e-300)
+            self._diag_rec = dict(
+                it=getattr(self, '_diag_it', -1), k=k, kp=len(pairs),
+                capped=sum(1 for nu_, de_, gm_ in dens if nu_ / de_ > gm_),
+                cap1=bool(dens and dens[0][0] / dens[0][1] > dens[0][2]),
+                dB=float(delta_B), d1=float(delta_1), S=num_t, D=den_t,
+                Q_unc=sum(nu_ * nu_ / (2.0 * de_) for nu_, de_, gm_ in dens) / tiny,
+                Q_real=sum(min(nu_ / de_, gm_) * nu_ - 0.5 * min(nu_ / de_, gm_) ** 2 * de_
+                           for nu_, de_, gm_ in dens) / tiny,
+                support=len(self.wW), n_drops=self.n_drops,
+                t_pairs=t1 - t0, t_cols=t2 - t1, t_col1=t_col1, miss1=miss1,
+                t_assemble=t3 - t2, t_guard=0.0, t_single=0.0, kind=kind)
         if s1 > self._eps_den and gap1 / s1 > cap1 * (1.0 + 1e-12):
             num_a = self.pq - self.c[u1] - self.qq + self.e[u1]
             den_a = self.qq - 2.0 * self.e[u1] + self.Wsq[u1]
             if num_a > 0.0 and den_a > self._eps_den and cap1 < 1.0 - 1e-12:
                 if num_a / den_a >= cap1 / (1.0 - cap1):
                     if self._away_q(u1):             # drop step
+                        if dg:
+                            self._diag_rec['kind'] = 'drop'
+                            self._diag_rec['t_guard'] = time.perf_counter() - t3
                         self._last_drop = True
                         self.n_drops += 1
                         self.step_kinds['drop'] = self.step_kinds.get('drop', 0) + 1
@@ -820,6 +936,17 @@ class EnhancedTriangleAlgorithm:
                 d_tow = al * num_f - 0.5 * al * al * den_f
                 if d_tow > best:
                     best, kind = d_tow, 'toward'
+        if dg:
+            t4 = time.perf_counter()
+            rec = self._diag_rec
+            rec['kind'] = kind
+            rec['t_guard'] = t4 - t3
+            # cost of the single MDM update from this same state, dry run
+            ar_, cr_ = self._gram_col_W(r1)
+            au_, cu_ = self._gram_col_W(u1)
+            _ = self.b + g1 * (ar_ - au_)
+            _ = self.e + g1 * (cr_ - cu_)
+            rec['t_single'] = time.perf_counter() - t4
         self.step_kinds[kind] = self.step_kinds.get(kind, 0) + 1
         if kind == 'mdm':
             return self._pairwise_q(r1, u1)

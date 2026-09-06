@@ -30,7 +30,10 @@ from regime_battery import _subsample                             # noqa: E402
 from soft_margin import SoftMarginTA                              # noqa: E402
 from kernel_ta import KernelETA                                   # noqa: E402
 
-MODES = [('mdm', 1), ('block', 4), ('block', 16)]
+# 'mdm' k=1 is plain pairwise FW (no block, no guard, no fallback);
+# 'block' k=1 is the guarded algorithm with a single pair (guard and
+# case-(b) fallback active), the k=1 control a reviewer asked for.
+MODES = [('mdm', 1), ('block', 1), ('block', 4), ('block', 16)]
 EPS, CAP = 1e-3, 600.0
 
 
@@ -74,12 +77,13 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     # resume: cells already in the output file are skipped
     rows = json.loads(out.read_text()) if out.exists() else []
-    done = {(r['dataset'], r['k'], r['seed']) for r in rows}
+    done = {(r['dataset'], r.get('mode', 'mdm' if r['k'] == 1 else 'block'),
+             r['k'], r['seed']) for r in rows}
     if done:
         print(f"{len(done)} cells already done in {out}", flush=True)
     for name in args.datasets:
         for seed in range(args.seeds):
-            todo = [(m, k) for m, k in MODES if (name, k, seed) not in done]
+            todo = [(m, k) for m, k in MODES if (name, m, k, seed) not in done]
             if not todo:
                 continue
             X, y, Xt, yt = _load_cached(name, args.data_dir, 100_000, seed)
@@ -95,13 +99,16 @@ def main():
                       f"gap={r['gap']:.1e} acc={r['acc']:.4f}", flush=True)
                 out.write_text(json.dumps(rows, indent=1))
 
-    print('\n| dataset | k | time (s) | iterations | columns | accuracy | converged |')
-    print('|--|--:|--:|--:|--:|--:|--:|')
+    print('\n| dataset | mode | k | time (s) | iterations | columns | accuracy | converged |')
+    print('|--|--|--:|--:|--:|--:|--:|--:|')
     for name in args.datasets:
         for mode, k in MODES:
-            sel = [r for r in rows if (r['dataset'], r['k']) == (name, k)]
+            sel = [r for r in rows if (r['dataset'], r.get('mode'), r['k'])
+                   == (name, mode, k)]
+            if not sel:
+                continue
             tm, th = ci95([r['time'] for r in sel])
-            print(f"| {name} | {k} | {tm:.1f} ± {th:.1f} | "
+            print(f"| {name} | {mode} | {k} | {tm:.1f} ± {th:.1f} | "
                   f"{np.mean([r['iters'] for r in sel]):,.0f} | "
                   f"{np.mean([r['oracle'] for r in sel]):,.0f} | "
                   f"{np.mean([r['acc'] for r in sel]):.4f} | "

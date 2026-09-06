@@ -1,0 +1,20 @@
+[
+  {
+    "bench": "G nu=0.3 d=1000",
+    "solver": "RCH-TA",
+    "time": 381.74717653300013,
+    "dist": 1.8320348541109406,
+    "status": "converged",
+    "extra": "",
+    "trial": 3
+  },
+  {
+    "bench": "G nu=0.3 d=1000",
+    "solver": "NuSVC (LIBSVM)",
+    "time": 120.49859661100072,
+    "dist": 1.8317775765753466,
+    "status": "converged",
+    "extra": "",
+    "trial": 3
+  }
+]

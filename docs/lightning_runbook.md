@@ -87,14 +87,14 @@ Paper-table to script map:
 > Theorem 3 requires; the same happened for a degenerate block direction.
 > Both paths now go through the guard and fallback
 > (`tests/test_fallback_single_pair.py` reproduces the reviewer's instance).
-> Status 2026-09-06 evening: reruns (1)-(3) below are DONE on the fixed
-> code and are in the paper (Tables 1, 5; BPCG Table 7; LIBSVM brackets in
-> Table 1). The rerun of `schedule_check.py`, `k_ablation_synth.py` and
-> `final_benchmark.py` happened under the load of the other jobs, so their
-> timings were NOT used (solutions agree with the old runs to 1e-4); rerun
-> those three alone on an otherwise idle machine, then regenerate Tables 3,
-> 8 and Fig. 3. Table 2 (`full_battery.py`) and the Table 6 traces are
-> still from the pre-fix code. Old results are archived in
+> Status 2026-09-06 night: everything except Table 2 and the Table 6 traces
+> is now from the fixed code (Tables 1, 3, 5, 7, 8, Fig. 3; LIBSVM brackets
+> in Table 1). The idle rerun of `final_benchmark.py` reproduced the
+> submitted numbers within intervals; `schedule_check.py` and
+> `k_ablation_synth.py` came back ~3x slower than an earlier run with
+> identical iteration counts, so check `pgrep` for stragglers before
+> trusting their absolute times. Only `full_battery.py` (Table 2, a day)
+> remains on the pre-fix code. Old results are archived in
 > `results/prefix/` on the Studio.
 >
 > Every battery, ablation and benchmark in `results/` was produced by the

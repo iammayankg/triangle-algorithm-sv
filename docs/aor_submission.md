@@ -102,6 +102,13 @@ assembly in Python), which is why guarded k=1 saved iterations but not
 time in Table 5.  Caveat: C_1 counts only the scan, the receiver's
 column and the two-column update, so it slightly favours MDM.
 
+Studio results (2026-09-06, k = 1/4/16/32 on gisette-l2 and ijcnn1-kl2)
+are analysed in `docs/aggregation_model.md`: gain ratio = k/(1+eta(k-1))
+with a per-dataset eta (0.07 gisette, 0.25 ijcnn1, 0.004 synthetic),
+cost = c_col N_cols + T(k)(a + b k), optimum k* = sqrt(a(1-eta)/(b eta)),
+drops the limiting factor at large k. Draft Proposition A / Theorem B /
+adaptive rule there.
+
 ## Hand-fix list left by the bootstrap
 
 - Two `\todo{}` markers on the title page (affiliation), one for the

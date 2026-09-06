@@ -612,17 +612,20 @@ class EnhancedTriangleAlgorithm:
     def _block_pairs(self, s, weights, cap, k):
         """Pair top-k receivers with worst-k active donors under `s`.
         Returns [(recv, donor, gamma)] with per-pair capacity clipping."""
-        act = [i for i, w in weights.items() if w > _W_MIN]
-        if not act:
+        # active donors as an array (the Python-level comprehension over
+        # the weight dict was the dominant per-call cost on dense supports)
+        keys = np.fromiter(weights.keys(), dtype=np.int64, count=len(weights))
+        vals = np.fromiter(weights.values(), dtype=np.float64, count=len(weights))
+        act_arr = keys[vals > _W_MIN]
+        if act_arr.size == 0:
             return []
         n = len(s)
-        k = max(1, min(k, len(act)))
+        k = max(1, min(k, int(act_arr.size)))
         if k >= n:
             recv = np.argsort(s)[::-1][:k]
         else:
             part = np.argpartition(s, n - k)[n - k:]
             recv = part[np.argsort(s[part])[::-1]]
-        act_arr = np.fromiter(act, dtype=np.int64)
         if k >= len(act_arr):
             don = act_arr[np.argsort(s[act_arr])]
         else:

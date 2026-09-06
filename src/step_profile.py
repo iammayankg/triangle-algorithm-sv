@@ -95,7 +95,7 @@ def run_one(cell, solver, seed, data_dir):
     from kernel_ta import KernelETA
 
     name, kind = cell.rsplit('-', 1)
-    X, y, Xt, yt = _load_cached(name, data_dir)
+    X, y, Xt, yt = _load_cached(name, data_dir, 100_000, seed)
     if kind == 'l2':
         V, W = X[y == 1], X[y == 0]
         kw = dict(C=C)
@@ -143,11 +143,12 @@ def summarise(rows):
     print(f"{'cell':12s} {'solver':9s} {'time (s)':>14s} {'scan':>6s} {'col':>6s} "
           f"{'step':>6s} {'other':>6s} {'iters':>7s} {'cols':>6s} {'drops':>6s} "
           f"{'peak GB':>8s} status")
-    for cell in CELLS:
-        for solver in SOLVERS:
+    cells = sorted({r['cell'] for r in rows}, key=lambda c: (c not in CELLS, c))
+    order = {s: i for i, s in enumerate(SOLVERS)}
+    for cell in cells:
+        for solver in sorted({r['solver'] for r in rows if r['cell'] == cell},
+                             key=lambda s: order.get(s, 99)):
             rs = [r for r in rows if r['cell'] == cell and r['solver'] == solver]
-            if not rs:
-                continue
             ts = [r['time'] for r in rs]
             m, h = ci95(ts)
             def mean(key):

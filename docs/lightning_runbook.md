@@ -94,8 +94,20 @@ Paper-table to script map:
 > now runs the corrected guarded algorithm, not plain pairwise FW),
 > (3) `schedule_check.py` (Table 3), (4) `final_benchmark.py --trials 5`
 > (Fig. 3), (5) `full_battery.py` (Table 2, the expensive one). Also still
-> open: LIBSVM on a precomputed K + I/C kernel for the five KL2 cells, a
-> BPCG baseline, and an ETA primal-progress column for Table 6.
+> open: an ETA primal-progress column for Table 6. The two new baselines
+> have scripts now (both resume; both use the KL2 subsample/seeds/gamma of
+> `regime_battery.py`):
+>
+> ```bash
+> # LIBSVM on the precomputed K + I/C kernel, C=1e6 surrogate, five KL2 cells
+> nohup python3 -u src/libsvm_kl2.py --data-dir data --seeds 5 --parallel 5 \
+>     --out results/libsvm_kl2.json > results/libsvm_kl2.log 2>&1 &
+> # BPCG (Tsuji et al. 2022) vs ETA, same certificate and column cost model,
+> # on gisette-l2 and the five KL2 cells (one process; ~1-2 h; timings are
+> # paired within the run, so load matters only for absolute numbers)
+> nohup python3 -u src/bpcg_baseline.py --data-dir data --seeds 3 \
+>     --out results/bpcg_baseline.json > results/bpcg_baseline.log 2>&1 &
+> ```
 
 ## 0. What you will run, and on what
 

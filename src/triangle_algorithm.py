@@ -73,7 +73,9 @@ class EnhancedTriangleAlgorithm:
                  anti_zigzag=True, zigzag_strategy='midpoint', prioritized=True,
                  step_mode='toward', refresh_every=100, full_scan_every=5,
                  shrink=False, shrink_every=50, shrink_min_frac=0.05,
-                 block_size=16, drop_skip=True, seed=None):
+                 block_size=16, drop_skip=True, seed=None,
+                 k_max=32, adapt_every=50, cost_ratio=20.0,
+                 drop_frac_max=0.1, k_init=16):
         """zigzag_strategy: what to do when an i,j,i,j pivot cycle is detected.
           'midpoint' - pivot on the midpoint of the two cycling vertices
                        (the strategy suggested in the paper);
@@ -124,7 +126,23 @@ class EnhancedTriangleAlgorithm:
         self.anti_zigzag = anti_zigzag and zigzag_strategy is not None
         self.zigzag_strategy = zigzag_strategy if self.anti_zigzag else None
         self.step_mode = step_mode
-        self.block_size = int(block_size)
+        # block_size='auto': adaptive block size (docs/aggregation_model.md
+        # section 4).  Every adapt_every iterations the directional
+        # diversity eta of the recent blocks is estimated from the exact
+        # kappa = D/S the guard already computes, and k is set to the
+        # work-optimal sqrt(cost_ratio (1 - eta) / eta), cost_ratio = a/b
+        # the ratio of the fixed to the per-pair iteration cost; k is
+        # halved instead when more than drop_frac_max of the recent
+        # block calls had their leading pair capped.  Guard and fallback
+        # are untouched, so Theorem 3 holds with k_max in the drop bound.
+        self.block_auto = (block_size == 'auto')
+        self.block_size = int(k_init if self.block_auto else block_size)
+        self.k_max = int(k_max)
+        self.adapt_every = int(adapt_every)
+        self.cost_ratio = float(cost_ratio)
+        self.drop_frac_max = float(drop_frac_max)
+        self._adapt_win = []
+        self.k_history = []       # (iteration, k, eta_hat, capped fraction)
         self.drop_skip = bool(drop_skip)
         # instrumentation for the two-sided schedule (block mode)
         self.n_drops = 0          # drop steps taken (either side)
@@ -486,21 +504,33 @@ class EnhancedTriangleAlgorithm:
     # ------------------------------------------------------------------
     # away and pairwise (MDM) steps
     # ------------------------------------------------------------------
+    @staticmethod
+    def _active_indices(weights):
+        """Indices with weight above the support threshold, as an int64
+        array, extracted at C speed: the per-iteration Python loops over
+        the weight dicts were the dominant fixed cost on dense supports."""
+        n = len(weights)
+        if n == 0:
+            return np.empty(0, dtype=np.int64)
+        keys = np.fromiter(weights.keys(), dtype=np.int64, count=n)
+        vals = np.fromiter(weights.values(), dtype=np.float64, count=n)
+        return keys[(keys >= 0) & (vals > _W_MIN)]
+
     def _worst_active_p(self):
         """Active vertex of V most opposed to the descent direction:
         argmin over support of (q - p).u = (b - a)[u]."""
-        cand = [u for u, w in self.wV.items() if u >= 0 and w > _W_MIN]
-        if not cand:
+        act = self._active_indices(self.wV)
+        if act.size == 0:
             return None
         s = self.b - self.a
-        return min(cand, key=lambda u: s[u])
+        return int(act[np.argmin(s[act])])
 
     def _worst_active_q(self):
-        cand = [u for u, w in self.wW.items() if u >= 0 and w > _W_MIN]
-        if not cand:
+        act = self._active_indices(self.wW)
+        if act.size == 0:
             return None
         s = self.c - self.e
-        return min(cand, key=lambda u: s[u])
+        return int(act[np.argmin(s[act])])
 
     def _away_p(self, u):
         """Away step: p <- p + gamma (p - V[u]), gamma <= w_u / (1 - w_u)."""
@@ -614,9 +644,7 @@ class EnhancedTriangleAlgorithm:
         Returns [(recv, donor, gamma)] with per-pair capacity clipping."""
         # active donors as an array (the Python-level comprehension over
         # the weight dict was the dominant per-call cost on dense supports)
-        keys = np.fromiter(weights.keys(), dtype=np.int64, count=len(weights))
-        vals = np.fromiter(weights.values(), dtype=np.float64, count=len(weights))
-        act_arr = keys[vals > _W_MIN]
+        act_arr = self._active_indices(weights)
         if act_arr.size == 0:
             return []
         n = len(s)
@@ -715,9 +743,13 @@ class EnhancedTriangleAlgorithm:
                 for pr in pairs for i in pr[:2]}
         if dg:
             t2 = time.perf_counter()
-        CR = np.stack([cols[int(r)] for r in R])   # k x n
-        CU = np.stack([cols[int(u)] for u in U])
-        M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
+        # Gram matrix of the pair directions from k'^2 cached entries (no
+        # k' x n column copies): M_ij = <d_i, d_j>
+        CRR = np.array([cols[int(r)][R] for r in R])
+        CRU = np.array([cols[int(r)][U] for r in R])
+        CUR = np.array([cols[int(u)][R] for u in U])
+        CUU = np.array([cols[int(u)][U] for u in U])
+        M = (CRR - CRU) - (CUR - CUU)
         den_t = float(G @ M @ G)
         if den_t <= self._eps_den or num_t <= 0.0:
             t, delta_B = 0.0, -np.inf      # degenerate block: never chosen
@@ -738,6 +770,11 @@ class EnhancedTriangleAlgorithm:
         if delta_1 > best:
             best, kind = delta_1, 'mdm'
         cap1 = self.wV.get(u1, 0.0)
+        if self.block_auto:
+            self._adapt_win.append((
+                len(pairs),
+                den_t / num_t if (num_t > 0.0 and np.isfinite(delta_B)) else np.nan,
+                bool(s1 > self._eps_den and gap1 / s1 > cap1 * (1.0 + 1e-12))))
         if dg:
             tiny = max(abs(delta_1), 1e-300)
             self._diag_rec = dict(
@@ -881,9 +918,11 @@ class EnhancedTriangleAlgorithm:
                 for pr in pairs for j in pr[:2]}
         if dg:
             t2 = time.perf_counter()
-        CR = np.stack([cols[int(r)] for r in R])
-        CU = np.stack([cols[int(u)] for u in U])
-        M = (CR[:, R] - CR[:, U]) - (CU[:, R] - CU[:, U])
+        CRR = np.array([cols[int(r)][R] for r in R])
+        CRU = np.array([cols[int(r)][U] for r in R])
+        CUR = np.array([cols[int(u)][R] for u in U])
+        CUU = np.array([cols[int(u)][U] for u in U])
+        M = (CRR - CRU) - (CUR - CUU)
         den_t = float(G @ M @ G)
         if den_t <= self._eps_den or num_t <= 0.0:
             t, delta_B = 0.0, -np.inf      # degenerate block: never chosen
@@ -900,6 +939,11 @@ class EnhancedTriangleAlgorithm:
         if delta_1 > best:
             best, kind = delta_1, 'mdm'
         cap1 = self.wW.get(u1, 0.0)
+        if self.block_auto:
+            self._adapt_win.append((
+                len(pairs),
+                den_t / num_t if (num_t > 0.0 and np.isfinite(delta_B)) else np.nan,
+                bool(s1 > self._eps_den and gap1 / s1 > cap1 * (1.0 + 1e-12))))
         if dg:
             tiny = max(abs(delta_1), 1e-300)
             self._diag_rec = dict(
@@ -1167,6 +1211,8 @@ class EnhancedTriangleAlgorithm:
                     break
             if self.shrink and it % self.shrink_every == 0:
                 self._screen_and_compact(lb_best)
+            if self.block_auto and it % self.adapt_every == 0:
+                self._adapt_k(it)
             iV, sV, iW, sW, _ = self._select(self._scores_ta2, it, tol)
             if iV is None and iW is None:
                 # no descent direction over the full input (a None pair
@@ -1214,6 +1260,28 @@ class EnhancedTriangleAlgorithm:
     # ------------------------------------------------------------------
     # one enhancement-aware update step; returns False if no progress
     # ------------------------------------------------------------------
+    def _adapt_k(self, it):
+        """Adaptive block size (block_size='auto'): see __init__."""
+        win = self._adapt_win
+        self._adapt_win = []
+        if not win:
+            return
+        frac = float(np.mean([c for _, _, c in win]))
+        etas = [(kap - 1.0) / (kp - 1) for kp, kap, _ in win
+                if kp > 1 and np.isfinite(kap)]
+        eta = float(np.median(etas)) if etas else float('nan')
+        k = self.block_size
+        if frac > self.drop_frac_max:
+            k = max(1, k // 2)
+        elif len(etas) < 5:
+            k = min(self.k_max, 2 * k)      # no diversity signal yet: explore
+        else:
+            eta_c = min(max(eta, 1e-3), 1.0 - 1e-3)
+            k = int(round(np.sqrt(self.cost_ratio * (1.0 - eta_c) / eta_c)))
+            k = max(1, min(self.k_max, k))
+        self.block_size = k
+        self.k_history.append((it, k, eta, frac))
+
     def _step(self, iV, iW, sV=-np.inf, sW=-np.inf):
         d_before = self.dist2()
         moved = False
@@ -1230,12 +1298,10 @@ class EnhancedTriangleAlgorithm:
                     if self.drop_skip:
                         # analysed schedule (Lemma 6): larger pairwise
                         # side gap (max score - worst active) first
-                        gV = float(sVa.max()) - min(
-                            sVa[u] for u, w in self.wV.items()
-                            if u >= 0 and w > _W_MIN)
-                        gW = float(sWa.max()) - min(
-                            sWa[u] for u, w in self.wW.items()
-                            if u >= 0 and w > _W_MIN)
+                        gV = float(sVa.max()) - float(
+                            sVa[self._active_indices(self.wV)].min())
+                        gW = float(sWa.max()) - float(
+                            sWa[self._active_indices(self.wW)].min())
                         order = ('V', 'W') if gV >= gW else ('W', 'V')
                     else:
                         # unconditional V-then-W (the batteries' schedule)

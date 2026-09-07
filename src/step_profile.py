@@ -42,7 +42,7 @@ sys.path.insert(0, str(HERE))
 
 EPS, CAP, C = 1e-3, 600.0, 1.0
 CELLS = ['gisette-l2', 'ijcnn1-kl2']
-SOLVERS = ['mdm', 'guarded1', 'block16', 'bpcg']
+SOLVERS = ['mdm', 'guarded1', 'block16', 'auto', 'bpcg']
 
 
 class Timers:
@@ -118,7 +118,7 @@ def run_one(cell, solver, seed, data_dir):
                    acc=float(np.mean(pred == yt)))
     else:
         mode, k = {'mdm': ('mdm', 1), 'guarded1': ('block', 1),
-                   'block16': ('block', 16)}[solver]
+                   'block16': ('block', 16), 'auto': ('block', 'auto')}[solver]
         ta = Cls(V, W, step_mode=mode, block_size=k,
                  zigzag_strategy='pairwise', seed=0, **kw)
         tm = Timers(ta)
@@ -132,6 +132,12 @@ def run_one(cell, solver, seed, data_dir):
                    dist=r.distance, status=r.status, n_drops=ta.n_drops,
                    gap=(r.distance - r.lower_bound) / r.distance, acc=a)
         out.update(tm.breakdown(r.time))
+        if solver == 'auto':
+            hist = ta.k_history
+            etas = [e for _, _, e, _ in hist if np.isfinite(e)]
+            out.update(k_final=ta.block_size,
+                       k_median=float(np.median([kk for _, kk, _, _ in hist])) if hist else float('nan'),
+                       eta_hat=float(np.median(etas)) if etas else float('nan'))
     ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     # ru_maxrss is bytes on macOS and kilobytes on Linux
     out['peak_rss_gb'] = ru / 1024 ** 3 if sys.platform == 'darwin' else ru / 1024 ** 2

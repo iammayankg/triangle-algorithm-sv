@@ -132,6 +132,25 @@ Paper-table to script map:
 > tail -f results/step_profile.log  # summary table prints at the end
 > ```
 >
+> 2026-09-07: three overhead fixes landed after the diagnostics runs
+> (vectorised active-donor extraction in `_block_pairs`, `_worst_active_*`
+> and the side-gap test of `_step`; the pair Gram matrix is now built from
+> k'^2 cached entries instead of k' x n column copies).  Trajectories are
+> bit-identical; only times change.  Before the journal numbers are final,
+> rerun both profiling scripts in isolation (summaries only - never
+> `--keep-records` into git again, the last one was 103 MB):
+>
+> ```bash
+> pgrep -af "src/.*\.py"          # must print nothing
+> OMP_NUM_THREADS=1 nohup sh -c 'python3 -u src/step_profile.py --data-dir data --seeds 3 --out results/step_profile2.json > results/step_profile2.log 2>&1; python3 -u src/block_diagnostics.py --data-dir data --cells gisette-l2 ijcnn1-kl2 w8a-kl2 a9a-kl2 covtype-kl2 --ks 1 4 16 32 --out results/block_diag3.json > results/block_diag3.log 2>&1' > /dev/null 2>&1 &
+> ```
+>
+> (~25 min sequential).  Then `python3 src/block_diag_fig.py --inp
+> results/block_diag3.json` regenerates the journal table rows and figure
+> from the new run (the decile figure needs records; keep
+> `results/block_diag2.json` for that, or rerun one cell with
+> `--keep-records --out /tmp/...` and pass it with `--inp`).
+>
 > Then sync `results/step_profile.json` and the paper gets: the isolated
 > ratios for Sec. 5 / Tables 5 and 7, the time split for the gisette vs
 > ijcnn1 discussion, and a peak-memory number for App. C.

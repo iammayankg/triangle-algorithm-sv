@@ -304,3 +304,42 @@ measured optimum k* = sqrt(a(1-eta)/(b eta)) is 8-15 for every cell.
 4. Adaptive k as a safeguard (Section 4), evaluated on the five cells
    plus a synthetic sweep in eta (control the cosine between class
    directions) to show the rule tracks k*.
+
+## 7. Status 2026-09-07 (evening)
+
+Done (commits 35ef47f, 50268df, 112d52e):
+- `paper/aor/sec_aggregation.tex` = journal Section 7 "When does aggregation
+  pay?": Proposition (exact gain ratio; eta-diverse, beta-flat bound), cost
+  model and k*, Assumption (strict complementarity + non-degeneracy),
+  Theorem (identification and drop count) with full proof, Corollary
+  (work model), five-cell table, decile figure (`src/block_diag_fig.py` ->
+  `paper/figs/fig_diag.pdf`), and 7.4 adaptive block size with the
+  synthetic eta sweep table.
+- Theorem proof structure: (F1) score separation at r <= tau/(6L); (F2)
+  non-face weight <= h/tau (from h >= <z*, z - z*> = sum of margins x
+  weights); (F3) explicit thresholds. (i) after H_id every step with a
+  non-face support point is a boundary-clipped away step (drop), no
+  non-face point enters; (ii) under (A1)-(A2) and H_w, weights >= alpha_min/2
+  and face pairs have transfer <= rL/d_min^2 < alpha_min/2: no capped pair,
+  no drop, no removal; (iii) contraction rho, or rho_k = min(1, 4 rho
+  (1+beta(k-1))/(1+eta(k-1))) on diverse, flat case-(a) iterations.
+- Overhead: `_active_indices` (C-speed extraction) in `_worst_active_*`,
+  `_step` side gaps and `_block_pairs`; pair Gram matrix from k'^2 cached
+  entries.  Synthetic d=1000: k=1 13.4 -> 9.2 s, k=16 3.8 -> 3.2 s;
+  plain MDM 6.0 s (the guarded k=1 path is still ~1.5x a bare MDM step
+  per call: argpartition + block bookkeeping).
+- `block_size='auto'` implemented (window 50, cost_ratio=a/b default 20,
+  k_max 32, halve on >10% capped leading pairs); sweep
+  `results/adaptive_sweep.json`: eta_hat 0.31/0.10/0.03/0.00/0.00 for
+  d=20/50/100/300/1000, rule picks 6/12/24/32/32, within 10% of the best
+  fixed k everywhere.
+
+Owed:
+- Studio reruns after the overhead fixes (runbook): `step_profile2.json`
+  (now includes the `auto` solver) and `block_diag3.json` (summaries);
+  then regenerate Table (tab:diag) rows and quote the new a, b, k*.
+- Real-cell auto results into 7.4 once `step_profile2.json` is synced.
+- Theorem constants: sigma and d_min are stated abstractly; a remark
+  computing sigma as a singular value for the two-face case would help.
+- Abstract and introduction of the journal draft still describe the
+  workshop paper; add the Section 7 contribution.

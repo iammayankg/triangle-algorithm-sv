@@ -22,6 +22,7 @@
   \newtheorem{proposition}[theorem]{Proposition}
   \newtheorem{corollary}[theorem]{Corollary}
   \newtheorem{remark}[theorem]{Remark}
+  \newtheorem{assumption}[theorem]{Assumption}
 }
 \ifsnjnl
   \theoremstyle{thmstyleone}
@@ -31,6 +32,7 @@
   \newtheorem{corollary}[theorem]{Corollary}
   \theoremstyle{thmstyletwo}
   \newtheorem{remark}[theorem]{Remark}
+  \newtheorem{assumption}[theorem]{Assumption}
 \fi
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -1063,6 +1065,8 @@ zero-weight non-face points were screened, and the final working set
 equalled the optimal face exactly. Over $5{,}000$ instrumented live
 block steps none increased the objective. All checks are test files in
 the released code.
+
+\input{sec_aggregation}
 
 \section{Related work}\label{sec:related}
 Distance duality and the TA \citep{kalantari2015,gupta2026}; MDM

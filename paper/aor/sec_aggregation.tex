@@ -1,0 +1,347 @@
+\section{When does aggregation pay?}\label{sec:pay}
+
+Fewer iterations are not the same as less work. This section separates
+the two: an exact expression for how much more progress a block makes
+than the single MDM step at the same iterate, a cost model for what the
+block costs, a theorem that bounds the drop steps by an identification
+phase rather than by the crude count of Theorem~\ref{thm:linear}, and
+measurements of every quantity in the model on the five real cells of
+Section~\ref{sec:exp}.
+
+\subsection{Progress per unit of work at one iterate}
+
+Consider a case-(a) iteration with $k'$ retained pairs, all uncapped,
+so that $\gamma_j=\mathrm{gap}_j/\norm{d_j}^2$ and pair $j$ alone would
+gain $\Delta_j=\mathrm{gap}_j^2/(2\norm{d_j}^2)$, with $\Delta_1$ the MDM
+gain. Write
+\[
+Q=\frac{\sum_{j\le k'}\Delta_j}{\Delta_1},\qquad
+\kappa=\frac{D}{S},\qquad
+S=\sum_j\gamma_j\mathrm{gap}_j=2\sum_j\Delta_j,\qquad
+D=\Big\lVert\sum_j\gamma_jd_j\Big\rVert^2 .
+\]
+$Q$ measures how much useful progress the block has beyond its leading
+pair and $\kappa$ how much the directions lose (or gain) by being
+combined; orthogonal directions give $\kappa=1$. Call the block
+\emph{$\eta$-diverse} if $|\ip{d_i}{d_j}|\le\eta\norm{d_i}\norm{d_j}$ for
+$i\ne j$ and \emph{$\beta$-flat} if $\Delta_j\ge\beta\Delta_1$ for every
+$j$.
+
+\begin{proposition}[Exact gain ratio]\label{prop:ratio}
+At such an iteration the exact line search gives
+\[
+\frac{\Delta_B}{\Delta_1}=Q\cdot\begin{cases}2-\kappa,&\kappa\le1,\\
+1/\kappa,&\kappa\ge1.\end{cases}
+\]
+If the block is $\eta$-diverse then $\kappa\le1+\eta(k'-1)$; if it is
+$\beta$-flat then $Q\ge1+\beta(k'-1)$; hence the guarded step gains at
+least
+\[
+\max(\Delta_B,\Delta_1)\ \ge\ \Delta_1\,\frac{1+\beta(k'-1)}{1+\eta(k'-1)} .
+\]
+\end{proposition}
+\begin{proof}
+For uncapped pairs $\gamma_j\norm{d_j}^2=\mathrm{gap}_j$, so
+$S=\sum_j\mathrm{gap}_j^2/\norm{d_j}^2=2\sum_j\Delta_j$ and
+$b_j^2=\gamma_j^2\norm{d_j}^2=\gamma_j\mathrm{gap}_j$, whence
+$\sum_jb_j^2=S$. The line search takes $\theta=\min(S/D,1)$. If $D\ge S$
+the optimum is interior and $\Delta_B=S^2/(2D)=(S/2)/\kappa=\sum_j\Delta_j/\kappa$;
+if $D<S$ then $\theta=1$ and $\Delta_B=S-D/2=(S/2)(2-\kappa)$. Dividing
+by $\Delta_1$ gives the two cases. For the bound on $\kappa$,
+$D=\sum_{i,j}\gamma_i\gamma_j\ip{d_i}{d_j}\le\sum_jb_j^2+\eta\sum_{i\ne j}b_ib_j
+\le(1+\eta(k'-1))\sum_jb_j^2=(1+\eta(k'-1))S$ by Cauchy--Schwarz on the
+cross terms; flatness gives $\sum_j\Delta_j\ge\Delta_1(1+\beta(k'-1))$.
+When $\kappa\le1$ the ratio is $Q(2-\kappa)\ge Q$, and when $\kappa\ge1$
+it is $Q/\kappa$; both are at least the stated bound.
+\end{proof}
+Proposition~\ref{prop:orth} is the case $\beta=1$ in disguise. The two
+numbers $Q$ and $\kappa$ are computed by the guard at every block step
+(from $S$, $D$ and the per-pair gaps), so both are observable at no
+extra cost, and we report them below.
+
+\paragraph{Cost.} Per iteration the solver pays a scan and certificate
+cost that does not depend on $k$, a step cost that grows with the number
+of retained pairs (the $k'\times n$ column copies of block assembly and
+the $k'$-column score update), and one Gram or kernel column for every
+receiver or donor not in the cache. Write
+\[
+C_B=a+b\,k'+c_{\mathrm{col}}\,m_B,\qquad C_1=a+b+c_{\mathrm{col}}\,m_1,
+\]
+for the block and the single step from the same state, where $a,b$ and
+$c_{\mathrm{col}}$ are machine constants and $m_B\ge m_1$ count the
+column misses of the two candidates ($m_1\le1$: only the MDM receiver can
+be new). The guarded block improves progress per unit of work at this
+iterate exactly when
+$\max(\Delta_B,\Delta_1)/\Delta_1>C_B/C_1$; by
+Proposition~\ref{prop:ratio} a sufficient condition is
+\begin{equation}\label{eq:ppc}
+\frac{1+\beta(k'-1)}{1+\eta(k'-1)}\;>\;\frac{a+bk'+c_{\mathrm{col}}m_B}{a+b+c_{\mathrm{col}}m_1}.
+\end{equation}
+Two regimes are visible in \eqref{eq:ppc}. If $c_{\mathrm{col}}$
+dominates $a$ and $b$, the right-hand side is governed by the miss
+counts and the block can only lose (it touches at least as many new
+points as the single step). If the per-iteration terms dominate, the
+right-hand side is $(a+bk')/(a+b)$, linear in $k'$, while the left-hand
+side saturates at $\beta/\eta$; the ratio of the two is maximised at
+\begin{equation}\label{eq:kstar}
+k^*=\sqrt{\frac{a(1-\eta)}{b\,\eta}}\qquad(\beta=1),
+\end{equation}
+the block size at which the marginal cost of one more pair equals its
+marginal gain.
+
+\subsection{Drops are an identification cost}
+
+Theorem~\ref{thm:linear} charges up to $k$ drop steps per non-drop
+iteration, which would cancel a $k$-fold gain in progress. The
+measurements below show that drops in fact happen while the support is
+being built and stop once it has settled. The following theorem proves
+this under the standard non-degeneracy assumptions of active-set
+identification \citep{bomze2020,garber2020}: after an explicit
+iteration, every step that removes a non-face point is a drop, no
+non-face point enters, and once the supports lie in the optimal faces
+and the weights are close to the optimal ones, no step is a drop at all.
+
+\begin{assumption}\label{ass:nondeg}
+(A1) \emph{Strict complementarity}: $F_V=\operatorname{supp}\alpha^*$ and
+$F_W=\operatorname{supp}\beta^*$, and $\alpha_{\min}>0$ is the smallest
+optimal weight. (A2) \emph{Non-degeneracy}: the witness pair $(p^*,q^*)$
+is unique, the vertices of each optimal face are affinely independent
+(so $\alpha^*,\beta^*$ are unique), and there is $\sigma>0$ with
+$\norm{\alpha-\alpha^*}_1+\norm{\beta-\beta^*}_1\le\norm{(p-q)-z^*}/\sigma$
+for all $p\in\conv(F_V)$, $q\in\conv(F_W)$ with weights $\alpha,\beta$
+on the faces. Let $d_{\min}>0$ be the smallest distance from a face
+vertex to the affine hull of the other vertices of its face.
+\end{assumption}
+Affine independence and uniqueness of the witness pair make the map
+$(\alpha,\beta)\mapsto p-q$ injective on the faces, which is what $\sigma$
+quantifies; $\sigma$ is a singular value of an explicit matrix.
+
+Recall $r_t=\sqrt{\UB^2-\max(\LB,0)^2}\ge\norm{z_t-z^*}$ and, from the
+proof of Theorem~\ref{thm:activation}, $r_t^2\le(4R^2/\delta^*)\sqrt{2h_t}$,
+so that $r_t\le\varrho$ whenever $h_t\le\varrho^4\delta^{*2}/(32R^4)$. Let
+$s_t$ be the total support size, $a_k=k+1$ (one-sided) or $2k+1$
+(two-sided schedule), and define
+\begin{align*}
+H_{\mathrm{id}}&=\min\Big\{\frac{\tau^4\delta^{*2}}{41472\,R^4L^4},\ \frac{\tau^2}{12L^2},\ \frac{\tau}{12},\ h_3\Big\},\qquad
+h_3=\max\{h:\ 2h+R\sqrt{2h}\le\tau/6\},\\
+H_{\mathrm w}&=\min\Big\{H_{\mathrm{id}},\ \frac{(\sigma\alpha_{\min}/2)^4\delta^{*2}}{32R^4},\
+\frac{(\alpha_{\min}d_{\min}^2/(2L))^4\delta^{*2}}{32R^4}\Big\}.
+\end{align*}
+
+\begin{theorem}[Identification and drop count]\label{thm:ident}
+Let $\delta^*>0$, let $\tau,L,R$ be as in Theorem~\ref{thm:activation}
+and let the guarded block-transfer algorithm run with any $k\ge1$ under
+either schedule of Theorem~\ref{thm:linear}. Let $t_{\mathrm{id}}$ be the
+first iteration with $h_t<H_{\mathrm{id}}$ and $N$ the number of
+non-face support indices at $t_{\mathrm{id}}$.
+\begin{enumerate}\setlength\itemsep{0pt}
+\item[(i)] For every $t\ge t_{\mathrm{id}}$: if either side's support
+contains a non-face point, the step taken is a drop of a non-face point;
+and no non-face point enters either support. Hence the supports lie in
+$F_V\times F_W$ from iteration $t_{\mathrm{id}}+N$ on, and
+$N\le s_{t_{\mathrm{id}}}\le s_0+a_k\,t_{\mathrm{id}}$.
+\item[(ii)] Under Assumption~\ref{ass:nondeg}, let $t_{\mathrm w}$ be the
+first iteration with $h_t<H_{\mathrm w}$. No iteration
+$t\ge\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ is a drop, and no block pair
+is capped at such an iteration. Consequently every drop occurs before
+$t_{\mathrm w}+N$, the number of drops is at most
+$a_k(t_{\mathrm w}+N)+s_0$, and
+$t_{\mathrm w}\le s_0+1+\tfrac{a_k}{\rho}\log\max\{1,h_0/H_{\mathrm w}\}$.
+\item[(iii)] For $t\ge\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ every
+iteration contracts: $h_{t+1}\le(1-\rho_t)h_t$ with $\rho_t\ge\rho$, and
+$\rho_t\ge\rho_k:=\min\{1,\,4\rho\,(1+\beta(k'-1))/(1+\eta(k'-1))\}$ when
+the iteration is case (a) with an $\eta$-diverse, $\beta$-flat block.
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+Throughout, $s_i=\ip{g}{v_i}=-\ip{z}{v_i}$ on side $V$ and
+$s_j=\ip{z}{w_j}$ on side $W$; we argue on side $V$, side $W$ being
+symmetric with the maximum in place of the minimum.
+
+\emph{Three facts.} (F1) If $r\le\tau/(6L)$ then for $i\notin F_V$ and
+$j\in F_V$,
+$s_j-s_i=\ip{z}{v_i-v_j}=\ip{z^*}{v_i-v_j}+\ip{z-z^*}{v_i-v_j}\ge\tau_i-rL\ge5\tau/6$,
+while for $i,j\in F_V$, $|s_i-s_j|\le rL\le\tau/6$; in particular the
+global argmax of $s$ is a face point. (F2) Let $\omega_t$ be the total
+weight on non-face points of both sides. By convexity
+$h_t\ge\ip{\nabla F(z^*)}{z_t-z^*}=\ip{z^*}{z_t-z^*}$; writing
+$\ip{z^*}{v_i}=m_V+\tau_i$, $\ip{z^*}{w_j}=M_W-\tau_j$ and using
+$\norm{z^*}^2=\ip{z^*}{p^*-q^*}=m_V-M_W$ (the optimal weights live on the
+faces, where the margins vanish),
+$\ip{z^*}{z_t-z^*}=\sum_i\alpha_i\tau_i+\sum_j\beta_j\tau_j\ge\tau\,\omega_t$.
+Hence $\omega_t\le h_t/\tau$. (F3) By the radius bound quoted above,
+$h_t<H_{\mathrm{id}}$ implies $r_t\le\tau/(6L)$, $\omega_t\le\tau/(12L^2)$,
+$\omega_t\le1/12$ and $2h_t+R\sqrt{2h_t}\le\tau/6$.
+
+\emph{(i) Identification.} Let $h_t<H_{\mathrm{id}}$ and suppose
+$\operatorname{supp}\alpha\not\subset F_V$. The worst active donor $u$
+minimises $s$ over the support, so by (F1) $u\notin F_V$. The away gap of
+side $V$ is $\gA_V=\sum_i\alpha_i(s_i-s_u)\ge\sum_{i\in F_V}\alpha_i\cdot5\tau/6\ge(1-\omega_t)5\tau/6\ge55\tau/72$.
+A side whose support lies in its face has
+$\gPW\le\gA+\gFW\le rL+(2h+R\sqrt{2h})\le\tau/3$ by (F1) and (F3), so the
+side with the larger pairwise gap, which the schedule steps first, is a
+side with a non-face support point whenever one exists. On that side
+pair~1 is $(r^*,u)$ with $r^*\in F_V$ the global argmax, so
+$\mathrm{gap}_1\ge5\tau/6$ and the uncapped transfer would be
+$\mathrm{gap}_1/\norm{d_1}^2\ge5\tau/(6L^2)>\tau/(12L^2)\ge\omega_t\ge\alpha_u$:
+pair~1 is capped and the iteration is case (b). The away step on $u$ has
+derivative $\ip{g}{p-v_u}=\gA_V\ge55\tau/72$ and curvature
+$\norm{p-v_u}^2\le L^2$, so its unconstrained length is at least
+$55\tau/(72L^2)$, while its maximal length is
+$\alpha_u/(1-\alpha_u)\le\tfrac{12}{11}\alpha_u\le\tau/(11L^2)$; the
+away step is boundary-clipped, i.e.\ a drop of $u$, and it adds no index.
+If instead neither side has a non-face support point, all donors are
+face points and a non-face receiver $r$ has
+$\mathrm{gap}=s_r-s_u\le-5\tau/6<0$ against any of them, so it is
+discarded (line~2 of Algorithm~\ref{alg:block}); the toward candidate is
+$r^*\in F_V$. Under the two-sided schedule the second side steps only on
+non-drop iterations, when neither side has a non-face point, and the same
+argument applies. Thus for $t\ge t_{\mathrm{id}}$ (monotonicity of $h$)
+the set of non-face support indices never grows and loses one member at
+every iteration while it is nonempty, which proves (i); the bound on $N$
+is the support count of Theorem~\ref{thm:linear}.
+
+\emph{(ii) No late drops.} Let $t\ge\max(t_{\mathrm w},t_{\mathrm{id}}+N)$,
+so the supports lie in the faces and, by (F3) applied to $H_{\mathrm w}$,
+$r_t\le\min\{\tau/(6L),\sigma\alpha_{\min}/2,\alpha_{\min}d_{\min}^2/(2L)\}$.
+By (A2), $\norm{\alpha_t-\alpha^*}_\infty\le r_t/\sigma\le\alpha_{\min}/2$,
+so every support weight is at least $\alpha_{\min}/2$ (A1). Any pair
+$(r,u)$ of face points has $\mathrm{gap}\le rL$ by (F1) and
+$\norm{v_r-v_u}\ge d_{\min}$, so its uncapped transfer is at most
+$rL/d_{\min}^2\le\alpha_{\min}/2\le\alpha_u$: no pair is capped, the
+iteration is case (a), no away step is taken, and a block transfer
+removes at most $\gamma_j<\alpha_{u_j}$ from each donor, so no index
+leaves the support. Drops at $t\ge t_{\mathrm w}$ are therefore among the
+$N$ identification drops of (i), which occur at the consecutive iterations
+$t_{\mathrm{id}},\dots,t_{\mathrm{id}}+N-1$; hence all drops occur before
+$t_{\mathrm w}+N$, and the count of Theorem~\ref{thm:linear} over the
+first $t_{\mathrm w}+N$ iterations gives the bound. The bound on
+$t_{\mathrm w}$ is Theorem~\ref{thm:linear} with
+$\log(1/(1-\rho))\ge\rho$.
+
+\emph{(iii) Rate.} A non-drop iteration gains at least the amount of
+Lemma~\ref{lem:good}, which with Lemma~\ref{lem:gsc} is $\rho h_t$. In
+case (a) the guard takes $\max(\Delta_B,\Delta_1)$; by
+Proposition~\ref{prop:ratio} this is at least
+$\Delta_1(1+\beta(k'-1))/(1+\eta(k'-1))$, and in case (a) the proof of
+Lemma~\ref{lem:good} gives $\Delta_1\ge(\gPW)^2/(8M^2)\ge2\delta^2h_t/(8M^2)=4\rho h_t$
+by Lemma~\ref{lem:gsc}. A gain cannot exceed $h_t$, whence the minimum
+with~$1$.
+\end{proof}
+
+Theorem~\ref{thm:ident} says that drops are paid during identification
+and never afterwards: the worst case $k$ drops per iteration of
+Theorem~\ref{thm:linear} applies only up to $t_{\mathrm w}+N$, and the
+$k$-dependence of the drop count enters only through the support that
+is built up to then. This is exactly the shape of the measurements in
+Figure~\ref{fig:diag}. The constants are those of
+Theorem~\ref{thm:activation} and of active-set identification and are
+pessimistic; the measured drop counts below are $0.3$--$70\%$ of the
+final support size.
+
+\begin{corollary}[Work model]\label{cor:work}
+Under Theorem~\ref{thm:ident} and the cost model, if every case-(a)
+iteration after $t_1:=\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ is
+$\eta$-diverse and $\beta$-flat, the work to reach $h_T\le\varepsilon$ is
+at most
+\[
+W(k)\ \le\ c_{\mathrm{col}}N_{\mathrm{cols}}+(a+bk)\Big[t_1+\frac{\log(h_{t_1}/\varepsilon)}{\rho_k}\Big],
+\qquad \rho_k=\min\Big\{1,\,4\rho\,\frac{1+\beta(k-1)}{1+\eta(k-1)}\Big\},
+\]
+where $N_{\mathrm{cols}}$ is the number of distinct columns computed.
+Aggregation leaves the column term unchanged, multiplies the
+per-iteration term after identification by
+$\frac{1+\eta(k-1)}{1+\beta(k-1)}\cdot\frac{a+bk}{a+b}$ relative to the
+guarded single pair, and for $\beta=1$ this factor is minimised at
+$k^*$ of \eqref{eq:kstar}.
+\end{corollary}
+\begin{proof}
+Multiply the iteration count $t_1+\log(h_{t_1}/\varepsilon)/\rho_k$ from
+Theorem~\ref{thm:ident}(iii) (with $\log(1/(1-\rho_k))\ge\rho_k$) by the
+per-iteration cost $a+bk$ and add the columns; differentiate
+$(1+\eta(k-1))(a+bk)/k$ in $k$.
+\end{proof}
+
+\subsection{Measurements}\label{sec:pay-meas}
+
+Every quantity in Proposition~\ref{prop:ratio}, the cost model and
+Theorem~\ref{thm:ident} was recorded on the five real cells of
+Table~\ref{tab:regime} (gisette $L_2$ and the kernel $L_2$ cells of
+ijcnn1, w8a, a9a and covtype, seed 0; \texttt{src/block\_diagnostics.py}, one process at a time on an
+otherwise idle machine, $k\in\{1,4,16,32\}$). At every block step the
+solver logs $\Delta_B$, $\Delta_1$, $Q$, $\kappa$, the candidate taken,
+the capped pairs, the column misses, the support size and a time split
+of the step next to a dry-run timing of the single MDM update from the
+same state. Table~\ref{tab:diag} fits the model per cell:
+$\hat\eta=(\kappa-1)/(k'-1)$ (median over uncapped block steps), $a$ and
+$b$ by least squares of the non-column time per iteration on $k$,
+$c_{\mathrm{col}}$ as column time per column.
+
+\begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{4pt}
+\caption{The model of Corollary~\ref{cor:work} fitted per cell (seed 0,
+isolated runs). $\hat\eta$ is the median over $k\in\{4,16,32\}$; the three
+estimates agree within $\pm0.03$ on every cell. $k^*$ from
+\eqref{eq:kstar}. Times for $k=1/4/16/32$; ``column share'' is the
+fraction of the $k{=}16$ run spent computing columns; the last column is
+the speed-up of the best $k$ over the guarded single pair.}\label{tab:diag}
+\begin{tabular}{lrrrrrlrr}\toprule
+cell & $\hat\eta$ & $a$ (ms) & $b$ (ms) & $c_{\mathrm{col}}$ (ms) & $k^*$ & time (s), $k=1/4/16/32$ & column share & best $k$ vs $k{=}1$ \\\midrule
+% rows generated by src/block_diag_fig.py (tab_diag_rows.tex)
+gisette $L_2$ & 0.07 & 1.3 & 0.073 & 18.40 & 15 & 27.4 / 27.2 / 28.9 / 33.5 & 92\% & 1.0$\times$ (4) \\
+ijcnn1 KL2 & 0.26 & 2.1 & 0.093 & 0.21 & 8 & 13.5 / 6.6 / 6.7 / 7.6 & 14\% & 2.0$\times$ (4) \\
+w8a KL2 & 0.17 & 1.6 & 0.095 & 0.86 & 9 & 10.3 / 5.1 / 5.7 / 5.1 & 66\% & 2.0$\times$ (4) \\
+a9a KL2 & 0.11 & 3.2 & 0.132 & 0.62 & 14 & 36.3 / 16.9 / 12.2 / 13.7 & 36\% & 3.0$\times$ (16) \\
+covtype KL2 & 0.29 & 3.6 & 0.122 & 0.35 & 9 & 48.5 / 26.3 / 21.7 / 26.3 & 14\% & 2.2$\times$ (16) \\
+\bottomrule\end{tabular}\end{table}
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{figs/fig_diag.pdf}
+\caption{Along the run at $k=16$ (deciles of the iteration count, one
+line per cell): fraction of block calls that are drops, column misses per
+block call, and $\hat\eta$. Drops and misses are paid while the support
+is built and vanish once it has settled, as Theorem~\ref{thm:ident}
+predicts; $\hat\eta$ is constant along the run.}\label{fig:diag}
+\end{figure}
+
+Four facts follow.
+\begin{itemize}\setlength\itemsep{0pt}
+\item \emph{$\eta$ is a property of the data.} It does not move with $k$
+nor along the run (Figure~\ref{fig:diag}, right); it is $0.07$ on
+gisette, $0.11$ on a9a, $0.17$ on w8a, $0.26$ on ijcnn1 and $0.29$ on
+covtype, and $0.004$ on the synthetic dense-support instance of
+Table~\ref{tab:kabl}. $Q/k'$ is $0.85$--$0.98$ throughout: the useful
+progress beyond the leading pair is never the limit, the loss to
+combination is. The measured gain ratios ($3.4/6.9/7.5$ on gisette,
+$2.1/2.8/3.0$ on ijcnn1 for $k=4/16/32$) follow $k/(1+\hat\eta(k-1))$
+within $25\%$ and saturate at about $1/\hat\eta$.
+\item \emph{$k^*$ is $8$--$15$ on every cell}, because $a/b$ is
+$15$--$30$ throughout and $\hat\eta\in[0.07,0.29]$: a fixed block size
+of $8$--$16$ is within about $10\%$ of the best measured time on all
+five cells, which is why the untuned $k=16$ of Section~\ref{sec:exp}
+never lost to another size by more than that.
+\item \emph{The wall-clock gain is bounded by the column share.} The
+block cannot touch the column term of Corollary~\ref{cor:work}
+($N_{\mathrm{cols}}$ varies by under $20\%$ across $k$ on every cell),
+so its speed-up over the guarded single pair is $1.0\times$ where columns
+are $92\%$ of the run (gisette), $2.0\times$ at $66\%$ (w8a),
+$3.0\times$ at $36\%$ (a9a) and $2.0$--$2.2\times$ at $14\%$ (ijcnn1,
+covtype), where the iteration gain has already saturated at $1/\hat\eta$.
+The model's time predictions are within $10\%$ of the measurements
+except on covtype at $k\ge16$, where the run does better than the
+one-state ratio.
+\item \emph{Drops are front-loaded} (Figure~\ref{fig:diag}, left). On
+gisette at $k=16$ half of the block calls in the first three deciles are
+drops and $1$--$2\%$ in the last three; the kernel cells show the same
+shape at lower levels; nearly every case-(b) call is a drop, so the
+best-of-four branch is rare. Column misses follow the same curve, so on
+column-bound cells the whole column bill is paid during identification
+whichever $k$ is used. Total drops per final support point are
+$0.13/0.13/0.48/0.69$ on gisette and $0.003$--$0.10$ on the kernel cells
+for $k=1/4/16/32$: proportional to the support, growing with $k$, and an
+order of magnitude more frequent on the sparse linear cell, where fresh
+receivers of small weight become the worst donor at once.
+\end{itemize}
+The measurements are from one seed per cell; the ratios they support
+(Tables~\ref{tab:kreal} and~\ref{tab:bpcg}) are reproduced across three
+seeds in isolated runs.

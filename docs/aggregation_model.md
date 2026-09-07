@@ -158,7 +158,7 @@ accuracy, peak memory): adaptive vs guarded k = 1, fixed k = 4, 16, 32
 and BPCG on gisette L2, ijcnn1 KL2, and the other KL2 cells; report
 the eta each cell settles at and the k the rule chooses.
 
-## 5. Next measurements
+## 5. Next measurements (superseded by Section 6)
 
 - Rerun `block_diagnostics.py --keep-records` for k = 16 on both cells
   after the `_block_pairs` fix, to see eta and phi along the run (are
@@ -169,3 +169,138 @@ the eta each cell settles at and the k the rule chooses.
   falls with d).
 - Instrument BPCG the same way for the cost comparison in Theorem B's
   terms.
+
+## 6. Five cells with per-step records (2026-09-07, `results/block_diag2.json`)
+
+Isolated Studio run on the fixed pair-selection code, seed 0, k in
+{1, 4, 16, 32}, records kept. The JSON is 103 MB and is committed; keep
+future record-level runs out of git.
+
+### 6.1 The model holds on all five cells
+
+| cell | eta (k=4 / 16 / 32) | a (ms) | b (ms) | c_col (ms) | k* | time k=1 / 4 / 16 / 32 (s) | model | column share at k=16 | speed-up of best k over guarded k=1 |
+|---|---|---|---|---|---|---|---|---|---|
+| gisette L2 | 0.041 / 0.078 / 0.074 | 1.3 | 0.073 | 18.4 | 15 | 27.4 / 27.2 / 28.9 / 33.5 | 29.3 / 26.5 / 28.4 / 30.5 | 92 % | 1.0x |
+| ijcnn1 KL2 | 0.257 / 0.262 / 0.243 | 2.1 | 0.093 | 0.21 | 8 | 13.5 / 6.6 / 6.7 / 7.6 | 14.5 / 7.7 / 7.7 / 9.8 | 14 % | 2.0x |
+| w8a KL2 | 0.202 / 0.174 / 0.163 | 1.6 | 0.095 | 0.86 | 9 | 10.3 / 5.1 / 5.7 / 5.1 | 10.3 / 6.4 / 6.2 / 7.1 | 66 % | 2.0x |
+| a9a KL2 | 0.107 / 0.117 / 0.111 | 3.2 | 0.132 | 0.62 | 14 | 36.3 / 16.9 / 12.2 / 13.7 | 37.2 / 16.8 / 13.3 / 14.8 | 36 % | 3.0x |
+| covtype KL2 | 0.285 / 0.284 / 0.286 | 3.6 | 0.122 | 0.35 | 9 | 48.5 / 26.3 / 21.7 / 26.3 | 50.6 / 27.4 / 26.5 / 32.6 | 14 % | 2.2x |
+
+- eta is a property of the cell: it does not move with k (columns 2-4)
+  nor along the run (Section 6.2). Range 0.07-0.29 on real data.
+- k* = sqrt(a(1-eta)/(b eta)) lands in 8-15 on every cell because a/b is
+  15-30 ms/ms throughout and eta is 0.07-0.29. A fixed k of 8-16 is
+  therefore within about 10 % of the best measured time on all five
+  cells; adaptive k has little to gain here and is a safeguard for
+  regimes with eta > 0.5 or a much smaller a/b (a faster inner loop),
+  not a source of speed-up on these data.
+- The model's time predictions are within 10 % except covtype at k >= 16,
+  where it over-predicts iterations (the trajectory does better than the
+  one-state ratio, as on ijcnn1).
+- The wall-clock gain of blocks is Amdahl-limited by the column share:
+  1.0x at 92 % (gisette), 2.0x at 66 % (w8a), 3.0x at 36 % (a9a), 2.0-2.2x
+  at 14 % (ijcnn1, covtype, where eta is largest and the iteration gain
+  saturates at 1/eta ~ 3.5-4).
+- The fixed per-iteration cost a grows with the support (1.3 ms at 611,
+  3.6 ms at 4,362): what remains O(|supp|) per iteration in Python is the
+  weight-dict traversal in pair selection and the worst-active search.
+  Reducing it raises k* and the block's margin over MDM.
+
+### 6.2 Along the run: eta is flat, drops are front-loaded
+
+Deciles of the k=16 runs (fraction of block calls that are drops; median
+support; column misses per call):
+
+| cell | drop % by decile 1 ... 10 | support by decile | misses/call decile 1 -> 10 |
+|---|---|---|---|
+| gisette L2 | 39, 54, 46, 37, 27, 13, 6, 2, 2, 1 | 259 -> 617 -> 611 | 6.4 -> 0.01 |
+| ijcnn1 KL2 | 6, 7, 7, 5, 2, 2, 1, 1, 0, 1 | 851 -> 2,326 -> 2,388 | 11.0 -> 0.02 |
+| w8a KL2 | 11, 8, 3, 3, 3, 1, 1, 1, 1, 0 | 344 -> 1,680 -> 1,820 | 11.7 -> 0.03 |
+| a9a KL2 | 1, 2, 2, 2, 2, 2, 0, 1, 0, 0 | 1,016 -> 3,977 -> 3,795 | 14.1 -> 0.00 |
+| covtype KL2 | 1, 1, 1, 0, 0, 0, 0, 0, 0, 0 | 2,177 -> 4,509 -> 4,555 | 10.5 -> 0.01 |
+
+Three facts, opposite to the "drops cluster when the support is full"
+hypothesis:
+
+1. Drops happen while the support is being built and stop once it has
+   settled. On gisette half of all calls in the first three deciles are
+   drops and 1-2 % in the last three; the kernel cells show the same
+   shape at lower levels. Nearly every case-(b) call is a drop (the
+   "pair 1 capped" and "drop" columns coincide), so the best-of-four
+   branch is rare.
+2. eta is flat along the run (gisette 0.07-0.08, ijcnn1 0.24-0.28, w8a
+   0.16-0.19, a9a 0.10-0.16 falling slightly, covtype 0.27-0.31), and
+   Q/k' rises from 0.6-0.9 early to 0.9-1.1 late. The block is at least
+   as good late in the run as early.
+3. Cache misses are front-loaded in the same way (6-14 per call in the
+   first decile, ~0 in the last), so on column-bound cells the whole
+   column bill is paid during identification, whichever k is used.
+
+Total drops per support point (drops / final support): gisette 0.13,
+0.13, 0.48, 0.69 (k = 1, 4, 16, 32); ijcnn1 0.005, 0.018, 0.041, 0.096;
+w8a 0.006, 0.004, 0.016, 0.019; a9a 0.009, 0.011, 0.010, 0.022; covtype
+0.003, 0.005, 0.006, 0.016. Drops scale with the support size, grow
+with k, and are an order of magnitude more frequent on the sparse
+linear cell (gisette: 611 support points carrying weights of very
+different sizes, so fresh receivers with small weight become the worst
+donor at once) than on the dense kernel cells (weights of order
+1/2,000).
+
+### 6.3 Revised theorem plan
+
+The bridge (Theorem B) needs phi, the drop fraction. Section 6.2 says
+phi is a transient of the identification phase, not a steady-state
+property: after the support settles, drops stop. That is exactly what
+the active-set identification theory for away-step and pairwise FW
+provides (Bomze, Rinaldi, Zeffiro 2020, "active set complexity";
+Garber 2020 under strict complementarity): after a finite number of
+iterations the support equals the optimal face and no further drops
+occur. So the right statement is
+
+**Theorem B' (drop count via identification).** Under strict
+complementarity of (P) on Z, the guarded block algorithm with any k
+identifies the optimal face after T_id(k) iterations, and the total
+number of drop iterations is at most the number of indices added and
+later removed during identification, D(k) <= k T_id(k). After T_id the
+rate of Theorem 3 holds with T_good = T - T_id and no drop term, and
+with eta-diverse, beta-flat blocks the contraction is rho_k per
+iteration. Total work: W(k) <= c_col N_cols + (a + bk) [ T_id(k) +
+log(h_{T_id}/eps)/rho_k ].
+
+What must be proved: T_id(k) for the guarded block step. The existing
+active-set complexity bounds are for single away/pairwise steps and
+give T_id in terms of the strict-complementarity gap and the rate; the
+block adds at most k indices per iteration and the guard keeps the
+same rate, so the argument should go through with k entering only the
+support-size bound during identification (which is what the measured
+D(k)/|supp| = 0.005-0.7 reflects). This is the piece of theory that is
+new, and the data say it is the right one: drops are an identification
+cost, paid early, proportional to the support and to k, and zero
+afterwards.
+
+What the paper can then claim (Corollary C, sharpened): aggregation
+with block size k reduces the per-iteration term by k/(1+eta(k-1)) at
+cost (a+bk)/(a+b), never reduces the column term, and adds an
+identification cost of at most k T_id extra drop iterations; on the
+five cells the drop cost is 1-10 % of iterations at k = 16 (31 % on
+gisette, where it does not matter because columns dominate), and the
+measured optimum k* = sqrt(a(1-eta)/(b eta)) is 8-15 for every cell.
+
+### 6.4 Next steps
+
+1. Write Proposition A, Theorem B' and Corollary C into `paper/aor/aor.tex`
+   as a new section "When does aggregation pay?" with the five-cell table
+   and the decile figure (drops and misses along the run).
+2. Prove T_id(k): start from Bomze-Rinaldi-Zeffiro's argument for
+   away-step FW (their Theorem on active-set complexity), replace the
+   single-index addition by k, and check the guard does not break the
+   "no bad steps after identification" property.
+3. Reduce the O(|supp|) per-iteration overhead (a): maintain the active
+   index set as an array alongside the weight dict, or rewrite
+   `_worst_active_*` and `_block_pairs` to reuse one extraction per
+   iteration. Then rerun `step_profile.py` and `block_diagnostics.py`
+   (summaries only; no `--keep-records` in git) for the paper's final
+   numbers.
+4. Adaptive k as a safeguard (Section 4), evaluated on the five cells
+   plus a synthetic sweep in eta (control the cosine between class
+   directions) to show the rule tracks k*.

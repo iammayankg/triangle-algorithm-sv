@@ -519,9 +519,13 @@ retrospectively fitted $k^*$ ($9$, $13$, $8$), and the fixed sizes
 nearest to them are the best measured ones in Table~\ref{tab:diag}. On
 the two pilot cells (Table~\ref{tab:kreal}) it settles at $k{=}9$ then
 $15$ on gisette, tying the fixed sizes within CI, and at $k{=}7$--$8$ on
-ijcnn1, where it is the fastest configuration ($5.0\pm0.5$\,s against
-$5.7\pm1.9$\,s for $k{=}16$); the held-out cells' isolated timings with
-the adaptive size are part of the final benchmark run. Table~\ref{tab:adaptive} tests it where
+ijcnn1, where it is the fastest configuration ($4.7\pm0.6$\,s against
+$5.3\pm0.8$\,s for $k{=}16$). On the three held-out cells
+(Table~\ref{tab:kreal}, three seeds, isolated) it settles at $k=10$,
+$13$ and $7$ and takes $3.8\pm0.2$, $10.0\pm0.5$ and $16.8\pm1.7$\,s
+against $4.0\pm0.2$, $10.0\pm0.5$ and $17.4\pm0.5$\,s for the best fixed
+size tested, $k{=}16$: it ties or beats it on every held-out cell,
+which is the prospective test the model had to pass. Table~\ref{tab:adaptive} tests it where
 $\eta$ actually varies: synthetic $L_2$ instances ($n{=}2{,}000$ per
 class, $C{=}1$) whose transfer directions decorrelate as the dimension
 grows, so that $\hat\eta$ falls from $0.31$ at $d{=}20$ to $0.001$ at

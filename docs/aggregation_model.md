@@ -418,3 +418,20 @@ Table 6 traces on the released code; n-scaling experiment; moving
 Section 7 next to the analysis and consolidating the experiments around
 it (structural, deferred); affiliation / repository / declarations
 placeholders; Springer template.
+
+## 10. step_profile3 (2026-09-08, Studio, five cells, adaptive solver)
+
+| cell | MDM | guarded k=1 | block 16 | auto (k) | BPCG |
+|---|---|---|---|---|---|
+| gisette L2 | 29.4 | 30.1 | 31.9 | 30.9 (9) | 29.8 |
+| ijcnn1 KL2 | 10.3 | 9.7 | 5.3 | 4.7 (8) | 19.9 |
+| w8a KL2 | 8.8 | 7.3 | 4.0 | 3.8 (10) | 17.5 |
+| a9a KL2 | 31.5 | 24.2 | 10.0 | 10.0 (13) | 60.7 |
+| covtype KL2 | 39.5 | 33.4 | 17.4 | 16.8 (7) | 85.3 |
+
+Prospective test passed: on the three held-out cells the adaptive size
+(a/b = 20 fixed from the pilot cells, eta-hat from the first window)
+ties or beats the best fixed size tested; the k it picks (10/13/7)
+matches the retrospective k* (9/13/8).  Journal Table 5 is now the
+five-cell version from this run; Sections 6, 7.4 and the Table 7 caption
+quote it.

@@ -586,13 +586,14 @@ seeds, 600\,s per solver and cell, all on one dedicated 32-vCPU Xeon
 \paragraph{Blocks and screening (Section~\ref{app:details}).} Two
 effects separate in Table~\ref{tab:kreal} (isolated runs). The guard
 and away fallback alone (guarded $k{=}1$) cut plain pairwise FW's
-iterations $1.4$--$2\times$ but its time by at most $12\%$; aggregation
-cuts iterations a further $4.2$--$4.4\times$, which buys wall-clock
-only where per-iteration $O(n)$ work, not column computation,
-dominates: $1.9\times$ over guarded $k{=}1$ on ijcnn1 ($d{=}22$;
-$2.2\times$ over MDM, $3.0\times$ over BPCG) and nothing on gisette
-($d{=}5{,}000$), where columns are $86$--$92\%$ of the time and all
-four solvers tie at $30$\,s. $k{=}16$ is untuned ($\rho$ is
+iterations $1.4$--$2\times$ but not its time (the two tie within CI);
+aggregation cuts iterations a further $4.2$--$4.4\times$, which buys
+wall-clock only where per-iteration $O(n)$ work, not column
+computation, dominates: $2.0\times$ over guarded $k{=}1$ and MDM on
+ijcnn1 ($d{=}22$; $4.0\times$ over BPCG; $2.2\times$ and $4.5\times$
+with the adaptive size of Section~\ref{sec:adaptive}) and nothing on
+gisette ($d{=}5{,}000$), where columns are $87$--$93\%$ of the time and
+all five configurations tie within CI at $31$--$38$\,s. $k{=}16$ is untuned ($\rho$ is
 $k$-independent, an oversized block costs guard work, not progress;
 $k{=}4$ and $16$ agree within CI).
 Screening gives $1.4$--$2.4\times$ at $\varepsilon=10^{-5}$ and is
@@ -646,7 +647,7 @@ expensive (gisette, w8a) and $1.4\times$ slower where they are cheap
 BPCG \citep{tsuji2022} with the same column cache and certificate
 (Table~\ref{tab:bpcg}), block ETA needs $12$--$35\times$ fewer
 iterations, is $2.5$--$5.6\times$ faster on the five KL2 cells
-($3.0\times$ on ijcnn1 in isolation) and ties on the gisette $L_2$
+($4.0\times$ on ijcnn1 in isolation) and ties on the gisette $L_2$
 margin, where columns dominate. LIBSVM on the
 precomputed $K+I/C$ kernel (brackets in Table~\ref{tab:regime}) reaches
 the same distances $2.5$--$24\times$ faster than K-ETA, kernel
@@ -794,10 +795,14 @@ one configuration at a time on an otherwise idle machine) measures the
 effect: under the 19-process load the gisette MDM, guarded $k{=}1$ and
 $k{=}16$ configurations took $36.6$, $27.7$ and $37.8$\,s and ijcnn1's
 $16.0$, $12.8$ and $7.9$\,s; in isolation they take $30.1$, $30.3$,
-$30.8$ and $15.3$, $13.5$, $7.0$\,s. The load thus manufactured one
-ratio ($1.3\times$ for guarded $k{=}1$ over MDM on gisette, a tie in
+$30.8$ and $15.3$, $13.5$, $7.0$\,s, and after the overhead fixes of
+Section~\ref{sec:pay-meas} $32.2$, $30.7$, $38.2$ and $11.4$, $11.2$,
+$5.7$\,s (Table~\ref{tab:kreal}). The load thus manufactured one ratio
+($1.3\times$ for guarded $k{=}1$ over MDM on gisette, a tie in
 isolation) while the ijcnn1 ratios and the BPCG comparison ($20.2$ vs
-$5.9$\,s loaded, $21.1$ vs $7.0$\,s isolated) survive.
+$5.9$\,s loaded, $21.1$ vs $7.0$ and $22.6$ vs $5.7$\,s isolated)
+survive; the two isolated gisette runs also show that the machine's
+column time itself moves by $\pm15\%$ between runs.
 
 \begin{table}[h]\centering\scriptsize\setlength{\tabcolsep}{4pt}
 \caption{$L_2$ soft-margin battery: five seeds, 600\,s per solver for
@@ -932,30 +937,37 @@ ijcnn1 & 0.1 & 550.61 & 301 s & 472 s & $>600$ s & $>600$ s ($s{=}0.05\%$) & 0.3
 \begin{table}[h]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
 \caption{Step ablation on real data with a time split, isolated runs
 (\texttt{src/step\_profile.py}: three seeds, each configuration alone
-in its own process on an otherwise idle machine): the gisette $L_2$
+in its own process on an otherwise idle machine, run after the
+overhead fixes of Section~\ref{sec:pay-meas}): the gisette $L_2$
 margin ($C{=}1$, $d{=}5{,}000$) and the ijcnn1 kernel $L_2$ cell of
 Table~\ref{tab:regime} ($d{=}22$, $n_k{=}9{,}853$). MDM is plain
 pairwise FW (single transfers, no guard, no fallback); guarded $k{=}1$
 is Algorithm~\ref{alg:block} with a single pair (guard and case-(b)
-fallback active); BPCG as in Table~\ref{tab:bpcg}. Split of the ETA
-time: scan = the score scan and pair selection; col = Gram or kernel
-column computation; step = the step itself (block assembly, guard,
-line search, cache and score update); rest = certificate and bounds.
-Drops = away fallbacks that removed a support index. Every run
-converged to the certified gap with identical distance and accuracy per
-dataset. Peak resident memory: $0.74$\,GB for every gisette run and
-$0.49$--$0.50$\,GB (ETA) / $0.68$\,GB (BPCG) on ijcnn1.}\label{tab:kreal}
+fallback active); auto is the adaptive block size of
+Section~\ref{sec:adaptive} (median $k$ over the run given); BPCG as in
+Table~\ref{tab:bpcg}. Split of the ETA time: scan = the score scan and
+pair selection; col = Gram or kernel column computation; step = the
+step itself (block assembly, guard, line search, cache and score
+update); rest = certificate and bounds. Drops = away fallbacks that
+removed a support index. Every run converged to the certified gap with
+identical distance and accuracy per dataset and seed. Peak resident
+memory: $0.74$\,GB for every gisette run and $0.49$--$0.50$\,GB (ETA) /
+$0.68$\,GB (BPCG) on ijcnn1. The gisette column time varied by
+$\pm15\%$ between two isolated runs on the same machine, which is the
+width of its intervals.}\label{tab:kreal}
 \begin{tabular}{llrrrrrrrrr}\toprule
 instance & step & $k$ & time (s) & scan & col & step & rest & iterations & columns & drops \\\midrule
-gisette $L_2$ & MDM & 1 & $30.1\pm0.9$ & 0.3 & 26.1 & 1.5 & 2.1 & 4,946 & 1,300 & 0 \\
-gisette $L_2$ & guarded & 1 & $30.3\pm3.2$ & 0.2 & 26.2 & 2.4 & 1.4 & 3,471 & 1,334 & 82 \\
-gisette $L_2$ & block & 16 & $30.8\pm5.4$ & 0.1 & 28.2 & 2.1 & 0.4 & 831 & 1,480 & 301 \\
-gisette $L_2$ & BPCG & --- & $29.9\pm2.2$ & & & & & 10,470 & 1,322 & 87 \\
+gisette $L_2$ & MDM & 1 & $32.2\pm1.7$ & 0.3 & 28.4 & 1.2 & 2.4 & 4,946 & 1,300 & 0 \\
+gisette $L_2$ & guarded & 1 & $30.7\pm9.1$ & 0.3 & 26.9 & 1.9 & 1.6 & 3,471 & 1,334 & 82 \\
+gisette $L_2$ & block & 16 & $38.2\pm4.7$ & 0.1 & 35.5 & 2.2 & 0.5 & 831 & 1,480 & 301 \\
+gisette $L_2$ & auto & 9 & $35.6\pm3.1$ & 0.1 & 33.1 & 1.9 & 0.5 & 986 & 1,451 & 194 \\
+gisette $L_2$ & BPCG & --- & $33.8\pm2.1$ & & & & & 10,470 & 1,322 & 87 \\
 \midrule
-ijcnn1 kernel $L_2$ & MDM & 1 & $15.3\pm2.1$ & 1.4 & 1.1 & 7.5 & 5.2 & 12,796 & 4,520 & 0 \\
-ijcnn1 kernel $L_2$ & guarded & 1 & $13.5\pm0.4$ & 0.9 & 0.8 & 8.0 & 3.8 & 6,118 & 4,514 & 14 \\
-ijcnn1 kernel $L_2$ & block & 16 & $7.0\pm0.6$ & 0.3 & 0.9 & 4.8 & 1.0 & 1,396 & 4,590 & 98 \\
-ijcnn1 kernel $L_2$ & BPCG & --- & $21.1\pm0.9$ & & & & & 18,034 & 4,512 & 19 \\
+ijcnn1 kernel $L_2$ & MDM & 1 & $11.4\pm0.4$ & 1.5 & 1.0 & 3.2 & 5.7 & 12,796 & 4,520 & 0 \\
+ijcnn1 kernel $L_2$ & guarded & 1 & $11.2\pm2.0$ & 1.0 & 0.9 & 5.2 & 4.1 & 6,118 & 4,514 & 14 \\
+ijcnn1 kernel $L_2$ & block & 16 & $5.7\pm1.9$ & 0.3 & 0.8 & 3.5 & 1.0 & 1,396 & 4,590 & 98 \\
+ijcnn1 kernel $L_2$ & auto & 8 & $5.0\pm0.5$ & 0.3 & 0.8 & 2.8 & 1.1 & 1,734 & 4,570 & 75 \\
+ijcnn1 kernel $L_2$ & BPCG & --- & $22.6\pm3.0$ & & & & & 18,034 & 4,512 & 19 \\
 \bottomrule\end{tabular}\end{table}
 
 The guarded single pair already halves the iterations of plain MDM on
@@ -967,23 +979,26 @@ times within CI of $k{=}16$). Away fallbacks that drop an index occur on
 $0.2$--$36\%$ of guarded iterations, and their share grows with $k$:
 larger blocks add more indices per iteration, and the drops remove
 them. The time split says where fewer iterations buy time. On gisette,
-$86$--$92\%$ of every configuration's time is Gram-column computation
+$87$--$93\%$ of every configuration's time is Gram-column computation
 ($O(nd)$ per new receiver, $d{=}5{,}000$), so MDM, guarded $k{=}1$,
-block $k{=}16$ and BPCG all tie at $30$\,s. On ijcnn1 the columns cost
+block $k{=}16$, the adaptive size and BPCG all tie within CI at
+$31$--$38$\,s. On ijcnn1 the columns cost
 about $1$\,s and the rest is per-iteration $O(n)$ work: the score
 update and line search inside the step, the certificate in the
 remainder, and least of all the scan itself. That work falls with the
 iteration count, though not in proportion, because a block step updates
-the scores with up to $k'$ columns; the net effect is $2.2\times$ over
-MDM and $3.0\times$ over BPCG.
+the scores with up to $k'$ columns; the net effect is $2.0\times$ over
+MDM and $4.0\times$ over BPCG at $k{=}16$, and $2.2\times$ and
+$4.5\times$ with the adaptive size, which settles at $k{=}7$--$8$, the
+$k^*$ of Section~\ref{sec:pay-meas}.
 
 \begin{table}[h]\centering\scriptsize
 \caption{BPCG \citep{tsuji2022} versus block ETA ($k{=}16$) on the same
 objective with the same certificate ($\varepsilon{=}10^{-3}$), the same
 column cache and the same 600\,s cap (\texttt{src/bpcg.py}); three seeds,
 run concurrently with Table~\ref{tab:regime}; the isolated rerun of
-Table~\ref{tab:kreal} gives ijcnn1 KL2 $21.1\pm0.9$ vs $7.0\pm0.6$\,s
-and gisette $L_2$ $29.9\pm2.2$ vs $30.8\pm5.4$\,s. Every cell converged;
+Table~\ref{tab:kreal} gives ijcnn1 KL2 $22.6\pm3.0$ vs $5.7\pm1.9$\,s
+and gisette $L_2$ $33.8\pm2.1$ vs $38.2\pm4.7$\,s. Every cell converged;
 distance and test accuracy agree per cell to five digits. Columns are
 kernel or Gram columns computed; drops count BPCG's capacity-clipped
 local steps and ETA's away drops.}\label{tab:bpcg}

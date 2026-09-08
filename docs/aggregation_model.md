@@ -343,3 +343,32 @@ Owed:
   computing sigma as a singular value for the two-face case would help.
 - Abstract and introduction of the journal draft still describe the
   workshop paper; add the Section 7 contribution.
+
+## 8. Reruns after the overhead fixes (2026-09-07, `step_profile2.json`, `block_diag3.json`)
+
+step_profile2 (3 seeds, isolated, now with the adaptive solver):
+
+| cell | MDM | guarded k=1 | block k=16 | auto (k med / final, eta_hat) | BPCG |
+|---|---|---|---|---|---|
+| gisette L2 | 32.2 +- 1.7 | 30.7 +- 9.1 | 38.2 +- 4.7 | 35.6 +- 3.1 (9 / 15, 0.066) | 33.8 +- 2.1 |
+| ijcnn1 KL2 | 11.4 +- 0.4 | 11.2 +- 2.0 | 5.7 +- 1.9 | 5.0 +- 0.5 (7-8 / 7-8, 0.26) | 22.6 +- 3.0 |
+
+- ijcnn1: the O(|supp|) fixes took MDM 15.3 -> 11.4 s, guarded k=1
+  13.5 -> 11.2 s, block 7.0 -> 5.7 s; auto (k ~ 7-8 = the model's k*) is
+  the fastest configuration, 2.2x over guarded k=1 and 4.5x over BPCG.
+- gisette: column time drifted up (26 -> 27-36 s across configurations,
+  c_col 18.4 -> 21.3 ms) and the CIs widened (guarded k=1 +- 9.1), so the
+  Studio's BLAS timing is not as stable run-to-run as the first isolated
+  run suggested; all five configurations still tie within CI.  Quote
+  gisette as "31-38 s, all within CI", not "30 s".
+- The guarded k=1 iteration still costs ~2x an MDM iteration on ijcnn1
+  (1.8 vs 0.9 ms): the remaining block bookkeeping (pair selection,
+  two O(n) score arrays per iteration in `_step`, dist2 twice).
+
+block_diag3 fit (seed 0): a = 1.3/1.7/1.3/2.5/2.8 ms (gisette, ijcnn1, w8a,
+a9a, covtype; was 1.3/2.1/1.6/3.2/3.6), b = 0.08-0.11 ms, eta unchanged
+(0.07/0.26/0.17/0.11/0.29), k* = 14/7/9/13/8, column share at k=16
+93/17/64/41/17 %, best-k speed-up over guarded k=1 1.1/1.9/2.2/2.8/2.1x.
+Journal Table 5, the Section 7 table rows and the Section 7.3/7.4 text
+now carry these numbers; the decile figure keeps the records run
+(block_diag2; trajectories are bit-identical, only times changed).

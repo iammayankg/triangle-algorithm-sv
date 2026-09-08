@@ -24,8 +24,9 @@ $Q$ measures how much useful progress the block has beyond its leading
 pair and $\kappa$ how much the directions lose (or gain) by being
 combined; orthogonal directions give $\kappa=1$. Call the block
 \emph{$\eta$-diverse} if $|\ip{d_i}{d_j}|\le\eta\norm{d_i}\norm{d_j}$ for
-$i\ne j$ and \emph{$\beta$-flat} if $\Delta_j\ge\beta\Delta_1$ for every
-$j$.
+$i\ne j$ and \emph{$\beta_{\mathrm{flat}}$-flat}, $0<\beta_{\mathrm{flat}}\le1$, if
+$\Delta_j\ge\beta_{\mathrm{flat}}\Delta_1$ for every $j$ (the subscript keeps
+the flatness parameter apart from the $W$-side weights $\beta$).
 
 \begin{proposition}[Exact gain ratio]\label{prop:ratio}
 At such an iteration the exact line search gives
@@ -34,10 +35,10 @@ At such an iteration the exact line search gives
 1/\kappa,&\kappa\ge1.\end{cases}
 \]
 If the block is $\eta$-diverse then $\kappa\le1+\eta(k'-1)$; if it is
-$\beta$-flat then $Q\ge1+\beta(k'-1)$; hence the guarded step gains at
+$\beta_{\mathrm{flat}}$-flat then $Q\ge1+\beta_{\mathrm{flat}}(k'-1)$; hence the guarded step gains at
 least
 \[
-\max(\Delta_B,\Delta_1)\ \ge\ \Delta_1\,\frac{1+\beta(k'-1)}{1+\eta(k'-1)} .
+\max(\Delta_B,\Delta_1)\ \ge\ \Delta_1\,\frac{1+\beta_{\mathrm{flat}}(k'-1)}{1+\eta(k'-1)} .
 \]
 \end{proposition}
 \begin{proof}
@@ -50,27 +51,27 @@ if $D<S$ then $\theta=1$ and $\Delta_B=S-D/2=(S/2)(2-\kappa)$. Dividing
 by $\Delta_1$ gives the two cases. For the bound on $\kappa$,
 $D=\sum_{i,j}\gamma_i\gamma_j\ip{d_i}{d_j}\le\sum_jb_j^2+\eta\sum_{i\ne j}b_ib_j
 \le(1+\eta(k'-1))\sum_jb_j^2=(1+\eta(k'-1))S$ by Cauchy--Schwarz on the
-cross terms; flatness gives $\sum_j\Delta_j\ge\Delta_1(1+\beta(k'-1))$.
+cross terms; flatness gives $\sum_j\Delta_j\ge\Delta_1(1+\beta_{\mathrm{flat}}(k'-1))$.
 When $\kappa\le1$ the ratio is $Q(2-\kappa)\ge Q$, and when $\kappa\ge1$
 it is $Q/\kappa$; both are at least the stated bound.
 \end{proof}
-Proposition~\ref{prop:orth} is the case $\beta=1$ in disguise. The two
+Proposition~\ref{prop:ratio} recovers the diversity bound of Proposition~\ref{prop:orth} and adds the comparison with $\Delta_1$. The two
 numbers $Q$ and $\kappa$ are computed by the guard at every block step
 (from $S$, $D$ and the per-pair gaps), so both are observable at no
 extra cost. Note the direction of the inequalities: the theorem's $\eta$
 bounds the \emph{maximum} absolute pairwise cosine of the retained
 directions, whereas the \emph{effective correlation}
 \[
-\hat\eta:=\frac{\kappa-1}{k'-1}
+\hat\eta:=\frac{\kappa-1}{k'-1}\qquad(k'>1)
 \]
 that a block step reveals is a $\gamma$-weighted aggregate in which
 cross terms can cancel; the proof gives $\hat\eta\le\eta$, and $\hat\eta$
 can be negative. Likewise $Q/k'$ close to $1$ says the average pair is
-as good as the leading one, not that every pair is ($\beta$-flatness).
+as good as the leading one, not that every pair is ($\beta_{\mathrm{flat}}$-flatness).
 The empirical model of Section~\ref{sec:pay-meas} is therefore stated in
 $Q$ and $\kappa$, the quantities the guard measures, and the theorem's
 assumptions (all retained pairs uncapped, maximum cosine at most $\eta$,
-minimum relative gain at least $\beta$) are recorded separately.
+minimum relative gain at least $\beta_{\mathrm{flat}}$) are recorded separately.
 
 \paragraph{Cost.} Per iteration the solver pays a scan and certificate
 cost that does not depend on $k$, a step cost that grows with the number
@@ -92,7 +93,7 @@ iterate exactly when
 $\max(\Delta_B,\Delta_1)/\Delta_1>C_B/C_1$; by
 Proposition~\ref{prop:ratio} a sufficient condition is
 \begin{equation}\label{eq:ppc}
-\frac{1+\beta(k'-1)}{1+\eta(k'-1)}\;>\;\frac{a+bk'+c_{\mathrm{col}}m_B}{a+b+c_{\mathrm{col}}m_1}.
+\frac{1+\beta_{\mathrm{flat}}(k'-1)}{1+\eta(k'-1)}\;>\;\frac{a+bk'+c_{\mathrm{col}}m_B}{a+b+c_{\mathrm{col}}m_1}.
 \end{equation}
 Two regimes are visible in \eqref{eq:ppc}. If $c_{\mathrm{col}}$
 dominates $a$ and $b$, the right-hand side is governed by the miss
@@ -104,10 +105,14 @@ does not exclude it. If the per-iteration terms dominate, the
 right-hand side is $(a+bk')/(a+b)$, linear in $k'$, while the left-hand
 side saturates at $\beta/\eta$; the ratio of the two is maximised at
 \begin{equation}\label{eq:kstar}
-k^*=\sqrt{\frac{a(1-\eta)}{b\,\eta}}\qquad(\beta=1),
+k^*=\sqrt{\frac{a(1-\eta)}{b\,\eta}}\qquad(\beta_{\mathrm{flat}}=1),
 \end{equation}
 the block size at which the marginal cost of one more pair equals its
-marginal gain.
+marginal gain. Equation~\eqref{eq:kstar} is the unconstrained continuous
+optimiser of the model for $a,b>0$ and $0<\eta<1$: as $\eta\to0$ it grows
+without bound (every pair helps), as $\eta\to1$ it tends to $0$ (only the
+leading pair helps), and an implementation rounds it and clips it to
+$\{1,\dots,k_{\max}\}$.
 
 \subsection{Drops are an identification cost}
 
@@ -121,24 +126,38 @@ iteration, every step that removes a non-face point is a drop, no
 non-face point enters, and once the supports lie in the optimal faces
 and the weights are close to the optimal ones, no step is a drop at all.
 
+Write $\mathcal F_V=\conv\{v_i:i\in F_V\}$ and
+$\mathcal F_W=\conv\{w_j:j\in F_W\}$ for the geometric faces ($F_V,F_W$
+remain index sets), and let $V_{F_V}\in\R^{d\times|F_V|}$,
+$W_{F_W}\in\R^{d\times|F_W|}$ be the matrices whose columns are the face
+points. A witness pair $(p^*,q^*)$ with $p^*=\sum_i\alpha^*_iv_i$,
+$q^*=\sum_j\beta^*_jw_j$ and $p^*-q^*=z^*$ carries optimal weights
+$\alpha^*,\beta^*$.
 \begin{assumption}\label{ass:nondeg}
 (A1) \emph{Strict complementarity}: $F_V=\operatorname{supp}\alpha^*$ and
-$F_W=\operatorname{supp}\beta^*$, and $\alpha_{\min}>0$ is the smallest
-optimal weight. (A2) \emph{Non-degeneracy}: the witness pair $(p^*,q^*)$
-is unique, the vertices of each optimal face are affinely independent
-(so $\alpha^*,\beta^*$ are unique), and there is $\sigma>0$ with
+$F_W=\operatorname{supp}\beta^*$, and
+$\alpha_{\min}:=\min\big(\min_{i\in F_V}\alpha^*_i,\ \min_{j\in F_W}\beta^*_j\big)>0$
+is the smallest positive optimal weight over both classes. (A2)
+\emph{Non-degeneracy}: the witness pair $(p^*,q^*)$ is unique, the
+vertices of each optimal face are affinely independent (so
+$\alpha^*,\beta^*$ are unique), and there is $\sigma>0$ with
 $\norm{\alpha-\alpha^*}_1+\norm{\beta-\beta^*}_1\le\norm{(p-q)-z^*}/\sigma$
-for all $p\in\conv(F_V)$, $q\in\conv(F_W)$ with weights $\alpha,\beta$
-on the faces. Let $d_{\min}>0$ be the smallest distance from a face
-vertex to the affine hull of the other vertices of its face.
+for all $p\in\mathcal F_V$, $q\in\mathcal F_W$ with face weights
+$\alpha,\beta$. Let $d_{\min}>0$ be the smallest distance from a face
+vertex to the affine hull of the other vertices of its face, the minimum
+taken over the faces with at least two points; if both faces are
+singletons, $(p^*,q^*)$ is the unique pair of face points and the
+no-drop conclusions below hold as soon as the supports lie in the faces.
 \end{assumption}
 Affine independence and uniqueness of the witness pair make the linear
 map $(\alpha-\alpha^*,\beta-\beta^*)\mapsto(p-q)-z^*$ injective on the
-subspace $\{\sum_i(\alpha_i-\alpha^*_i)=0=\sum_j(\beta_j-\beta^*_j)\}$;
-if $\sigma_2>0$ is the smallest singular value of the matrix
-$[V_{F_V},-W_{F_W}]$ restricted to that subspace, then
+subspace $U=\{\sum_i(\alpha_i-\alpha^*_i)=0=\sum_j(\beta_j-\beta^*_j)\}$
+of $\R^{|F_V|+|F_W|}$; if $\sigma_2>0$ is the smallest singular value of
+$[V_{F_V},-W_{F_W}]$ restricted to $U$, then
 $\sigma=\sigma_2/\sqrt{|F_V|+|F_W|}$ works, the square root being the
-conversion from the Euclidean to the $\ell_1$ norm of the weights.
+conversion from the Euclidean to the $\ell_1$ norm of the weights. When
+$U=\{0\}$ (both faces singletons) any $\sigma>0$ works and the weight
+condition is void.
 
 Recall $r_t=\sqrt{\UB^2-\max(\LB,0)^2}\ge\norm{z_t-z^*}$ and, from the
 proof of Theorem~\ref{thm:activation}, $r_t^2\le(4R^2/\delta^*)\sqrt{2h_t}$,
@@ -161,8 +180,9 @@ non-face support indices at $t_{\mathrm{id}}$.
 \begin{enumerate}\setlength\itemsep{0pt}
 \item[(i)] For every $t\ge t_{\mathrm{id}}$: if either side's support
 contains a non-face point, the step taken is a drop of a non-face point;
-and no non-face point enters either support. Hence the supports lie in
-$F_V\times F_W$ from iteration $t_{\mathrm{id}}+N$ on, and
+and no non-face point enters either support. Hence
+$\operatorname{supp}\alpha\subset F_V$ and $\operatorname{supp}\beta\subset F_W$
+from iteration $t_{\mathrm{id}}+N$ on, and
 $N\le s_{t_{\mathrm{id}}}\le s_0+a_k\,t_{\mathrm{id}}$.
 \item[(ii)] Under Assumption~\ref{ass:nondeg}, let $t_{\mathrm w}$ be the
 first iteration with $h_t<H_{\mathrm w}$. No iteration
@@ -172,9 +192,16 @@ $t_{\mathrm w}+N$, the number of drops is at most
 $a_k(t_{\mathrm w}+N)+s_0$, and
 $t_{\mathrm w}\le s_0+1+\tfrac{a_k}{\rho}\log\max\{1,h_0/H_{\mathrm w}\}$.
 \item[(iii)] For $t\ge\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ every
-iteration contracts: $h_{t+1}\le(1-\rho_t)h_t$ with $\rho_t\ge\rho$, and
-$\rho_t\ge\rho_k:=\min\{1,\,4\rho\,(1+\beta(k'-1))/(1+\eta(k'-1))\}$ when
-the iteration is case (a) with an $\eta$-diverse, $\beta$-flat block.
+iteration contracts. Let $\rho^{\mathrm{act}}_t:=1-h_{t+1}/h_t$ (for
+$h_t>0$) be the actual contraction and, for $j\ge1$,
+\[
+\underline\rho_j:=\min\Big\{1,\ 4\rho\max\Big[1,\frac{1+\beta_{\mathrm{flat}}(j-1)}{1+\eta(j-1)}\Big]\Big\},
+\]
+which is nondecreasing in $j$. Then $\rho^{\mathrm{act}}_t\ge\rho$, and
+$\rho^{\mathrm{act}}_t\ge\underline\rho_{k'}$ when the iteration is case
+(a) with an $\eta$-diverse, $\beta_{\mathrm{flat}}$-flat block of $k'$
+pairs (under the two-sided schedule, the block of the first,
+larger-gap side, which is the step the progress argument uses).
 \end{enumerate}
 \end{theorem}
 
@@ -190,7 +217,8 @@ while for $i,j\in F_V$, $|s_i-s_j|\le rL\le\tau/6$; in particular the
 global argmax of $s$ is a face point. (F2) Let $\omega_t$ be the total
 weight on non-face points of both sides. By convexity
 $h_t\ge\ip{\nabla F(z^*)}{z_t-z^*}=\ip{z^*}{z_t-z^*}$; writing
-$\ip{z^*}{v_i}=m_V+\tau_i$, $\ip{z^*}{w_j}=M_W-\tau_j$ and using
+$m_V:=\min_i\ip{z^*}{v_i}$ and $M_W:=\max_j\ip{z^*}{w_j}$, so that
+$\ip{z^*}{v_i}=m_V+\tau_i$ and $\ip{z^*}{w_j}=M_W-\tau_j$, and using
 $\norm{z^*}^2=\ip{z^*}{p^*-q^*}=m_V-M_W$ (the optimal weights live on the
 faces, where the margins vanish),
 $\ip{z^*}{z_t-z^*}=\sum_i\alpha_i\tau_i+\sum_j\beta_j\tau_j\ge\tau\,\omega_t$.
@@ -227,16 +255,23 @@ every iteration while it is nonempty, which proves (i); the bound on $N$
 is the support count of Theorem~\ref{thm:linear}.
 
 \emph{(ii) No late drops.} Let $t\ge\max(t_{\mathrm w},t_{\mathrm{id}}+N)$,
-so the supports lie in the faces and, by (F3) applied to $H_{\mathrm w}$,
-$r_t\le\min\{\tau/(6L),\sigma\alpha_{\min}/2,\alpha_{\min}d_{\min}^2/(2L)\}$.
-By (A2), $\norm{\alpha_t-\alpha^*}_\infty\le r_t/\sigma\le\alpha_{\min}/2$,
-so every support weight is at least $\alpha_{\min}/2$ (A1). Any pair
-$(r,u)$ of face points has $\mathrm{gap}\le rL$ by (F1) and
-$\norm{v_r-v_u}\ge d_{\min}$, so its uncapped transfer is at most
-$rL/d_{\min}^2\le\alpha_{\min}/2\le\alpha_u$: no pair is capped, the
-iteration is case (a), no away step is taken, and a block transfer
-removes at most $\gamma_j<\alpha_{u_j}$ from each donor, so no index
-leaves the support. Drops at $t\ge t_{\mathrm w}$ are therefore among the
+so $p_t\in\mathcal F_V$, $q_t\in\mathcal F_W$ and, by the radius bound
+applied to the strict inequality $h_t<H_{\mathrm w}$,
+$r_t<\min\{\tau/(6L),\sigma\alpha_{\min}/2,\alpha_{\min}d_{\min}^2/(2L)\}$.
+By (A2), $\norm{\alpha_t-\alpha^*}_\infty\le r_t/\sigma<\alpha_{\min}/2$,
+so by (A1) every face index carries weight
+$\alpha_{t,i}>\alpha^*_i-\alpha_{\min}/2\ge\alpha_{\min}/2>0$: the
+supports equal the faces and every support weight exceeds
+$\alpha_{\min}/2$. Any pair $(r,u)$ of face points has
+$\mathrm{gap}\le r_tL$ by (F1) and $\norm{v_r-v_u}\ge d_{\min}$, so its
+uncapped transfer satisfies
+\[
+\gamma_j\ \le\ \frac{r_tL}{d_{\min}^2}\ <\ \frac{\alpha_{\min}}2\ <\ \alpha_{u_j}:
+\]
+no pair is capped, the iteration is case (a), no away step is taken,
+and a block transfer removes strictly less than $\alpha_{u_j}$ from each
+donor, so no index leaves the support. (If both faces are singletons
+there are no pairs and nothing to show.) Drops at $t\ge t_{\mathrm w}$ are therefore among the
 $N$ identification drops of (i), which occur at the consecutive iterations
 $t_{\mathrm{id}},\dots,t_{\mathrm{id}}+N-1$; hence all drops occur before
 $t_{\mathrm w}+N$, and the count of Theorem~\ref{thm:linear} over the
@@ -246,12 +281,15 @@ $\log(1/(1-\rho))\ge\rho$.
 
 \emph{(iii) Rate.} A non-drop iteration gains at least the amount of
 Lemma~\ref{lem:good}, which with Lemma~\ref{lem:gsc} is $\rho h_t$. In
-case (a) the guard takes $\max(\Delta_B,\Delta_1)$; by
-Proposition~\ref{prop:ratio} this is at least
-$\Delta_1(1+\beta(k'-1))/(1+\eta(k'-1))$, and in case (a) the proof of
-Lemma~\ref{lem:good} gives $\Delta_1\ge(\gPW)^2/(8M^2)\ge2\delta^2h_t/(8M^2)=4\rho h_t$
-by Lemma~\ref{lem:gsc}. A gain cannot exceed $h_t$, whence the minimum
-with~$1$.
+case (a) the guard takes $\max(\Delta_B,\Delta_1)$, which is at least
+$\Delta_1$ (the guard) and, by Proposition~\ref{prop:ratio}, at least
+$\Delta_1(1+\beta_{\mathrm{flat}}(k'-1))/(1+\eta(k'-1))$; hence at least
+$\Delta_1\max[1,(1+\beta_{\mathrm{flat}}(k'-1))/(1+\eta(k'-1))]$. In case
+(a) the proof of Lemma~\ref{lem:good} gives
+$\Delta_1\ge(\gPW)^2/(8M^2)\ge2\delta^2h_t/(8M^2)=4\rho h_t$ by
+Lemma~\ref{lem:gsc}. A gain cannot exceed $h_t$, whence the minimum
+with~$1$. Monotonicity of $\underline\rho_j$ in $j$ follows from
+$\beta_{\mathrm{flat}}\le1$ and the outer maximum.
 \end{proof}
 
 Theorem~\ref{thm:ident} says that drops are paid during identification
@@ -265,34 +303,46 @@ pessimistic; the measured drop counts below are $0.3$--$70\%$ of the
 final support size.
 
 \begin{corollary}[Conditional work bound]\label{cor:work}
-Run the algorithm with requested block size $k$ and let $k'_t\le k$ be
-the number of pairs retained at iteration $t$ (on a case-(b) or drop
-iteration set $k'_t=1$). Let $t_1(k):=\max(t_{\mathrm w},t_{\mathrm{id}}+N)$
-as in Theorem~\ref{thm:ident}, $N_{\mathrm{cols}}(k)$ the number of
-distinct columns computed over the whole run, and suppose every case-(a)
-iteration $t\ge t_1(k)$ is $\eta$-diverse and $\beta$-flat. Then for every
-$T\ge t_1(k)$,
+Run the algorithm with requested block size $k$. At iteration $t$ let
+$k'_t\in\{1,\dots,k\}$ be the number of pairs retained by the block used
+in the progress argument (the first side's block; $k'_t=1$ on case-(b)
+and drop iterations, where only the leading pair is used), and let
+$k^{\mathrm{ev}}_t\le2k$ be the total number of pairs the implementation
+assembled and evaluated at that iteration (both sides' blocks under the
+two-sided schedule, including the pairs evaluated before an away drop).
+Let $t_1(k):=\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ as in
+Theorem~\ref{thm:ident}, $N_{\mathrm{cols}}(k)$ the number of distinct
+columns computed over the whole run, and suppose every case-(a)
+iteration $t\ge t_1(k)$ is $\eta$-diverse and $\beta_{\mathrm{flat}}$-flat.
+Then for every $T\ge t_1(k)$,
 \[
-h_T\ \le\ h_{t_1(k)}\prod_{t=t_1(k)}^{T-1}(1-\rho_t),\qquad
-\rho_t\ \ge\ \rho_{k'_t}:=\min\Big\{1,\,4\rho\,\frac{1+\beta(k'_t-1)}{1+\eta(k'_t-1)}\Big\}
+h_T\ \le\ h_{t_1(k)}\prod_{t=t_1(k)}^{T-1}\big(1-\rho^{\mathrm{act}}_t\big),\qquad
+\rho^{\mathrm{act}}_t\ \ge\ \underline\rho_{k'_t}
 \]
-on case-(a) iterations and $\rho_t\ge\rho$ otherwise, and the timing
-model charges the run
+on case-(a) iterations and $\rho^{\mathrm{act}}_t\ge\rho$ otherwise; this
+is the rigorous part. The fitted timing model then approximates the
+run's cost by
 \[
-W(k)\ \approx\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+\sum_{t<T}(a+bk'_t).
+W(k)\ \approx\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+\sum_{t<T}\big(a+b\,k^{\mathrm{ev}}_t\big).
 \]
-In particular, if $h_{t_1(k)}>\varepsilon$ and $k'_t\ge\underline k$ on
-every case-(a) iteration after $t_1(k)$, then $h_T\le\varepsilon$ for
-$T=t_1(k)+\big\lceil\log(h_{t_1(k)}/\varepsilon)/\rho_{\underline k}\big\rceil$
-when $\rho_{\underline k}<1$ (and $T=t_1(k)+1$ when
-$\rho_{\underline k}=1$), and
-$W(k)\lesssim c_{\mathrm{col}}N_{\mathrm{cols}}(k)+(a+bk)\big[t_1(k)+\lceil\log(h_{t_1(k)}/\varepsilon)/\rho_{\underline k}\rceil\big]$;
-if $h_{t_1(k)}\le\varepsilon$ the run is over at $t_1(k)$.
+In particular, for a target $\varepsilon_h$ on the objective error
+(distinct from the relative certificate tolerance $\varepsilon$ of
+Section~\ref{sec:setting}): if $h_{t_1(k)}>\varepsilon_h$ and
+$k'_t\ge\underline k$ for some $\underline k\in\{1,\dots,k\}$ on every
+case-(a) iteration after $t_1(k)$, then $h_T\le\varepsilon_h$ for
+$T=t_1(k)+\big\lceil\log(h_{t_1(k)}/\varepsilon_h)/\underline\rho_{\underline k}\big\rceil$
+when $\underline\rho_{\underline k}<1$ (and $T=t_1(k)+1$ when
+$\underline\rho_{\underline k}=1$), so that
+$W(k)\lesssim c_{\mathrm{col}}N_{\mathrm{cols}}(k)+(a+2bk)\big[t_1(k)+\lceil\log(h_{t_1(k)}/\varepsilon_h)/\underline\rho_{\underline k}\rceil\big]$;
+if $h_{t_1(k)}\le\varepsilon_h$ the run is over at $t_1(k)$.
 \end{corollary}
 \begin{proof}
 Theorem~\ref{thm:ident}(iii) with $k'$ read as $k'_t$ gives the product;
-$\log(1/(1-\rho))\ge\rho$ turns it into the iteration count, and the
-cost model charges $a+bk'_t\le a+bk$ per iteration.
+since $\underline\rho_j$ is nondecreasing in $j$,
+$\underline\rho_{k'_t}\ge\underline\rho_{\underline k}$, and
+$\log(1/(1-\underline\rho))\ge\underline\rho$ turns the product into the
+iteration count; the timing model charges $a+bk^{\mathrm{ev}}_t\le a+2bk$
+per iteration.
 \end{proof}
 The corollary is an absolute bound for one run. It does not by itself
 compare two block sizes: $N_{\mathrm{cols}}(k)$, $t_1(k)$ and
@@ -300,8 +350,10 @@ $h_{t_1(k)}$ all depend on the trajectory, and comparing the
 multiplicative factors of two upper bounds is not a proof that one
 algorithm is faster. What it does say is which factor aggregation can act
 on. The per-iteration term after identification carries the factor
-$(a+bk'_t)/\rho_{k'_t}$, and if $k'_t\equiv k$ and $\beta=1$ this is
-proportional to $(1+\eta(k-1))(a+bk)/k$, minimised at $k^*$ of
+$(a+bk^{\mathrm{ev}}_t)/\underline\rho_{k'_t}$, and if
+$k'_t\equiv k^{\mathrm{ev}}_t\equiv k$ (one-sided schedule, full blocks)
+and $\beta_{\mathrm{flat}}=1$ this is proportional to
+$(1+\eta(k-1))(a+bk)/k$, minimised at $k^*$ of
 \eqref{eq:kstar}; the column term is not touched by the step rule at
 all. Whether $N_{\mathrm{cols}}$, $t_1$ and $h_{t_1}$ are in fact
 insensitive to $k$ is an empirical question, answered below for the
@@ -403,11 +455,11 @@ block calls with every retained pair uncapped: median maximum absolute
 pairwise cosine of the retained directions (the $\eta$ of
 Proposition~\ref{prop:ratio}), median minimum relative pair gain (its
 $\beta$), and the gain ratio the proposition then guarantees,
-$(1+\beta(k'-1))/(1+\eta(k'-1))$; against the effective correlation
+$(1+\beta_{\mathrm{flat}}(k'-1))/(1+\eta(k'-1))$; against the effective correlation
 $\hat\eta$, the model ratio $k'/(1+\hat\eta(k'-1))$ and the measured
 median gain ratio $\max(\Delta_B,\Delta_1)/\Delta_1$.}\label{tab:assump}
 \begin{tabular}{lrrrrrrr}\toprule
-cell & all pairs uncapped & $\max|\cos|$ & $\beta$ & guaranteed & $\hat\eta$ & model & measured \\\midrule
+cell & all pairs uncapped & $\max|\cos|$ & $\beta_{\mathrm{flat}}$ & guaranteed & $\hat\eta$ & model & measured \\\midrule
 gisette $L_2$ & 43\% & 0.33 & 0.53 & 1.5 & 0.08 & 7.4 & 6.9 \\
 ijcnn1 KL2 & 73\% & 0.42 & 0.80 & 1.8 & 0.26 & 3.2 & 2.8 \\
 w8a KL2 & 76\% & 0.33 & 0.77 & 2.1 & 0.17 & 4.4 & 3.6 \\
@@ -429,7 +481,7 @@ identity $Q/\kappa$ (the ``model'' column) reproduces the measurement
 because it uses the $\gamma$-weighted aggregate in which the cross terms
 largely cancel, not the worst pair. The right reading of
 Proposition~\ref{prop:ratio} is therefore its first, exact, half; the
-$\eta$-diverse, $\beta$-flat bound is a worst case that real blocks beat
+$\eta$-diverse, $\beta_{\mathrm{flat}}$-flat bound is a worst case that real blocks beat
 by a factor of $1.5$--$4.6$.
 
 The measurements are from one seed per cell and the fits are
@@ -451,7 +503,10 @@ $\hat\eta=(\kappa-1)/(k'-1)$ costs nothing, and $a/b$ is a property of
 the implementation ($15$--$30$ in Table~\ref{tab:diag}). The released
 code therefore offers \texttt{block\_size='auto'}: every $50$ iterations
 it sets $k$ to $\sqrt{(a/b)(1-\hat\eta)/\hat\eta}$, clipped to $[1,k_{\max}]$,
-with $\hat\eta$ the median over the window, and halves $k$ instead when
+with $\hat\eta$ the median over the window's block steps with $k'>1$
+(when fewer than five such steps exist, as at $k=1$, the rule doubles
+$k$ to obtain a signal; a non-positive $\hat\eta$ is floored at $10^{-3}$
+before the square root, which sends $k$ to $k_{\max}$), and halves $k$ instead when
 more than $10\%$ of the window's block calls had their leading pair
 capped (drops are outrunning the support). Guard and fallback are
 untouched, so Theorem~\ref{thm:linear} applies with $k_{\max}$ in the
@@ -496,7 +551,7 @@ clouds $2.5$ apart) the SLSQP reference gives $z^*$, the faces, $\tau$,
 $\alpha_{\min}$, $d_{\min}$ and $\sigma$ (as the singular value of
 Assumption~\ref{ass:nondeg}); $12$ instances that fail strict
 complementarity or affine independence within $10^{-7}$ are skipped, and
-the remaining $28$ are run with $k\in\{1,4,16\}$ to $\varepsilon=10^{-10}$
+the remaining $28$ are run with $k\in\{1,4,16\}$ to certificate tolerance $\varepsilon=10^{-10}$
 with both supports snapshotted at every iteration
 (\texttt{src/ident\_check.py}, $84$ runs). Three things are checked. The
 weight inequality (F2), $\omega_t\le h_t/\tau$, holds at every iteration

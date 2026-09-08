@@ -236,7 +236,7 @@ the maximum.
 \begin{lemma}[Side transfers are $Z$-pairwise directions]\label{lem:side}
 For $\alpha_u>0$ and any $b\in\operatorname{supp}\beta$,
 $v_r-v_u=(v_r-w_b)-(v_u-w_b)$ is a difference of an atom of $Z$ and an
-atom in the support, and the transfer $\gamma\le\alpha_u$ realises
+atom in the support, and the transfer with $0\le\gamma\le\alpha_u$ realises
 $z\leftarrow z+\gamma(v_r-v_u)$ inside $Z$. The side capacity
 $\alpha_u=\sum_{b}\alpha_u\beta_b$ is the total weight of the product
 atoms $v_u-w_b$, $b\in\operatorname{supp}\beta$: the side transfer is
@@ -271,7 +271,7 @@ transfers. Only the scan is amortised: a new receiver still costs one
 Gram or kernel column, $O(nd)$. Every
 candidate gain is available from cached quantities at a cost
 independent of $n$: with $S=\ip{g}{d}=\sum_j\gamma_j\mathrm{gap}_j$ and
-$D=\norm d^2=\gamma^\top\Gamma\gamma$, $\Gamma$ the $k'\times k'$ Gram
+$D=\norm d^2=\gamma^\top\Gamma\gamma$, $\gamma=(\gamma_1,\dots,\gamma_{k'})^\top$ and $\Gamma$ the $k'\times k'$ Gram
 matrix of the pair directions ($O(k'^2)$ cached dot products), the block
 gain is $\theta S-\theta^2D/2$ at $\theta=\min(S/D,1)$; the MDM, away and
 toward gains are the usual one-dimensional expressions. The \emph{gain} of a step is
@@ -286,7 +286,7 @@ line 6, which drives $\alpha_{u^*}$ to zero, is a \emph{drop} step
 counts below).
 
 \paragraph{Safe screening.} With $r=\sqrt{\UB^2-\max(\LB,0)^2}$ and
-$v_{\min}=\arg\min_i\ip{z}{v_i}$, a zero-weight point with
+$i_{\min}\in\arg\min_i\ip{z}{v_i}$, $v_{\min}=v_{i_{\min}}$, a zero-weight point with
 $\ip{z}{v_i}-\ip{z}{v_{\min}}>r\norm{v_i-v_{\min}}$ is outside the
 optimal support and is removed (symmetrically on $W$ with the max).
 Because the optimum's support survives, the reduced problem has the
@@ -358,9 +358,8 @@ atom, $\gPW(z)\ge\delta\sqrt{2h(z)}$ and $\gPW(z)\ge\gFW(z)\ge h(z)$.
 This is Theorem~6 of \citep{lj2015} for a $1$-strongly convex objective;
 we include the short argument. If $z=z^*$ both inequalities are
 immediate ($h=0$ and all gaps are nonnegative). Otherwise let
-$e=(z^*-z)/\norm{z^*-z}$; the pyramidal-width inequality in the proof
-of \citep[Thm.~6]{lj2015} (Definition~3 there, applied to the direction
-$g$ together with $\ip{g}{e}\le\norm g$) gives, for the FW atom $s$ and
+$e=(z^*-z)/\norm{z^*-z}$; the pyramidal-width inequality established
+in the proof of \citep[Thm.~6]{lj2015} gives, for the FW atom $s$ and
 the away atom $v$, $\ip{g}{s-v}\ge\delta\ip{g}{e}$. By $1$-strong convexity,
 $\ip{g}{z^*-z}\ge h+\tfrac12\norm{z^*-z}^2$, so with
 $\varrho=\norm{z^*-z}$,
@@ -485,7 +484,7 @@ $V$ outside $F_V$ and of $W$ outside $F_W$ is removed permanently at
 the next screening round. Under Theorem~\ref{thm:linear} this holds for
 every iteration $t>s_0+\tfrac{a_k}{\rho}\log\max\{1,h_0/H\}$, with
 $a_k=k+1$ one-sided and $2k+1$ two-sided.
-Following this iteration, each subsequent scan costs
+From the first screening round after this iteration, each scan costs
 $O(|F_V|+|F_W|+|\operatorname{supp}\alpha|+|\operatorname{supp}\beta|)$
 instead of $O(n+m)$.
 \end{theorem}
@@ -509,7 +508,7 @@ evaluated bound; the last step uses $h\le R^2/2$, which holds for every
 feasible iterate since $h\le\tfrac12\norm z^2$); requiring
 $r^2\le\tau^2/(9L^2)$ yields $h_t<H$, and Theorem~\ref{thm:linear} with
 $\log(1/(1-\rho))\ge\rho$ converts it into the iteration bound (the
-$\max\{1,\cdot\}$ covers $h_0\le H$, where the condition holds from the
+$\max\{1,\cdot\}$ covers $h_0<H$, where the condition holds from the
 start by monotonicity). The removal is executed at the first screening
 round after the condition holds; permanence follows from the safety of
 the rule.

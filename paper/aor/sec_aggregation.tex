@@ -327,9 +327,11 @@ so its speed-up over the guarded single pair is $1.1\times$ where columns
 are $93\%$ of the run (gisette), $2.2\times$ at $64\%$ (w8a),
 $2.8\times$ at $41\%$ (a9a) and $1.9$--$2.1\times$ at $17\%$ (ijcnn1,
 covtype), where the iteration gain has already saturated at $1/\hat\eta$.
-The model's time predictions are within $15\%$ of the measurements
-except on covtype at $k\ge16$, where the run does better than the
-one-state ratio.
+The model's time predictions are within $10\%$ of the measurements at
+$k\le4$ and on gisette; at $k=16$--$32$ on the kernel cells they are
+$10$--$40\%$ too high, because the runs need fewer iterations than the
+one-state ratio predicts: the trajectory effect is in the block's
+favour, and the model is conservative.
 \item \emph{Drops are front-loaded} (Figure~\ref{fig:diag}, left). On
 gisette at $k=16$ half of the block calls in the first three deciles are
 drops and $1$--$2\%$ in the last three; the kernel cells show the same

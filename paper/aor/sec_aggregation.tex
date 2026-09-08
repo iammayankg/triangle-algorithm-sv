@@ -57,7 +57,20 @@ it is $Q/\kappa$; both are at least the stated bound.
 Proposition~\ref{prop:orth} is the case $\beta=1$ in disguise. The two
 numbers $Q$ and $\kappa$ are computed by the guard at every block step
 (from $S$, $D$ and the per-pair gaps), so both are observable at no
-extra cost, and we report them below.
+extra cost. Note the direction of the inequalities: the theorem's $\eta$
+bounds the \emph{maximum} absolute pairwise cosine of the retained
+directions, whereas the \emph{effective correlation}
+\[
+\hat\eta:=\frac{\kappa-1}{k'-1}
+\]
+that a block step reveals is a $\gamma$-weighted aggregate in which
+cross terms can cancel; the proof gives $\hat\eta\le\eta$, and $\hat\eta$
+can be negative. Likewise $Q/k'$ close to $1$ says the average pair is
+as good as the leading one, not that every pair is ($\beta$-flatness).
+The empirical model of Section~\ref{sec:pay-meas} is therefore stated in
+$Q$ and $\kappa$, the quantities the guard measures, and the theorem's
+assumptions (all retained pairs uncapped, maximum cosine at most $\eta$,
+minimum relative gain at least $\beta$) are recorded separately.
 
 \paragraph{Cost.} Per iteration the solver pays a scan and certificate
 cost that does not depend on $k$, a step cost that grows with the number
@@ -67,10 +80,14 @@ receiver or donor not in the cache. Write
 \[
 C_B=a+b\,k'+c_{\mathrm{col}}\,m_B,\qquad C_1=a+b+c_{\mathrm{col}}\,m_1,
 \]
-for the block and the single step from the same state, where $a,b$ and
-$c_{\mathrm{col}}$ are machine constants and $m_B\ge m_1$ count the
-column misses of the two candidates ($m_1\le1$: only the MDM receiver can
-be new). The guarded block improves progress per unit of work at this
+for the block and the single step from the same state, where $m_B\ge m_1$
+count the column misses of the two candidates ($m_1\le1$: only the MDM
+receiver can be new) and $a,b,c_{\mathrm{col}}$ are timing coefficients.
+They are fitted, not assumed: they depend on $n$, $d$, the
+representation (dense, kernel) and the hardware, and
+Section~\ref{sec:pay-meas} fits them per cell. The model is a timing
+approximation of the implementation, not an upper bound on
+computational work. The guarded block improves progress per unit of work at this
 iterate exactly when
 $\max(\Delta_B,\Delta_1)/\Delta_1>C_B/C_1$; by
 Proposition~\ref{prop:ratio} a sufficient condition is
@@ -79,8 +96,11 @@ Proposition~\ref{prop:ratio} a sufficient condition is
 \end{equation}
 Two regimes are visible in \eqref{eq:ppc}. If $c_{\mathrm{col}}$
 dominates $a$ and $b$, the right-hand side is governed by the miss
-counts and the block can only lose (it touches at least as many new
-points as the single step). If the per-iteration terms dominate, the
+counts: the block loses when it touches more new points than the single
+step ($m_B>m_1$) and can still win by the full gain ratio when both
+need the same column ($m_B=m_1$), so column dominance limits the gain
+to the iterations on which the block's extra receivers are cached; it
+does not exclude it. If the per-iteration terms dominate, the
 right-hand side is $(a+bk')/(a+b)$, linear in $k'$, while the left-hand
 side saturates at $\beta/\eta$; the ratio of the two is maximised at
 \begin{equation}\label{eq:kstar}
@@ -112,9 +132,13 @@ for all $p\in\conv(F_V)$, $q\in\conv(F_W)$ with weights $\alpha,\beta$
 on the faces. Let $d_{\min}>0$ be the smallest distance from a face
 vertex to the affine hull of the other vertices of its face.
 \end{assumption}
-Affine independence and uniqueness of the witness pair make the map
-$(\alpha,\beta)\mapsto p-q$ injective on the faces, which is what $\sigma$
-quantifies; $\sigma$ is a singular value of an explicit matrix.
+Affine independence and uniqueness of the witness pair make the linear
+map $(\alpha-\alpha^*,\beta-\beta^*)\mapsto(p-q)-z^*$ injective on the
+subspace $\{\sum_i(\alpha_i-\alpha^*_i)=0=\sum_j(\beta_j-\beta^*_j)\}$;
+if $\sigma_2>0$ is the smallest singular value of the matrix
+$[V_{F_V},-W_{F_W}]$ restricted to that subspace, then
+$\sigma=\sigma_2/\sqrt{|F_V|+|F_W|}$ works, the square root being the
+conversion from the Euclidean to the $\ell_1$ norm of the weights.
 
 Recall $r_t=\sqrt{\UB^2-\max(\LB,0)^2}\ge\norm{z_t-z^*}$ and, from the
 proof of Theorem~\ref{thm:activation}, $r_t^2\le(4R^2/\delta^*)\sqrt{2h_t}$,
@@ -194,7 +218,7 @@ away step is boundary-clipped, i.e.\ a drop of $u$, and it adds no index.
 If instead neither side has a non-face support point, all donors are
 face points and a non-face receiver $r$ has
 $\mathrm{gap}=s_r-s_u\le-5\tau/6<0$ against any of them, so it is
-discarded (line~2 of Algorithm~\ref{alg:block}); the toward candidate is
+discarded (the discard rule of Algorithm~\ref{alg:block}); the toward candidate is
 $r^*\in F_V$. Under the two-sided schedule the second side steps only on
 non-drop iterations, when neither side has a non-face point, and the same
 argument applies. Thus for $t\ge t_{\mathrm{id}}$ (monotonicity of $h$)
@@ -240,28 +264,51 @@ Theorem~\ref{thm:activation} and of active-set identification and are
 pessimistic; the measured drop counts below are $0.3$--$70\%$ of the
 final support size.
 
-\begin{corollary}[Work model]\label{cor:work}
-Under Theorem~\ref{thm:ident} and the cost model, if every case-(a)
-iteration after $t_1:=\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ is
-$\eta$-diverse and $\beta$-flat, the work to reach $h_T\le\varepsilon$ is
-at most
+\begin{corollary}[Conditional work bound]\label{cor:work}
+Run the algorithm with requested block size $k$ and let $k'_t\le k$ be
+the number of pairs retained at iteration $t$ (on a case-(b) or drop
+iteration set $k'_t=1$). Let $t_1(k):=\max(t_{\mathrm w},t_{\mathrm{id}}+N)$
+as in Theorem~\ref{thm:ident}, $N_{\mathrm{cols}}(k)$ the number of
+distinct columns computed over the whole run, and suppose every case-(a)
+iteration $t\ge t_1(k)$ is $\eta$-diverse and $\beta$-flat. Then for every
+$T\ge t_1(k)$,
 \[
-W(k)\ \le\ c_{\mathrm{col}}N_{\mathrm{cols}}+(a+bk)\Big[t_1+\frac{\log(h_{t_1}/\varepsilon)}{\rho_k}\Big],
-\qquad \rho_k=\min\Big\{1,\,4\rho\,\frac{1+\beta(k-1)}{1+\eta(k-1)}\Big\},
+h_T\ \le\ h_{t_1(k)}\prod_{t=t_1(k)}^{T-1}(1-\rho_t),\qquad
+\rho_t\ \ge\ \rho_{k'_t}:=\min\Big\{1,\,4\rho\,\frac{1+\beta(k'_t-1)}{1+\eta(k'_t-1)}\Big\}
 \]
-where $N_{\mathrm{cols}}$ is the number of distinct columns computed.
-Aggregation leaves the column term unchanged, multiplies the
-per-iteration term after identification by
-$\frac{1+\eta(k-1)}{1+\beta(k-1)}\cdot\frac{a+bk}{a+b}$ relative to the
-guarded single pair, and for $\beta=1$ this factor is minimised at
-$k^*$ of \eqref{eq:kstar}.
+on case-(a) iterations and $\rho_t\ge\rho$ otherwise, and the timing
+model charges the run
+\[
+W(k)\ \approx\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+\sum_{t<T}(a+bk'_t).
+\]
+In particular, if $h_{t_1(k)}>\varepsilon$ and $k'_t\ge\underline k$ on
+every case-(a) iteration after $t_1(k)$, then $h_T\le\varepsilon$ for
+$T=t_1(k)+\big\lceil\log(h_{t_1(k)}/\varepsilon)/\rho_{\underline k}\big\rceil$
+when $\rho_{\underline k}<1$ (and $T=t_1(k)+1$ when
+$\rho_{\underline k}=1$), and
+$W(k)\lesssim c_{\mathrm{col}}N_{\mathrm{cols}}(k)+(a+bk)\big[t_1(k)+\lceil\log(h_{t_1(k)}/\varepsilon)/\rho_{\underline k}\rceil\big]$;
+if $h_{t_1(k)}\le\varepsilon$ the run is over at $t_1(k)$.
 \end{corollary}
 \begin{proof}
-Multiply the iteration count $t_1+\log(h_{t_1}/\varepsilon)/\rho_k$ from
-Theorem~\ref{thm:ident}(iii) (with $\log(1/(1-\rho_k))\ge\rho_k$) by the
-per-iteration cost $a+bk$ and add the columns; differentiate
-$(1+\eta(k-1))(a+bk)/k$ in $k$.
+Theorem~\ref{thm:ident}(iii) with $k'$ read as $k'_t$ gives the product;
+$\log(1/(1-\rho))\ge\rho$ turns it into the iteration count, and the
+cost model charges $a+bk'_t\le a+bk$ per iteration.
 \end{proof}
+The corollary is an absolute bound for one run. It does not by itself
+compare two block sizes: $N_{\mathrm{cols}}(k)$, $t_1(k)$ and
+$h_{t_1(k)}$ all depend on the trajectory, and comparing the
+multiplicative factors of two upper bounds is not a proof that one
+algorithm is faster. What it does say is which factor aggregation can act
+on. The per-iteration term after identification carries the factor
+$(a+bk'_t)/\rho_{k'_t}$, and if $k'_t\equiv k$ and $\beta=1$ this is
+proportional to $(1+\eta(k-1))(a+bk)/k$, minimised at $k^*$ of
+\eqref{eq:kstar}; the column term is not touched by the step rule at
+all. Whether $N_{\mathrm{cols}}$, $t_1$ and $h_{t_1}$ are in fact
+insensitive to $k$ is an empirical question, answered below for the
+five cells (column counts within $20\%$ across $k$; drops and misses
+concentrated in the same early deciles for every $k$). A comparative
+speed-up theorem would need those three quantities bounded uniformly in
+$k$, which we do not prove.
 
 \subsection{Measurements}\label{sec:pay-meas}
 
@@ -299,15 +346,18 @@ covtype KL2 & 0.29 & 2.8 & 0.102 & 0.35 & 8 & 38.9 / 21.0 / 18.2 / 21.7 & 17\% &
 \includegraphics[width=\linewidth]{figs/fig_diag.pdf}
 \caption{Along the run at $k=16$ (deciles of the iteration count, one
 line per cell): fraction of block calls that are drops, column misses per
-block call, and $\hat\eta$. Drops and misses are paid while the support
-is built and vanish once it has settled, as Theorem~\ref{thm:ident}
-predicts; $\hat\eta$ is constant along the run.}\label{fig:diag}
+block call, and the effective correlation $\hat\eta$. Drops and misses
+are paid while the support is built and become rare once it has
+settled, the shape Theorem~\ref{thm:ident} describes; $\hat\eta$ is
+constant along the run.}\label{fig:diag}
 \end{figure}
 
 Four facts follow.
 \begin{itemize}\setlength\itemsep{0pt}
-\item \emph{$\eta$ is a property of the data.} It does not move with $k$
-nor along the run (Figure~\ref{fig:diag}, right); it is $0.07$ on
+\item \emph{$\hat\eta$ is stable on each cell.} The effective
+correlation does not move with $k$ nor along the run
+(Figure~\ref{fig:diag}, right), although it is a statistic of the
+iterates and the pairing rule rather than of the data alone; it is $0.07$ on
 gisette, $0.11$ on a9a, $0.17$ on w8a, $0.26$ on ijcnn1 and $0.29$ on
 covtype, and $0.004$ on the synthetic dense-support instance of
 Table~\ref{tab:kabl}. $Q/k'$ is $0.85$--$0.98$ throughout: the useful
@@ -317,8 +367,9 @@ $2.1/2.8/3.0$ on ijcnn1 for $k=4/16/32$) follow $k/(1+\hat\eta(k-1))$
 within $25\%$ and saturate at about $1/\hat\eta$.
 \item \emph{$k^*$ is $7$--$14$ on every cell}, because $a/b$ is
 $16$--$27$ throughout and $\hat\eta\in[0.07,0.29]$: a fixed block size
-of $8$--$16$ is within about $10\%$ of the best measured time on all
-five cells, which is why the untuned $k=16$ of Section~\ref{sec:exp}
+of $8$--$16$ is within $16\%$ of the best measured time on all five
+cells ($k{=}16$ against the best size: $16\%$ on gisette, $0$--$5\%$
+elsewhere), which is why the untuned $k=16$ of Section~\ref{sec:exp}
 never lost to another size by more than that.
 \item \emph{The wall-clock gain is bounded by the column share.} The
 block cannot touch the column term of Corollary~\ref{cor:work}
@@ -344,9 +395,16 @@ for $k=1/4/16/32$: proportional to the support, growing with $k$, and an
 order of magnitude more frequent on the sparse linear cell, where fresh
 receivers of small weight become the worst donor at once.
 \end{itemize}
-The measurements are from one seed per cell; the ratios they support
-(Tables~\ref{tab:kreal} and~\ref{tab:bpcg}) are reproduced across three
-seeds in isolated runs.
+The measurements are from one seed per cell and the fits are
+retrospective (the coefficients are estimated from the same four runs
+they describe); the ratios they support (Tables~\ref{tab:kreal}
+and~\ref{tab:bpcg}) are reproduced across three seeds in isolated runs,
+and Section~\ref{sec:adaptive} is the prospective test. On the
+identification mechanism the figure is consistent with
+Theorem~\ref{thm:ident} but does not verify it: the theorem's thresholds
+$H_{\mathrm{id}},H_{\mathrm w}$ lie far below the stopping tolerance of
+these runs, and late drops, though rare, do occur. Section~\ref{sec:ident-check}
+tests the theorem where its constants can be computed.
 
 \subsection{An adaptive block size}\label{sec:adaptive}
 
@@ -360,17 +418,24 @@ with $\hat\eta$ the median over the window, and halves $k$ instead when
 more than $10\%$ of the window's block calls had their leading pair
 capped (drops are outrunning the support). Guard and fallback are
 untouched, so Theorem~\ref{thm:linear} applies with $k_{\max}$ in the
-drop bound. On the five real cells the fitted $k^*$ is $7$--$14$, so
-the rule is a safeguard rather than a source of speed-up there:
-in Table~\ref{tab:kreal} it settles at $k{=}9$ then $15$ on gisette,
-tying the fixed sizes within CI, and at $k{=}7$--$8$ on ijcnn1, where it
-is the fastest configuration ($5.0\pm0.5$\,s against $5.7\pm1.9$\,s for
-$k{=}16$). Table~\ref{tab:adaptive} tests it where
+drop bound. The rule is a prospective use of the model: $a/b$ was fixed
+at $20$ from the two pilot cells (gisette, ijcnn1) before the other
+three were run, and $\hat\eta$ is estimated from the run's own first
+window. On the three held-out cells the sizes it predicts from the first
+window ($10$ on w8a, $13$ on a9a, $7$ on covtype) are within one of the
+retrospectively fitted $k^*$ ($9$, $13$, $8$), and the fixed sizes
+nearest to them are the best measured ones in Table~\ref{tab:diag}. On
+the two pilot cells (Table~\ref{tab:kreal}) it settles at $k{=}9$ then
+$15$ on gisette, tying the fixed sizes within CI, and at $k{=}7$--$8$ on
+ijcnn1, where it is the fastest configuration ($5.0\pm0.5$\,s against
+$5.7\pm1.9$\,s for $k{=}16$); the held-out cells' isolated timings with
+the adaptive size are part of the final benchmark run. Table~\ref{tab:adaptive} tests it where
 $\eta$ actually varies: synthetic $L_2$ instances ($n{=}2{,}000$ per
 class, $C{=}1$) whose transfer directions decorrelate as the dimension
 grows, so that $\hat\eta$ falls from $0.31$ at $d{=}20$ to $0.001$ at
 $d{=}1{,}000$. The rule tracks $k^*$ across two orders of magnitude of
-$\eta$ and is within $10\%$ of the best fixed size at every~$d$.
+$\hat\eta$ and matches the best fixed size within the resolution of these
+short single-seed runs (about $0.1$\,s) at every~$d$.
 
 \begin{table}[t]\centering\scriptsize
 \caption{Adaptive block size on synthetic $L_2$ instances of varying
@@ -385,3 +450,34 @@ $d$ & $\hat\eta$ & $k^*$ & $k{=}1$ (s) & $k{=}4$ & $k{=}16$ & $k{=}32$ & auto: $
 300 & 0.00 & $>32$ & 1.7 & 0.7 & 0.4 & 0.4 & 32, 0.4 \\
 1,000 & 0.00 & $>32$ & 1.5 & 0.9 & 0.7 & 0.7 & 32, 0.7 \\
 \bottomrule\end{tabular}\end{table}
+
+\subsection{Numerical check of Theorem~\ref{thm:ident}}\label{sec:ident-check}
+
+The theorem's constants are computable on small instances. For $40$
+random hard-margin instances ($d=4$, ten points per class, Gaussian
+clouds $2.5$ apart) the SLSQP reference gives $z^*$, the faces, $\tau$,
+$\alpha_{\min}$, $d_{\min}$ and $\sigma$ (as the singular value of
+Assumption~\ref{ass:nondeg}); $12$ instances that fail strict
+complementarity or affine independence within $10^{-7}$ are skipped, and
+the remaining $28$ are run with $k\in\{1,4,16\}$ to $\varepsilon=10^{-10}$
+with both supports snapshotted at every iteration
+(\texttt{src/ident\_check.py}, $84$ runs). Three things are checked. The
+weight inequality (F2), $\omega_t\le h_t/\tau$, holds at every iteration
+of every run. From the first iteration at which the proof's radius and
+weight conditions hold (the conditions on $r_t$, $\omega_t$ and
+$2h+R\sqrt{2h}$ that define $H_{\mathrm{id}}$ and $H_{\mathrm w}$),
+claims (i) and (ii) hold to the end of every run: every removal of a
+non-face point is a drop, no non-face point enters, and after
+$t_1$ no index leaves. The third finding is that those conditions
+engage far later than the mechanism they certify. The last non-face
+support point leaves, and the last drop occurs, at $h\approx10^{-3}$
+(median; $h_0\approx6$); the proof's conditions first hold at
+$h\approx3\times10^{-13}$, and the sufficient $h$-thresholds
+$H_{\mathrm{id}},H_{\mathrm w}$ lie at $3\times10^{-18}$. The theorem is
+therefore verified in its ingredients and contradicted nowhere, but its
+thresholds are pessimistic by some $14$ orders of magnitude in $h$
+(about $7$ in $\norm{z-z^*}$) on these instances, most of it in the
+passage from $r$ to $h$ through $r^2\le(4R^2/\delta^*)\sqrt{2h}$. The
+large-data profiles of Figure~\ref{fig:diag} are consistent with the
+mechanism; they do not verify the thresholds, which no run of
+Section~\ref{sec:exp} reaches.

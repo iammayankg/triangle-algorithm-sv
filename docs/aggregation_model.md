@@ -372,3 +372,49 @@ a9a, covtype; was 1.3/2.1/1.6/3.2/3.6), b = 0.08-0.11 ms, eta unchanged
 Journal Table 5, the Section 7 table rows and the Section 7.3/7.4 text
 now carry these numbers; the decile figure keeps the records run
 (block_diag2; trajectories are bit-identical, only times changed).
+
+## 9. Review round (2026-09-07 late) and what changed
+
+All eight points accepted.  Applied:
+- Corollary rewritten as a conditional absolute work bound with the
+  retained size k'_t (product form, integer ceiling, h_{t_1} <= eps and
+  rho = 1 cases); no comparative claim; N_cols(k), t_1(k), h_{t_1(k)} written
+  as k-dependent; "leaves the column term unchanged" demoted to an
+  empirical statement.
+- eta-hat = (kappa-1)/(k'-1) defined as the *effective correlation*
+  (gamma-weighted aggregate, <= the theorem's max cosine, can be
+  negative); empirical model stated in Q, kappa.  Diagnostics now record
+  max |cos|, min relative gain (beta) and all-pairs-uncapped per block
+  step (`max_cos`, `beta_min`, `all_uncapped`) and the summary reports
+  them.  Synthetic pilot: max |cos| median 0.39 vs eta-hat 0.05 at k=16;
+  beta median 0.26 vs Q/k' 0.47 -> the theorem's assumption-based bound
+  (1+beta(k'-1))/(1+eta(k'-1)) ~ 0.7 is far below the actual ratio 4.3.
+  Real-cell values need a Studio rerun of block_diagnostics.
+- "can only lose when columns dominate" corrected (m_B = m_1 case);
+  a, b, c_col described as fitted timing coefficients.
+- Identification: `src/ident_check.py` + test.  84 runs on 28
+  non-degenerate small instances: F2 exact everywhere; claims (i)/(ii)
+  hold from the proof's r-conditions in every run, but vacuously (the
+  mechanism engages at h ~ 1e-3, the r-conditions at ~3e-13, H_id/H_w at
+  ~3e-18): thresholds pessimistic by ~14 orders in h.  Written as 7.5;
+  Figure 4 now described as "consistent with", not verifying.
+- sigma given as sigma_2 / sqrt(|F_V|+|F_W|) (l1 conversion).
+- Predictive validation: 7.4 states the prospective protocol (a/b = 20
+  fixed from the two pilot cells; eta-hat from the first window;
+  predicted k on the held-out cells 10/13/7 vs fitted 9/13/8).
+  `step_profile.py` now covers all five cells so the auto solver's
+  isolated timings on the held-out cells come from the next Studio run.
+- Claims softened: "eta-hat is stable on each cell" (not "property of the
+  data"); fixed k=16 within 16% (gisette 33.9/29.2); Table 10 single-seed
+  resolution ~0.1 s.
+- Abstract rewritten (214 words) around the journal question;
+  contribution 5 added; conclusion no longer says "k is fixed";
+  "exact QP" -> SLSQP reference with ftol 1e-14; broken Section ref fixed;
+  prior-publication wording -> "submitted ... decision pending".
+
+Still owed: Studio rerun of block_diagnostics (theorem-assumption
+fields) and step_profile (five cells, auto solver); Table 2 and the
+Table 6 traces on the released code; n-scaling experiment; moving
+Section 7 next to the analysis and consolidating the experiments around
+it (structural, deferred); affiliation / repository / declarations
+placeholders; Springer template.

@@ -118,7 +118,14 @@ def summarise(run):
     ppc_full = ratio / cost_full
     tot = {key: float(sum(r[key] for r in d)) for key in
            ('t_pairs', 't_cols', 't_assemble', 't_guard', 't_single', 't_update', 't_total')}
-    out = dict(cell=run['cell'], k=run['k'], seed=run['seed'], time=run['time'],
+    # theorem-assumption statistics (records with every retained pair uncapped)
+    allu = [r for r in d if r.get('all_uncapped') and r['kp'] > 1]
+    mc = np.array([r['max_cos'] for r in allu]); bm = np.array([r['beta_min'] for r in allu])
+    thm = dict(n_all_uncapped=len(allu),
+               frac_all_uncapped=float(np.mean([bool(r.get('all_uncapped')) for r in d])) if d else float('nan'),
+               max_cos=dict(p50=q(mc, 50), p90=q(mc, 90), max=float(mc.max()) if len(mc) else float('nan')),
+               beta_min=dict(p10=q(bm, 10), p50=q(bm, 50), min=float(bm.min()) if len(bm) else float('nan')))
+    out = dict(cell=run['cell'], k=run['k'], seed=run['seed'], time=run['time'], thm=thm,
                iters=run['iters'], status=run['status'], block_calls=len(d),
                kinds=kinds, cap1_frac=float(np.mean([r['cap1'] for r in d])) if d else 0.0,
                kp_mean=float(np.mean([r['kp'] for r in d])) if d else 0.0,
@@ -161,6 +168,11 @@ def print_summary(S):
     print(f"    cost ratio C_B/C_1 median {co['p50']:.2f} [{co['p25']:.2f}, {co['p75']:.2f}]; "
           f"progress per unit cost vs MDM median {pp['p50']:.2f} [{pp['p25']:.2f}, {pp['p75']:.2f}], "
           f">1 on {100*pp['frac_gt1']:.0f}%")
+    th = S.get('thm')
+    if th and th['n_all_uncapped']:
+        print(f"    theorem assumptions on the {100*th['frac_all_uncapped']:.0f}% of calls with all pairs uncapped: "
+              f"max |cos| median {th['max_cos']['p50']:.2f}, p90 {th['max_cos']['p90']:.2f}, max {th['max_cos']['max']:.2f}; "
+              f"min relative gain (beta) p10 {th['beta_min']['p10']:.2f}, median {th['beta_min']['p50']:.2f}, min {th['beta_min']['min']:.3f}")
     cf, pf = S['cost_ratio_full'], S['ppc_full']
     print(f"    with the fixed per-iteration overhead ({1e3*S['other_per_iter']:.2f} ms/it) in both costs: "
           f"C_B/C_1 median {cf['p50']:.2f}, progress per unit cost median {pf['p50']:.2f} "

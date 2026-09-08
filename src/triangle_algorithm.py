@@ -785,6 +785,16 @@ class EnhancedTriangleAlgorithm:
                 Q_unc=sum(nu_ * nu_ / (2.0 * de_) for nu_, de_, gm_ in dens) / tiny,
                 Q_real=sum(min(nu_ / de_, gm_) * nu_ - 0.5 * min(nu_ / de_, gm_) ** 2 * de_
                            for nu_, de_, gm_ in dens) / tiny,
+                # the theorem's assumptions, recorded separately from the
+                # aggregate Q and kappa: maximum absolute pairwise cosine of
+                # the retained directions (eta of Prop. 12 must dominate it),
+                # minimum relative uncapped pair gain (beta-flatness) and
+                # whether every retained pair is uncapped
+                max_cos=(float(np.max(np.abs(M / np.sqrt(np.outer(np.diag(M), np.diag(M))))
+                                      [~np.eye(len(pairs), dtype=bool)])) if len(pairs) > 1 else 0.0),
+                beta_min=(min(nu_ * nu_ / (2.0 * de_) for nu_, de_, gm_ in dens)
+                          / max(dens[0][0] ** 2 / (2.0 * dens[0][1]), 1e-300)),
+                all_uncapped=all(nu_ / de_ <= gm_ for nu_, de_, gm_ in dens),
                 support=len(self.wV), n_drops=self.n_drops,
                 t_pairs=t1 - t0, t_cols=t2 - t1, t_col1=t_col1, miss1=miss1,
                 t_assemble=t3 - t2, t_guard=0.0, t_single=0.0, kind=kind)
@@ -954,6 +964,16 @@ class EnhancedTriangleAlgorithm:
                 Q_unc=sum(nu_ * nu_ / (2.0 * de_) for nu_, de_, gm_ in dens) / tiny,
                 Q_real=sum(min(nu_ / de_, gm_) * nu_ - 0.5 * min(nu_ / de_, gm_) ** 2 * de_
                            for nu_, de_, gm_ in dens) / tiny,
+                # the theorem's assumptions, recorded separately from the
+                # aggregate Q and kappa: maximum absolute pairwise cosine of
+                # the retained directions (eta of Prop. 12 must dominate it),
+                # minimum relative uncapped pair gain (beta-flatness) and
+                # whether every retained pair is uncapped
+                max_cos=(float(np.max(np.abs(M / np.sqrt(np.outer(np.diag(M), np.diag(M))))
+                                      [~np.eye(len(pairs), dtype=bool)])) if len(pairs) > 1 else 0.0),
+                beta_min=(min(nu_ * nu_ / (2.0 * de_) for nu_, de_, gm_ in dens)
+                          / max(dens[0][0] ** 2 / (2.0 * dens[0][1]), 1e-300)),
+                all_uncapped=all(nu_ / de_ <= gm_ for nu_, de_, gm_ in dens),
                 support=len(self.wW), n_drops=self.n_drops,
                 t_pairs=t1 - t0, t_cols=t2 - t1, t_col1=t_col1, miss1=miss1,
                 t_assemble=t3 - t2, t_guard=0.0, t_single=0.0, kind=kind)

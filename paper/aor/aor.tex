@@ -66,30 +66,28 @@
 \title[Guarded block transfers for polytope distance]{Guarded block transfers for polytope distance: linear convergence with explicit constants and gap-certified screening for SVM training}
 \author*[1]{\fnm{Mayank} \sur{Gupta}}\email{iammayankg@gmail.com}
 \affil*[1]{\orgname{\todo{affiliation}}, \orgaddress{\city{\todo{city}}, \country{\todo{country}}}}
-\abstract{Hard-margin SVM training is the distance problem between two convex
-hulls, which the Triangle Algorithm (TA) solves with a certified
-duality gap. We propose \emph{guarded block transfers}: $k$
-Mitchell--Demyanov--Malozemov (MDM) transfers per scan are aggregated
-into one exact line search, guarded by a comparison with the single
-best transfer at a cost independent of the number of points $n$, and replaced by an away
-step when the leading transfer is capacity-clipped. On the
-Minkowski-difference polytope, where the objective is $1$-strongly
-convex, we prove global linear convergence with explicit constants and
-no combinatorial swap-step bounds; the per-step contraction is
-$k$-independent and only the drop-count bound grows with $k$, so
-aggregation is provably safe while the saving in scans is measured, not
-proved. Since the TA certificate is the
-Frank--Wolfe gap divided by the current distance, gap-safe screening
-applies, and we bound the iteration after which it has removed every
-zero-weight point off the optimal faces by $O\!\left(\tfrac{k}{\rho}\log\tfrac{1}{\tau}\right)$
-up to logarithmic factors in the geometry, $\rho$ the rate constant and
-$\tau$ the optimal-face margin. On five LIBSVM benchmarks the solver
-matches the baselines to five digits wherever both converge, ties LIBSVM
-on sparse-support hard margins, beats BPCG and kernel SMO on kernel
-$L_2$ margins (where LIBSVM on a precomputed kernel is faster still),
-and is one to two orders of magnitude slower on dense-support $L_2$
-margins and nearly touching kernel hulls, where LIBLINEAR finishes in
-seconds. We report both sides.}
+\abstract{Training a hard-margin support vector machine is the distance problem
+between two convex hulls, which the Triangle Algorithm solves with a
+certified duality gap. We study \emph{guarded block transfers}: $k$
+Mitchell--Demyanov--Malozemov transfers per scan are aggregated into
+one exact line search, guarded by a comparison with the single best
+transfer, and replaced by an away step when the leading transfer is
+capacity-clipped. On the Minkowski-difference polytope we prove global
+linear convergence with explicit constants and no combinatorial
+swap-step bounds, and a finite activation bound for gap-safe screening.
+We then ask when aggregation pays. The gain of a block over the single
+transfer at the same iterate is exactly $Q/\kappa$ in two quantities
+the guard already computes; under strict complementarity every drop
+step occurs before an explicit identification iteration; and a fitted
+work model gives the block size that minimises the per-iteration term,
+$\sqrt{(a/b)(1-\eta)/\eta}$, which the solver sets adaptively from
+$\kappa$. Isolated measurements on five LIBSVM problems confirm the
+prediction: aggregation pays only where per-iteration work rather than
+column computation dominates, by a factor bounded by the column share.
+The solver ties LIBSVM on sparse-support hard margins, beats BPCG and
+kernel SMO on kernel $L_2$ margins, and is one to two orders of
+magnitude slower than LIBLINEAR on dense-support $L_2$ margins. We
+report both sides.}
 \keywords{polytope distance, Frank--Wolfe methods, Triangle Algorithm, support vector machines, safe screening, linear convergence}
 \maketitle
 \else
@@ -98,30 +96,28 @@ seconds. We report both sides.}
 \date{Draft of \today}
 \maketitle
 \begin{abstract}
-Hard-margin SVM training is the distance problem between two convex
-hulls, which the Triangle Algorithm (TA) solves with a certified
-duality gap. We propose \emph{guarded block transfers}: $k$
-Mitchell--Demyanov--Malozemov (MDM) transfers per scan are aggregated
-into one exact line search, guarded by a comparison with the single
-best transfer at a cost independent of the number of points $n$, and replaced by an away
-step when the leading transfer is capacity-clipped. On the
-Minkowski-difference polytope, where the objective is $1$-strongly
-convex, we prove global linear convergence with explicit constants and
-no combinatorial swap-step bounds; the per-step contraction is
-$k$-independent and only the drop-count bound grows with $k$, so
-aggregation is provably safe while the saving in scans is measured, not
-proved. Since the TA certificate is the
-Frank--Wolfe gap divided by the current distance, gap-safe screening
-applies, and we bound the iteration after which it has removed every
-zero-weight point off the optimal faces by $O\!\left(\tfrac{k}{\rho}\log\tfrac{1}{\tau}\right)$
-up to logarithmic factors in the geometry, $\rho$ the rate constant and
-$\tau$ the optimal-face margin. On five LIBSVM benchmarks the solver
-matches the baselines to five digits wherever both converge, ties LIBSVM
-on sparse-support hard margins, beats BPCG and kernel SMO on kernel
-$L_2$ margins (where LIBSVM on a precomputed kernel is faster still),
-and is one to two orders of magnitude slower on dense-support $L_2$
-margins and nearly touching kernel hulls, where LIBLINEAR finishes in
-seconds. We report both sides.
+Training a hard-margin support vector machine is the distance problem
+between two convex hulls, which the Triangle Algorithm solves with a
+certified duality gap. We study \emph{guarded block transfers}: $k$
+Mitchell--Demyanov--Malozemov transfers per scan are aggregated into
+one exact line search, guarded by a comparison with the single best
+transfer, and replaced by an away step when the leading transfer is
+capacity-clipped. On the Minkowski-difference polytope we prove global
+linear convergence with explicit constants and no combinatorial
+swap-step bounds, and a finite activation bound for gap-safe screening.
+We then ask when aggregation pays. The gain of a block over the single
+transfer at the same iterate is exactly $Q/\kappa$ in two quantities
+the guard already computes; under strict complementarity every drop
+step occurs before an explicit identification iteration; and a fitted
+work model gives the block size that minimises the per-iteration term,
+$\sqrt{(a/b)(1-\eta)/\eta}$, which the solver sets adaptively from
+$\kappa$. Isolated measurements on five LIBSVM problems confirm the
+prediction: aggregation pays only where per-iteration work rather than
+column computation dominates, by a factor bounded by the column share.
+The solver ties LIBSVM on sparse-support hard margins, beats BPCG and
+kernel SMO on kernel $L_2$ margins, and is one to two orders of
+magnitude slower than LIBLINEAR on dense-support $L_2$ margins. We
+report both sides.
 \end{abstract}
 \noindent\textbf{Keywords:} polytope distance; Frank--Wolfe methods; Triangle Algorithm; support vector machines; safe screening; linear convergence
 \fi
@@ -166,6 +162,16 @@ removed every zero-weight point off the optimal faces.
 heuristic pyramidal-width estimate ($\sim1/\sqrt n$) suggests
 $O(n^2)$-type cost on dense supports, and two batteries on five LIBSVM
 datasets show the boundary from both sides.
+\item \textbf{When aggregation pays} (\S\ref{sec:pay}, new in this
+version): the exact gain ratio of a block over the single MDM step at
+the same iterate, $Q(2-\kappa)$ or $Q/\kappa$ in two observable numbers
+(Proposition~\ref{prop:ratio}); an identification theorem showing that
+under strict complementarity all drop steps occur before an explicit
+iteration and none afterwards (Theorem~\ref{thm:ident}); a conditional
+work bound with the block size that minimises it
+(Corollary~\ref{cor:work}); isolated per-step measurements of every
+quantity in the model on five real cells; and an adaptive block size
+driven by the measured $\kappa$, tested prospectively.
 \end{enumerate}
 Code, proofs, numerical checks and experiment scripts are in the public
 repository (\todo{URL}).
@@ -529,7 +535,7 @@ $\ip{\tilde p}{\tilde v_i}=\ip{p}{v_i}+\alpha_i/C$ and
 $\norm{\tilde p}^2=\norm p^2+\norm\alpha^2/C$. The separator is recovered
 as $w=2(p-q)/\delta_C^2$, $b=(\norm{\tilde q}^2-\norm{\tilde p}^2)/\delta_C^2$,
 and the primal value is $P=2/\delta_C^2$. Validation: the solver agrees
-with an exact QP on the explicitly augmented problem to $10^{-10}$
+with the SLSQP reference on the explicitly augmented problem to $10^{-10}$
 across random instances and values of $C$; the regularisation path
 $\delta_C$ is monotone in $C$; on a9a ($C{=}0.1$) its certified primal
 $687.07$ equals LIBLINEAR's to five digits.
@@ -571,8 +577,10 @@ kernel SMO matches the QP to $10^{-8}$.
 
 \section{Experiments}\label{sec:exp}
 
-\paragraph{Setup.} All solvers are validated against an exact
-QP (distances agree to $10^{-9}$ or better). Stopping rule
+\paragraph{Setup.} All solvers are validated against a reference QP
+solution (SLSQP from SciPy on the weight variables, function tolerance
+$10^{-14}$, on instances small enough for it; distances agree to
+$10^{-9}$ or better). Stopping rule
 $\varepsilon=10^{-3}$ on the certified relative gap unless stated;
 baselines use matched tolerances on the same objective, LIBLINEAR up
 to its intercept penalty (Section~\ref{app:details}). Synthetic instances follow
@@ -1075,7 +1083,7 @@ Lemma~\ref{lem:twosided} on instrumented two-sided runs (no drop
 iteration added a support index, and every non-drop iteration met the
 gain bound with $M$ replaced by the computable upper bound
 $\operatorname{diam}V+\operatorname{diam}W$); and Theorem~\ref{thm:activation} on instances whose optimal
-face was computed by an exact QP: at every activating round all
+face was computed by the SLSQP reference: at every activating round all
 zero-weight non-face points were screened, and the final working set
 equalled the optimal face exactly. Over $5{,}000$ instrumented live
 block steps none increased the objective. All checks are test files in
@@ -1097,7 +1105,7 @@ variants \citep{tsuji2022,rinaldi2023} and block-coordinate FW
 screening \citep{fercoq2015,ndiaye2017,shibagaki2016} and active-set
 identification \citep{bomze2020,garber2020} the closest to
 Theorem~\ref{thm:activation}, with \citep{elghaoui2012,ogawa2013,wang2014}
-as its SVM ancestors (Section~\ref{app:related}).
+as its SVM ancestors (below).
 
 \paragraph{Aggregated directions.} Boosted FW \citep{combettes2020}
 builds its direction by greedily aligning a combination of atoms with
@@ -1162,8 +1170,14 @@ kernel in memory), and supplies a certificate, against dense support or
 nearly touching hulls, where LIBLINEAR or LIBSVM is one to two orders
 of magnitude faster. Limitations: screening
 pays only when the certificate closes; the implementation is
-NumPy-level and dense; the constants are loose; the $\nu$-SVM variant
-is not analysed; and $k$ is fixed.
+NumPy-level and dense; the constants are loose; and the $\nu$-SVM
+variant is not analysed. Section~\ref{sec:pay} answers the question the
+workshop version left open: aggregation acts only on the per-iteration
+term of the work, by the exact factor $Q/\kappa$ per step, drops are an
+identification cost that stops once the optimal faces are found, and
+the block size that pays most is $\sqrt{(a/b)(1-\eta)/\eta}$, which the
+solver can set from the $\kappa$ it already computes; on column-bound
+problems no block size helps, and the paper says so.
 
 \ifsnjnl\backmatter\fi
 
@@ -1181,7 +1195,8 @@ script named in Section~\ref{app:details}.
 code, experiments and manuscript; the author verified all results and
 is responsible for the content.
 \paragraph{Prior publication.} A six-page version of this work was
-presented at the OPT 2026 workshop (NeurIPS 2026, non-archival); this
+submitted to the OPT 2026 workshop (NeurIPS 2026, non-archival;
+\todo{state the decision at submission time}); this
 article extends it with \todo{list: full proofs, the exact reductions,
 the isolated timing study, the n-scaling experiment, ...}.
 

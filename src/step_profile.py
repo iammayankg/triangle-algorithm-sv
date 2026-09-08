@@ -41,7 +41,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 EPS, CAP, C = 1e-3, 600.0, 1.0
-CELLS = ['gisette-l2', 'ijcnn1-kl2']
+CELLS = ['gisette-l2', 'ijcnn1-kl2', 'w8a-kl2', 'a9a-kl2', 'covtype-kl2']
 SOLVERS = ['mdm', 'guarded1', 'block16', 'auto', 'bpcg']
 
 

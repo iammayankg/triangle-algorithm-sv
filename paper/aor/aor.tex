@@ -79,11 +79,12 @@ prove global linear convergence with explicit constants and no
 combinatorial swap-step bounds, and a finite activation bound for
 gap-safe screening. We then ask when aggregation pays. The gain of a
 block over the single transfer at the same iterate has an exact
-expression, $Q(2-\chi)$ or $Q/\chi$, in two quantities the guard already
-computes; under strict complementarity every drop step occurs before an
-explicit identification iteration; and a fitted work model gives the
-block size that minimises the per-iteration term, which the solver sets
-adaptively from the measured $\chi$. Isolated measurements on five
+expression in two quantities the guard already computes, the summed
+relative pair gain and the loss to combining the directions; under
+strict complementarity every drop step occurs before an explicit
+identification iteration; and a fitted work model gives the block size
+that minimises the per-iteration term, which the solver sets adaptively
+from the measured combination loss. Isolated measurements on five
 LIBSVM problems confirm the prediction: aggregation pays only where
 per-iteration work rather than column computation dominates, by a
 factor bounded by the column share. The solver ties LIBSVM on
@@ -111,11 +112,12 @@ prove global linear convergence with explicit constants and no
 combinatorial swap-step bounds, and a finite activation bound for
 gap-safe screening. We then ask when aggregation pays. The gain of a
 block over the single transfer at the same iterate has an exact
-expression, $Q(2-\chi)$ or $Q/\chi$, in two quantities the guard already
-computes; under strict complementarity every drop step occurs before an
-explicit identification iteration; and a fitted work model gives the
-block size that minimises the per-iteration term, which the solver sets
-adaptively from the measured $\chi$. Isolated measurements on five
+expression in two quantities the guard already computes, the summed
+relative pair gain and the loss to combining the directions; under
+strict complementarity every drop step occurs before an explicit
+identification iteration; and a fitted work model gives the block size
+that minimises the per-iteration term, which the solver sets adaptively
+from the measured combination loss. Isolated measurements on five
 LIBSVM problems confirm the prediction: aggregation pays only where
 per-iteration work rather than column computation dominates, by a
 factor bounded by the column share. The solver ties LIBSVM on
@@ -194,7 +196,10 @@ and the dense-support regime, where it does not.
 \item \textbf{When aggregation pays} (\S\ref{sec:pay}, beyond the
 workshop version): the exact gain ratio of a block over the single MDM
 step at the same iterate, $Q(2-\chi)$ or $Q/\chi$ in two observable
-numbers (Proposition~\ref{prop:ratio}); an identification theorem
+numbers, $Q$ the summed pair gains relative to the leading pair and
+$\chi$ the ratio of the combined direction's squared norm to its
+directional derivative (Proposition~\ref{prop:ratio}); an
+identification theorem
 showing that under strict complementarity all drop steps occur before
 an explicit iteration and none afterwards (Theorem~\ref{thm:ident}); a
 conditional work bound (Corollary~\ref{cor:work}) and a timing model
@@ -370,6 +375,20 @@ $\mathcal R(V,\mu)$, $\nu$ & reduced hull, $\nu$-SVM parameter & $w$, $b$ & sepa
 
 \section{Guarded block transfers}\label{sec:alg}
 
+One iteration on side $V$ (side $W$ is symmetric) starts from the
+score scan of Section~\ref{sec:setting}. It pairs the $k$ receivers of
+highest score with the $k$ donors of lowest score in
+$\operatorname{supp}\alpha$, best with worst, and keeps the $k'\le k$
+pairs $(r_j,u_j)$ with positive score gap; pair~1 is the MDM pair
+$(r^*,u^*)$. Each pair defines a transfer direction $d_j=v_{r_j}-v_{u_j}$
+with gap $\mathrm{gap}_j=s^V_{r_j}-s^V_{u_j}$ and a transfer amount
+$\gamma_j$, the unconstrained one-dimensional optimum
+$\mathrm{gap}_j/\norm{d_j}^2$ clipped to the donor's weight
+$\alpha_{u_j}$; a pair whose amount is clipped is \emph{capped}. The
+block direction is $d=\sum_j\gamma_jd_j$ with
+$\gamma=(\gamma_1,\dots,\gamma_{k'})^\top$. Algorithm~\ref{alg:block}
+states the step, its guard and its fallback.
+
 \begin{algorithm2e}[t]
 \caption{One iteration of the guarded block-transfer step (side $V$; $W$ symmetric)}
 \label{alg:block}
@@ -423,7 +442,7 @@ and Algorithm~\ref{alg:block} presuppose $k'\ge1$: a side with no
 positive-gap pair is skipped, and on a non-drop iteration the side with
 the larger pairwise gap has one. An away direction whose donor has
 weight one is unavailable (the iterate is that vertex and the away gap
-of that side is zero). In Proposition~\ref{prop:orth}, $\eta\ge0$.
+of that side is zero).
 
 \begin{lemma}[Block gain]\label{lem:block}
 Let $\varphi_j=\gamma_j\norm{d_j}$ over the $k'$ retained pairs, all with
@@ -564,7 +583,7 @@ vacuous for $k\ge1$.
 \end{remark}
 
 \begin{proposition}[Near-orthogonal speed-up]\label{prop:orth}
-If all $k'$ pairs are uncapped and
+If all $k'$ pairs are uncapped and, for some $\eta\ge0$,
 $|\ip{d_i}{d_j}|\le\eta\norm{d_i}\norm{d_j}$ for $i\ne j$, then the
 block gain is at least $(\sum_j\Delta_j)/(1+\eta(k'-1))$, where
 $\Delta_j$ is pair $j$'s individual gain.

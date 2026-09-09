@@ -416,11 +416,16 @@ correlation does not move with $k$ nor along the run
 iterates and the pairing rule rather than of the data alone; it is $0.07$ on
 gisette, $0.11$ on a9a, $0.17$ on w8a, $0.26$ on ijcnn1 and $0.29$ on
 covtype, and $0.004$ on the synthetic dense-support instance of
-Table~\ref{tab:kabl}. $Q/k'$ is $0.85$--$0.98$ throughout: the useful
-progress beyond the leading pair is never the limit, the loss to
-combination is. The measured gain ratios ($3.4/6.9/7.5$ on gisette,
-$2.1/2.8/3.0$ on ijcnn1 for $k=4/16/32$) follow $k/(1+\hat\eta(k-1))$
-within $25\%$ and saturate at about $1/\hat\eta$.
+Table~\ref{tab:kabl}. The mean relative pair gain
+$Q/k'=(1/k')\sum_j\Delta_j/\Delta_1$ (median $Q$ over the run's block
+calls with pair 1 uncapped, divided by the mean number of retained
+pairs) is $0.92$--$0.98$ at $k=4$, $0.83$--$0.98$ at $k=16$ and
+$0.78$--$0.88$ at $k=32$ (Table~\ref{tab:assump} lists the $k=16$
+values): the useful progress beyond the leading pair is never the
+limit, the loss to combination is. The measured gain ratios (median
+$\max(\Delta_B,\Delta_1)/\Delta_1$ over the same calls: $3.4/6.9/7.5$ on
+gisette and $2.1/2.8/3.0$ on ijcnn1 at $k=4/16/32$) follow
+$k/(1+\hat\eta(k-1))$ within $25\%$ and saturate at about $1/\hat\eta$.
 \item \emph{$k^*$ is $7$--$14$ on every cell}, because $a/b$ is
 $16$--$28$ throughout and $\hat\eta\in[0.07,0.29]$: a fixed block size
 of $8$--$16$ is within $16\%$ of the best measured time on all five
@@ -461,17 +466,20 @@ calls at $k=16$ only). Over the
 block calls with every retained pair uncapped: median maximum absolute
 pairwise cosine of the retained directions (the $\eta$ of
 Proposition~\ref{prop:ratio}), median minimum relative pair gain (its
-$\beta_{\mathrm{flat}}$), and the gain ratio the proposition then guarantees,
-$(1+\beta_{\mathrm{flat}}(k'-1))/(1+\eta(k'-1))$; against the effective correlation
-$\hat\eta$, the model ratio $k'/(1+\hat\eta(k'-1))$ and the measured
-median gain ratio $\max(\Delta_B,\Delta_1)/\Delta_1$.}\label{tab:assump}
-\begin{tabular}{lrrrrrrr}\toprule
-cell & all pairs uncapped & $\max|\cos|$ & $\beta_{\mathrm{flat}}$ & guaranteed & $\hat\eta$ & model & measured \\\midrule
-gisette $L_2$ & 43\% & 0.33 & 0.53 & 1.5 & 0.08 & 7.4 & 6.9 \\
-ijcnn1 KL2 & 73\% & 0.42 & 0.80 & 1.8 & 0.26 & 3.2 & 2.8 \\
-w8a KL2 & 76\% & 0.33 & 0.77 & 2.1 & 0.17 & 4.4 & 3.6 \\
-a9a KL2 & 89\% & 0.28 & 0.70 & 2.2 & 0.12 & 5.8 & 4.6 \\
-covtype KL2 & 96\% & 0.42 & 0.82 & 1.8 & 0.28 & 3.0 & 2.7 \\
+$\beta_{\mathrm{flat}}$), and the lower bound the proposition then
+guarantees for the guarded ratio $\max(\Delta_B,\Delta_1)/\Delta_1$,
+$(1+\beta_{\mathrm{flat}}(k'-1))/(1+\eta(k'-1))$ (column ``bound''); against
+the effective correlation $\hat\eta$, the mean relative pair gain
+$Q/k'$, the model ratio $k'/(1+\hat\eta(k'-1))$ and the measured median
+of $\max(\Delta_B,\Delta_1)/\Delta_1$, the last three over the block
+calls with pair 1 uncapped.}\label{tab:assump}
+\begin{tabular}{lrrrrrrrr}\toprule
+cell & all pairs uncapped & $\max|\cos|$ & $\beta_{\mathrm{flat}}$ & bound & $\hat\eta$ & $Q/k'$ & model & measured \\\midrule
+gisette $L_2$ & 43\% & 0.33 & 0.53 & 1.5 & 0.08 & 0.98 & 7.4 & 6.9 \\
+ijcnn1 KL2 & 73\% & 0.42 & 0.80 & 1.8 & 0.26 & 0.89 & 3.2 & 2.8 \\
+w8a KL2 & 76\% & 0.33 & 0.77 & 2.1 & 0.17 & 0.88 & 4.4 & 3.6 \\
+a9a KL2 & 89\% & 0.28 & 0.70 & 2.2 & 0.12 & 0.83 & 5.8 & 4.6 \\
+covtype KL2 & 96\% & 0.42 & 0.82 & 1.8 & 0.28 & 0.91 & 3.0 & 2.7 \\
 \bottomrule\end{tabular}\end{table}
 
 \emph{The theorem's constants are not what the mechanism runs on.}
@@ -482,8 +490,10 @@ does not distinguish the cells at all, whereas the effective correlation
 $\hat\eta$ spans $0.07$--$0.29$ and does; the minimum relative gain is
 $0.5$--$0.8$; and at $k=16$ only $43$--$96\%$ of the block calls have all
 pairs uncapped, so the proposition applies to a minority of the calls on
-gisette. The gain ratio the proposition guarantees from these constants
-is $1.5$--$2.2$, against measured medians of $2.7$--$6.9$; the exact
+gisette. The lower bound the proposition guarantees for the guarded
+ratio from these constants is $1.5$--$2.2$, against measured medians of
+$2.7$--$6.9$ (the bound is an inequality, so the gap is slack, not a
+contradiction); the exact
 identity $Q/\chi$ (the ``model'' column) reproduces the measurement
 because it uses the $\gamma$-weighted aggregate in which the cross terms
 largely cancel, not the worst pair. The right reading of
@@ -517,13 +527,19 @@ before the square root, which sends $k$ to $k_{\max}$), and halves $k$ instead w
 more than $10\%$ of the window's block calls had their leading pair
 capped (drops are outrunning the support). Guard and fallback are
 untouched, so Theorem~\ref{thm:linear} applies with $k_{\max}$ in the
-drop bound. The rule is a prospective use of the model: $a/b$ was fixed
-at $20$ from the two pilot cells (gisette, ijcnn1) before the other
-three were run, and $\hat\eta$ is estimated from the run's own first
-window. On the three held-out cells the sizes it predicts from the first
-window ($10$ on w8a, $13$ on a9a, $7$ on covtype) are within one of the
-retrospectively fitted $k^*$ ($9$, $13$, $8$), and the fixed sizes
-nearest to them are the best measured ones in Table~\ref{tab:diag}. On
+drop bound. What is prospective and what is not should be stated
+precisely. The rule, its window, $k_{\max}=32$ and the ratio $a/b=20$
+were fixed from the two pilot cells (gisette, ijcnn1) before w8a, a9a
+and covtype were run at all; on a run the rule reads only its own
+window's $\chi$ values, never the per-cell $\hat\eta$ of
+Table~\ref{tab:diag}, which is a retrospective median over three
+complete runs and enters nothing but the fitted $k^*$ column of that
+table. The test of the rule is therefore the wall-clock it achieves on
+the three held-out cells against the fixed sizes run under the same
+protocol (Table~\ref{tab:kreal}); the agreement of the sizes it chose
+($10$ on w8a, $13$ on a9a, $7$ on covtype) with the retrospectively
+fitted $k^*$ ($9$, $13$, $8$) is a consistency check of the model, not
+the test. On
 the two pilot cells (Table~\ref{tab:kreal}) it settles at $k{=}9$ then
 $15$ on gisette, tying the fixed sizes within CI, and at $k{=}7$--$8$ on
 ijcnn1, where it is the fastest configuration ($4.7\pm0.6$\,s against

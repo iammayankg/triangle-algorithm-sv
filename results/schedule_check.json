@@ -2,7 +2,7 @@
   {
     "tag": "hard-d1000-eps1e-5",
     "drop_skip": false,
-    "time": 0.7121828649997042,
+    "time": 0.7547641390001445,
     "iters": 16,
     "dist": 55.33936539481493,
     "status": "converged",
@@ -16,7 +16,7 @@
   {
     "tag": "hard-d1000-eps1e-5",
     "drop_skip": true,
-    "time": 0.6732805720002943,
+    "time": 0.6856570609998016,
     "iters": 16,
     "dist": 55.339365395595046,
     "status": "converged",
@@ -30,7 +30,7 @@
   {
     "tag": "soft-d100-C1",
     "drop_skip": false,
-    "time": 22.18425065199972,
+    "time": 22.452871839999716,
     "iters": 12311,
     "dist": 0.07840029456614986,
     "status": "converged",
@@ -45,7 +45,7 @@
   {
     "tag": "soft-d100-C1",
     "drop_skip": true,
-    "time": 18.748408329000085,
+    "time": 19.10936931199967,
     "iters": 10701,
     "dist": 0.07840028658536105,
     "status": "converged",
@@ -59,7 +59,7 @@
   {
     "tag": "soft-d1000-C1",
     "drop_skip": false,
-    "time": 11.488290712999515,
+    "time": 11.836627586000304,
     "iters": 2901,
     "dist": 0.5781430603725188,
     "status": "converged",
@@ -74,7 +74,7 @@
   {
     "tag": "soft-d1000-C1",
     "drop_skip": true,
-    "time": 11.973627707999185,
+    "time": 13.20864775300015,
     "iters": 3001,
     "dist": 0.578143010321634,
     "status": "converged",

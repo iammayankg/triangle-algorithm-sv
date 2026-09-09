@@ -49,8 +49,10 @@ def main():
     for d in (args.shards, args.uncapped):
         for p in sorted(glob.glob(f'{d}/*_0.json')):
             recs = json.load(open(p))
-            eta = next(r for r in recs if r['solver'] == 'ETA')
-            lib = next(r for r in recs if r['solver'] == 'LIBLIN')
+            eta = next((r for r in recs if r['solver'] == 'ETA'), None)
+            lib = next((r for r in recs if r['solver'] == 'LIBLIN'), None)
+            if eta is None or eta.get('trace') is None:
+                continue
             key = (eta['dataset'], eta['C'])
             cells.setdefault(key, []).append((d, eta, lib))
 
@@ -65,7 +67,7 @@ def main():
     print('|--|--:|--:|--:|--:|--:|--:|--:|')
     for key in sorted(cells):
         runs = cells[key]
-        p_star = min([lib['primal'] for _, _, lib in runs] +
+        p_star = min([lib['primal'] for _, _, lib in runs if lib is not None] +
                      [2.0 / eta['trace'][-1][2] ** 2 for _, eta, _ in runs
                       if eta['status'] == 'converged'])
         # prefer the uncapped trace when both exist (same split, same optimum)

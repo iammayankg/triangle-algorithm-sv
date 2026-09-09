@@ -392,3 +392,41 @@ persists, so nothing is lost.
 - **ThunderSVM wheel fails to import** (CUDA mismatch): use the source
   build above; it compiles against the Studio's CUDA toolkit.
 - **Machine switch mid-run**: shards survive; just relaunch step 4.
+
+
+## Journal provenance rerun (2026-09-08)
+
+The journal review (docs/aor_review_2026-09-08.md, item 1) asks for one
+protocol: every table under the released code, isolated. `src/provenance_rerun.sh`
+runs, in order, the synthetic schedule check and k ablation (Tables 3, 8),
+the new n-scaling experiment (`src/n_scaling.py`), the new real-data
+screening experiment (`src/screening_real.py`, gisette LIN and L2 at
+1e-3 and 1e-5, screening off/on, 3 seeds, each run in a fresh process),
+the uncapped ETA-only seed-0 traces for Figure 1 and Table 6
+(`full_battery.py --time-cap 0 --solvers ETA`, a9a/w8a/ijcnn1 at C=0.1),
+the full L2 battery (Table 2, `results/full_battery2.json`), then
+`battery_analysis.py`, `time_to_tol.py` and `trace_fig.py`.
+
+```bash
+cd ~/triangle-algorithm-sv && git pull
+pgrep -af "src/.*\.py"            # must be empty
+nohup bash src/provenance_rerun.sh > results/provenance_rerun.log 2>&1 &
+# PAR=4 nohup bash src/provenance_rerun.sh ...   # 4 concurrent cells for Table 2 (~8 h instead of ~30 h)
+```
+
+Budget: synthetic tables ~5 min; n-scaling ~15-30 min; screening ~1 h;
+uncapped traces ~3 h (a9a 3,000 s, w8a 5,400 s, ijcnn1 ~700 s); L2 battery
+~30 h sequential (ETA and SMO 600 s caps on 12 cells x 5 seeds, LIBLINEAR
+8 min-1.5 h per gisette cell). Everything resumes from shards, so the
+script can be restarted after a Studio sleep. Sync afterwards:
+
+```bash
+git add results/schedule_check.json results/k_ablation_synth.json results/n_scaling.json \
+        results/screening_real.json results/full_battery2.json results/full_battery2_summary.md \
+        results/time_to_tol.md results/*.log paper/aor/tab_synth.tex paper/figs/fig_realdata_trace.pdf
+git commit -m "results: provenance rerun" && git push origin main
+```
+
+Do not add the shard directories or the uncapped shards (they carry the
+full traces) unless they are small; `results/full_battery2.json` has the
+merged records.

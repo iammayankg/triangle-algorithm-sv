@@ -128,3 +128,18 @@ adaptive rule there.
 - Builds directly on Kalantari (2015), published in AOR.
 - Single author; no competing interests; code and data public.
 - Suggested reviewers / editors: TODO.
+
+
+## Journal review of 2026-09-08 (docs/aor_review_2026-09-08.md): status
+
+| item | done | pending |
+|---|---|---|
+| 1 provenance | hardware paragraph cut to five lines; provenance sentences replaced by one TODO; `src/provenance_rerun.sh` written (Tables 2, 3, 6, 8, Fig. 1 + screening + n-scaling) | run it on the Studio, then drop the TODO in "Solver settings" and "Hardware and protocol", replace Tables 2/3/6/8 rows and Fig. 1, fill the two placeholder subsections |
+| 2 overclaims | abstract: "both cases" of the gain ratio, kernel SMO claim qualified; gisette KHM 1.2x -> tie; O(n^2) removed from contribution 4 (now "would be O(n^2)-type; the n-scaling experiment measures the exponent") | n-scaling numbers |
+| 3 screening on real data | `src/screening_real.py` + subsection "Screening on a real cell" | Studio run, table |
+| 4 framing | introduction leads with polytope distance / minimum-norm point, states what survives of TA and what is replaced, Section 2 Related work in prose (OR lineage first); contribution 5 "beyond the workshop version"; Corollary 3 (work bound in standard form) | the 7.1-7.2-after-Section-4 reorganisation (optional) |
+| 5 references | 14 entries added (Platt, LIBSVM, LIBLINEAR, scikit-learn, Frank-Wolfe, Jaggi, Pena et al., Beck-Shtern, Garber-Hazan, Braun et al., Crisp-Burges, Mavroforakis-Theodoridis, Franc-Hlavac, Kalantari 2019) and cited | verify fields/DOIs; DOIs for the original 27 |
+| 6 corollary | Corollary (contraction + iteration count) split from a "Timing model" paragraph | - |
+| 7 notation | Table 1 (notation); renames: gain ratio kappa -> chi, screening radius r -> varrho, support size s_t -> ell_t, a_k -> zeta_k, b_j -> varphi_j, c_j -> alpha_{u_j}, C_B -> calligraphic C, m_B -> n^new, m_V/M_W -> vartheta, R(V,mu) -> calligraphic R, Lemma-local sigma -> varsigma, varrho -> upsilon, FW/away atoms u^FW/u^A | check under sn-jnl |
+
+Also applied from the same review: KHM w8a reported as median [max] (0.0 [58.3] s), stale ranges in Section 6 (1.4-2.7x, 3.8-7.0x, 1.8-2.4x, 3.8-6.1x, 29-32 s, a/b 16-28), stale `tab_diag_rows.tex` deleted, eta-hat footnote in the assumption table, sigma in (A2) stated as a defined constant, delta*>0 remark after Theorem 4, AI-use sentence in the methods, "no cap" wording, RBF kernel formula in the Table caption, informal sentences removed.

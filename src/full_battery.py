@@ -120,43 +120,47 @@ def acc(w, b, X, y01):
 
 
 def run_cell(X, y, Xt, yt, C, trace, liblin_cap=None,
-             liblin_child_args=None):
-    """One cell: ETA, our SMO (both with the 600 s cap) and LIBLINEAR
-    (unbounded unless liblin_cap is given, in which case it runs in a
-    child process killed after liblin_cap seconds; liblin_child_args =
-    (name, C, seed, data_dir, max_n) lets the child reload the data)."""
+             liblin_child_args=None, time_cap=600.0, solvers=('ETA', 'SMO', 'LIBLIN')):
+    """One cell: ETA, our SMO (both with the `time_cap` budget, 600 s in
+    the paper; None = unbounded, used for the seed-0 traces of Figure 1)
+    and LIBLINEAR (unbounded unless liblin_cap is given, in which case it
+    runs in a child process killed after liblin_cap seconds;
+    liblin_child_args = (name, C, seed, data_dir, max_n) lets the child
+    reload the data).  `solvers` selects which of the three to run."""
     V, W = X[y == 1], X[y == 0]
     out = {}
-
-    ta = SoftMarginTA(V, W, C=C, step_mode='block',
-                      zigzag_strategy='pairwise', seed=0)
-    if trace:
-        ta.trace = []
-    # same 600 s budget as SMO: non-converging cells (dense-support /
-    # near-touching-hull regime) report 'timeout' with their achieved
-    # certified gap instead of running to the iteration cap
-    r = ta.solve_distance(eps=1e-3, max_iter=2_000_000, time_cap=600)
-    w, b = sep_from_soft(ta, r)
-    out['ETA'] = dict(time=r.time, iters=r.iterations,
-                      oracle=ta.col_evals, primal=2.0 / r.distance ** 2,
-                      gap=(r.distance - r.lower_bound) / r.distance,
-                      acc=acc(w, b, Xt, yt), status=r.status,
-                      trace=ta.trace if trace else None)
+    if 'ETA' in solvers:
+        ta = SoftMarginTA(V, W, C=C, step_mode='block',
+                          zigzag_strategy='pairwise', seed=0)
+        if trace:
+            ta.trace = []
+        # same 600 s budget as SMO: non-converging cells (dense-support /
+        # near-touching-hull regime) report 'timeout' with their achieved
+        # certified gap instead of running to the iteration cap
+        r = ta.solve_distance(eps=1e-3, max_iter=2_000_000, time_cap=time_cap)
+        w, b = sep_from_soft(ta, r)
+        out['ETA'] = dict(time=r.time, iters=r.iterations,
+                          oracle=ta.col_evals, primal=2.0 / r.distance ** 2,
+                          gap=(r.distance - r.lower_bound) / r.distance,
+                          acc=acc(w, b, Xt, yt), status=r.status,
+                          trace=ta.trace if trace else None)
 
     Xs = np.vstack([V, W])
     ys = np.concatenate([np.ones(len(V)), -np.ones(len(W))])
-    s = SoftMarginSMO(Xs, ys, C_soft=C, tol=1e-3, max_iter=2_000_000,
-                      time_cap=600)
-    rs = s.solve()
-    out['SMO'] = dict(time=rs.time, iters=rs.iterations,
-                      oracle=s.row_evals,
-                      primal=2.0 / rs.hull_distance ** 2,
-                      acc=acc(rs.w, rs.b, Xt, yt), status=rs.status)
+    if 'SMO' in solvers:
+        s = SoftMarginSMO(Xs, ys, C_soft=C, tol=1e-3, max_iter=2_000_000,
+                          time_cap=time_cap)
+        rs = s.solve()
+        out['SMO'] = dict(time=rs.time, iters=rs.iterations,
+                          oracle=s.row_evals,
+                          primal=2.0 / rs.hull_distance ** 2,
+                          acc=acc(rs.w, rs.b, Xt, yt), status=rs.status)
 
-    if liblin_cap is None:
-        out['LIBLIN'] = fit_liblin(Xs, ys, Xt, yt, C)
-    else:
-        out['LIBLIN'] = _liblin_capped(liblin_cap, *liblin_child_args)
+    if 'LIBLIN' in solvers:
+        if liblin_cap is None:
+            out['LIBLIN'] = fit_liblin(Xs, ys, Xt, yt, C)
+        else:
+            out['LIBLIN'] = _liblin_capped(liblin_cap, *liblin_child_args)
     return out
 
 
@@ -209,13 +213,14 @@ def _shard_path(out, name, C, seed):
 
 def _run_one(job):
     """Worker entry: one (dataset, C, seed) cell -> shard file."""
-    name, C, seed, data_dir, max_n, out, liblin_cap = job
+    name, C, seed, data_dir, max_n, out, liblin_cap, time_cap, solvers = job
     shard = _shard_path(out, name, C, seed)
     t0 = time.time()
     X, y, Xt, yt = _load_cached(name, data_dir, max_n, seed)
     cell = run_cell(X, y, Xt, yt, C, trace=(seed == 0),
                     liblin_cap=liblin_cap,
-                    liblin_child_args=(name, C, seed, data_dir, max_n))
+                    liblin_child_args=(name, C, seed, data_dir, max_n),
+                    time_cap=time_cap, solvers=tuple(solvers))
     recs = []
     for solver, rec in cell.items():
         rec.update(dataset=name, C=C, seed=seed, solver=solver,
@@ -276,7 +281,14 @@ def main():
                          'which is what the paper\'s Table 2 shards used')
     ap.add_argument('--liblin-child', nargs=5, metavar='ARG',
                     help=argparse.SUPPRESS)   # internal: name C seed dir max_n
+    ap.add_argument('--time-cap', type=float, default=600.0,
+                    help='wall-clock budget in seconds for ETA and our SMO '
+                         '(paper: 600); 0 = unbounded, for the seed-0 '
+                         'traces of Figure 1 (use a separate --out)')
+    ap.add_argument('--solvers', nargs='*', default=['ETA', 'SMO', 'LIBLIN'],
+                    help='subset of ETA SMO LIBLIN to run per cell')
     args = ap.parse_args()
+    time_cap = None if args.time_cap <= 0 else args.time_cap
 
     if args.liblin_child:
         name, C, seed, data_dir, max_n = args.liblin_child
@@ -297,7 +309,8 @@ def main():
                     done.append(json.loads(shard.read_text()))
                 else:
                     jobs.append((name, C, seed, args.data_dir,
-                                 args.max_n, args.out, args.liblin_cap))
+                                 args.max_n, args.out, args.liblin_cap,
+                                 time_cap, args.solvers))
     print(f"{len(done)} cells already done (shards), {len(jobs)} to run, "
           f"parallel={args.parallel}", flush=True)
 

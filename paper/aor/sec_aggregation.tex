@@ -16,13 +16,13 @@ gain $\Delta_j=\mathrm{gap}_j^2/(2\norm{d_j}^2)$, with $\Delta_1$ the MDM
 gain. Write
 \[
 Q=\frac{\sum_{j\le k'}\Delta_j}{\Delta_1},\qquad
-\kappa=\frac{D}{S},\qquad
+\chi=\frac{D}{S},\qquad
 S=\sum_j\gamma_j\mathrm{gap}_j=2\sum_j\Delta_j,\qquad
 D=\Big\lVert\sum_j\gamma_jd_j\Big\rVert^2 .
 \]
 $Q$ measures how much useful progress the block has beyond its leading
-pair and $\kappa$ how much the directions lose (or gain) by being
-combined; orthogonal directions give $\kappa=1$. Call the block
+pair and $\chi$ how much the directions lose (or gain) by being
+combined; orthogonal directions give $\chi=1$. Call the block
 \emph{$\eta$-diverse} if $|\ip{d_i}{d_j}|\le\eta\norm{d_i}\norm{d_j}$ for
 $i\ne j$ and \emph{$\beta_{\mathrm{flat}}$-flat}, $0<\beta_{\mathrm{flat}}\le1$, if
 $\Delta_j\ge\beta_{\mathrm{flat}}\Delta_1$ for every $j$ (the subscript keeps
@@ -31,10 +31,10 @@ the flatness parameter apart from the $W$-side weights $\beta$).
 \begin{proposition}[Exact gain ratio]\label{prop:ratio}
 At such an iteration the exact line search gives
 \[
-\frac{\Delta_B}{\Delta_1}=Q\cdot\begin{cases}2-\kappa,&\kappa\le1,\\
-1/\kappa,&\kappa\ge1.\end{cases}
+\frac{\Delta_B}{\Delta_1}=Q\cdot\begin{cases}2-\chi,&\chi\le1,\\
+1/\chi,&\chi\ge1.\end{cases}
 \]
-If the block is $\eta$-diverse then $\kappa\le1+\eta(k'-1)$; if it is
+If the block is $\eta$-diverse then $\chi\le1+\eta(k'-1)$; if it is
 $\beta_{\mathrm{flat}}$-flat then $Q\ge1+\beta_{\mathrm{flat}}(k'-1)$; hence the guarded step gains at
 least
 \[
@@ -44,45 +44,44 @@ least
 \begin{proof}
 For uncapped pairs $\gamma_j\norm{d_j}^2=\mathrm{gap}_j$, so
 $S=\sum_j\mathrm{gap}_j^2/\norm{d_j}^2=2\sum_j\Delta_j$ and
-$b_j^2=\gamma_j^2\norm{d_j}^2=\gamma_j\mathrm{gap}_j$, whence
-$\sum_jb_j^2=S$. The line search takes $\theta=\min(S/D,1)$. If $D\ge S$
-the optimum is interior and $\Delta_B=S^2/(2D)=(S/2)/\kappa=\sum_j\Delta_j/\kappa$;
-if $D<S$ then $\theta=1$ and $\Delta_B=S-D/2=(S/2)(2-\kappa)$. Dividing
-by $\Delta_1$ gives the two cases. For the bound on $\kappa$,
-$D=\sum_{i,j}\gamma_i\gamma_j\ip{d_i}{d_j}\le\sum_jb_j^2+\eta\sum_{i\ne j}b_ib_j
-\le(1+\eta(k'-1))\sum_jb_j^2=(1+\eta(k'-1))S$ by Cauchy--Schwarz on the
+$\varphi_j^2=\gamma_j^2\norm{d_j}^2=\gamma_j\mathrm{gap}_j$, whence
+$\sum_j\varphi_j^2=S$. The line search takes $\theta=\min(S/D,1)$. If $D\ge S$
+the optimum is interior and $\Delta_B=S^2/(2D)=(S/2)/\chi=\sum_j\Delta_j/\chi$;
+if $D<S$ then $\theta=1$ and $\Delta_B=S-D/2=(S/2)(2-\chi)$. Dividing
+by $\Delta_1$ gives the two cases. For the bound on $\chi$,
+$D=\sum_{i,j}\gamma_i\gamma_j\ip{d_i}{d_j}\le\sum_j\varphi_j^2+\eta\sum_{i\ne j}\varphi_i\varphi_j
+\le(1+\eta(k'-1))\sum_j\varphi_j^2=(1+\eta(k'-1))S$ by Cauchy--Schwarz on the
 cross terms; flatness gives $\sum_j\Delta_j\ge\Delta_1(1+\beta_{\mathrm{flat}}(k'-1))$.
-When $\kappa\le1$ the ratio is $Q(2-\kappa)\ge Q$, and when $\kappa\ge1$
-it is $Q/\kappa$; both are at least the stated bound.
+When $\chi\le1$ the ratio is $Q(2-\chi)\ge Q$, and when $\chi\ge1$
+it is $Q/\chi$; both are at least the stated bound.
 \end{proof}
 Proposition~\ref{prop:ratio} recovers the diversity bound of Proposition~\ref{prop:orth} and adds the comparison with $\Delta_1$. The two
-numbers $Q$ and $\kappa$ are computed by the guard at every block step
+numbers $Q$ and $\chi$ are computed by the guard at every block step
 (from $S$, $D$ and the per-pair gaps), so both are observable at no
 extra cost. Note the direction of the inequalities: the theorem's $\eta$
 bounds the \emph{maximum} absolute pairwise cosine of the retained
 directions, whereas the \emph{effective correlation}
 \[
-\hat\eta:=\frac{\kappa-1}{k'-1}\qquad(k'>1)
+\hat\eta:=\frac{\chi-1}{k'-1}\qquad(k'>1)
 \]
 that a block step reveals is a $\gamma$-weighted aggregate in which
 cross terms can cancel; the proof gives $\hat\eta\le\eta$, and $\hat\eta$
 can be negative. Likewise $Q/k'$ close to $1$ says the average pair is
 as good as the leading one, not that every pair is ($\beta_{\mathrm{flat}}$-flatness).
 The empirical model of Section~\ref{sec:pay-meas} is therefore stated in
-$Q$ and $\kappa$, the quantities the guard measures, and the theorem's
+$Q$ and $\chi$, the quantities the guard measures, and the theorem's
 assumptions (all retained pairs uncapped, maximum cosine at most $\eta$,
 minimum relative gain at least $\beta_{\mathrm{flat}}$) are recorded separately.
 
 \paragraph{Cost.} Per iteration the solver pays a scan and certificate
 cost that does not depend on $k$, a step cost that grows with the number
-of retained pairs (the $k'\times n$ column copies of block assembly and
-the $k'$-column score update), and one Gram or kernel column for every
+of retained pairs (the $k'$-column score update and the $O(k'^2)$ guard), and one Gram or kernel column for every
 receiver or donor not in the cache. Write
 \[
-C_B=a+b\,k'+c_{\mathrm{col}}\,m_B,\qquad C_1=a+b+c_{\mathrm{col}}\,m_1,
+\mathcal C_B=a+b\,k'+c_{\mathrm{col}}\,n^{\mathrm{new}}_B,\qquad \mathcal C_1=a+b+c_{\mathrm{col}}\,n^{\mathrm{new}}_1,
 \]
-for the block and the single step from the same state, where $m_B\ge m_1$
-count the column misses of the two candidates ($m_1\le1$: only the MDM
+for the block and the single step from the same state, where $n^{\mathrm{new}}_B\ge n^{\mathrm{new}}_1$
+count the column misses of the two candidates ($n^{\mathrm{new}}_1\le1$: only the MDM
 receiver can be new) and $a,b,c_{\mathrm{col}}$ are timing coefficients.
 They are fitted, not assumed: they depend on $n$, $d$, the
 representation (dense, kernel) and the hardware, and
@@ -90,20 +89,20 @@ Section~\ref{sec:pay-meas} fits them per cell. The model is a timing
 approximation of the implementation, not an upper bound on
 computational work. The guarded block improves progress per unit of work at this
 iterate exactly when
-$\max(\Delta_B,\Delta_1)/\Delta_1>C_B/C_1$; by
+$\max(\Delta_B,\Delta_1)/\Delta_1>\mathcal C_B/\mathcal C_1$; by
 Proposition~\ref{prop:ratio} a sufficient condition is
 \begin{equation}\label{eq:ppc}
-\frac{1+\beta_{\mathrm{flat}}(k'-1)}{1+\eta(k'-1)}\;>\;\frac{a+bk'+c_{\mathrm{col}}m_B}{a+b+c_{\mathrm{col}}m_1}.
+\frac{1+\beta_{\mathrm{flat}}(k'-1)}{1+\eta(k'-1)}\;>\;\frac{a+bk'+c_{\mathrm{col}}n^{\mathrm{new}}_B}{a+b+c_{\mathrm{col}}n^{\mathrm{new}}_1}.
 \end{equation}
 Two regimes are visible in \eqref{eq:ppc}. If $c_{\mathrm{col}}$
 dominates $a$ and $b$, the right-hand side is governed by the miss
 counts: the block loses when it touches more new points than the single
-step ($m_B>m_1$) and can still win by the full gain ratio when both
-need the same column ($m_B=m_1$), so column dominance limits the gain
+step ($n^{\mathrm{new}}_B>n^{\mathrm{new}}_1$) and can still win by the full gain ratio when both
+need the same column ($n^{\mathrm{new}}_B=n^{\mathrm{new}}_1$), so column dominance limits the gain
 to the iterations on which the block's extra receivers are cached; it
 does not exclude it. If the per-iteration terms dominate, the
 right-hand side is $(a+bk')/(a+b)$, linear in $k'$, while the left-hand
-side saturates at $\beta/\eta$; the ratio of the two is maximised at
+side saturates at $\beta_{\mathrm{flat}}/\eta$; the ratio of the two is maximised at
 \begin{equation}\label{eq:kstar}
 k^*=\sqrt{\frac{a(1-\eta)}{b\,\eta}}\qquad(\beta_{\mathrm{flat}}=1),
 \end{equation}
@@ -140,10 +139,11 @@ $\alpha_{\min}:=\min\big(\min_{i\in F_V}\alpha^*_i,\ \min_{j\in F_W}\beta^*_j\bi
 is the smallest positive optimal weight over both classes. (A2)
 \emph{Non-degeneracy}: the witness pair $(p^*,q^*)$ is unique, the
 vertices of each optimal face are affinely independent (so
-$\alpha^*,\beta^*$ are unique), and there is $\sigma>0$ with
+$\alpha^*,\beta^*$ are unique), and $\sigma>0$ denotes a constant with
 $\norm{\alpha-\alpha^*}_1+\norm{\beta-\beta^*}_1\le\norm{(p-q)-z^*}/\sigma$
 for all $p\in\mathcal F_V$, $q\in\mathcal F_W$ with face weights
-$\alpha,\beta$. Let $d_{\min}>0$ be the smallest distance from a face
+$\alpha,\beta$ (such a constant exists under the two preceding
+conditions and is computed below). Let $d_{\min}>0$ be the smallest distance from a face
 vertex to the affine hull of the other vertices of its face, the minimum
 taken over the faces with at least two points; if both faces are
 singletons, $(p^*,q^*)$ is the unique pair of face points and the
@@ -159,10 +159,10 @@ conversion from the Euclidean to the $\ell_1$ norm of the weights. When
 $U=\{0\}$ (both faces singletons) any $\sigma>0$ works and the weight
 condition is void.
 
-Recall $r_t=\sqrt{\UB^2-\max(\LB,0)^2}\ge\norm{z_t-z^*}$ and, from the
-proof of Theorem~\ref{thm:activation}, $r_t^2\le(4R^2/\delta^*)\sqrt{2h_t}$,
-so that $r_t\le\varrho$ whenever $h_t\le\varrho^4\delta^{*2}/(32R^4)$. Let
-$s_t$ be the total support size, $a_k=k+1$ (one-sided) or $2k+1$
+Recall $\varrho_t=\sqrt{\UB^2-\max(\LB,0)^2}\ge\norm{z_t-z^*}$ and, from the
+proof of Theorem~\ref{thm:activation}, $\varrho_t^2\le(4R^2/\delta^*)\sqrt{2h_t}$,
+so that $\varrho_t\le c$ whenever $h_t\le c^4\delta^{*2}/(32R^4)$. Let
+$\ell_t$ be the total support size, $\zeta_k=k+1$ (one-sided) or $2k+1$
 (two-sided schedule), and define
 \begin{align*}
 H_{\mathrm{id}}&=\min\Big\{\frac{\tau^4\delta^{*2}}{41472\,R^4L^4},\ \frac{\tau^2}{12L^2},\ \frac{\tau}{12},\ h_3\Big\},\qquad
@@ -183,14 +183,14 @@ contains a non-face point, the step taken is a drop of a non-face point;
 and no non-face point enters either support. Hence
 $\operatorname{supp}\alpha\subset F_V$ and $\operatorname{supp}\beta\subset F_W$
 from iteration $t_{\mathrm{id}}+N$ on, and
-$N\le s_{t_{\mathrm{id}}}\le s_0+a_k\,t_{\mathrm{id}}$.
+$N\le \ell_{t_{\mathrm{id}}}\le \ell_0+\zeta_k\,t_{\mathrm{id}}$.
 \item[(ii)] Under Assumption~\ref{ass:nondeg}, let $t_{\mathrm w}$ be the
 first iteration with $h_t<H_{\mathrm w}$. No iteration
 $t\ge\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ is a drop, and no block pair
 is capped at such an iteration. Consequently every drop occurs before
 $t_{\mathrm w}+N$, the number of drops is at most
-$a_k(t_{\mathrm w}+N)+s_0$, and
-$t_{\mathrm w}\le s_0+1+\tfrac{a_k}{\rho}\log\max\{1,h_0/H_{\mathrm w}\}$.
+$\zeta_k(t_{\mathrm w}+N)+\ell_0$, and
+$t_{\mathrm w}\le \ell_0+1+\tfrac{\zeta_k}{\rho}\log\max\{1,h_0/H_{\mathrm w}\}$.
 \item[(iii)] For $t\ge\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ every
 iteration contracts. Let $\rho^{\mathrm{act}}_t:=1-h_{t+1}/h_t$ (for
 $h_t>0$) be the actual contraction and, for $j\ge1$,
@@ -210,20 +210,20 @@ Throughout, $s_i=\ip{g}{v_i}=-\ip{z}{v_i}$ on side $V$ and
 $s_j=\ip{z}{w_j}$ on side $W$; we argue on side $V$, side $W$ being
 symmetric with the maximum in place of the minimum.
 
-\emph{Three facts.} (F1) If $r\le\tau/(6L)$ then for $i\notin F_V$ and
+\emph{Three facts.} (F1) If $\varrho\le\tau/(6L)$ then for $i\notin F_V$ and
 $j\in F_V$,
-$s_j-s_i=\ip{z}{v_i-v_j}=\ip{z^*}{v_i-v_j}+\ip{z-z^*}{v_i-v_j}\ge\tau_i-rL\ge5\tau/6$,
-while for $i,j\in F_V$, $|s_i-s_j|\le rL\le\tau/6$; in particular the
+$s_j-s_i=\ip{z}{v_i-v_j}=\ip{z^*}{v_i-v_j}+\ip{z-z^*}{v_i-v_j}\ge\tau_i-\varrho L\ge5\tau/6$,
+while for $i,j\in F_V$, $|s_i-s_j|\le\varrho L\le\tau/6$; in particular the
 global argmax of $s$ is a face point. (F2) Let $\omega_t$ be the total
 weight on non-face points of both sides. By convexity
 $h_t\ge\ip{\nabla F(z^*)}{z_t-z^*}=\ip{z^*}{z_t-z^*}$; writing
-$m_V:=\min_i\ip{z^*}{v_i}$ and $M_W:=\max_j\ip{z^*}{w_j}$, so that
-$\ip{z^*}{v_i}=m_V+\tau_i$ and $\ip{z^*}{w_j}=M_W-\tau_j$, and using
-$\norm{z^*}^2=\ip{z^*}{p^*-q^*}=m_V-M_W$ (the optimal weights live on the
+$\vartheta_V:=\min_i\ip{z^*}{v_i}$ and $\vartheta_W:=\max_j\ip{z^*}{w_j}$, so that
+$\ip{z^*}{v_i}=\vartheta_V+\tau_i$ and $\ip{z^*}{w_j}=\vartheta_W-\tau_j$, and using
+$\norm{z^*}^2=\ip{z^*}{p^*-q^*}=\vartheta_V-\vartheta_W$ (the optimal weights live on the
 faces, where the margins vanish),
 $\ip{z^*}{z_t-z^*}=\sum_i\alpha_i\tau_i+\sum_j\beta_j\tau_j\ge\tau\,\omega_t$.
 Hence $\omega_t\le h_t/\tau$. (F3) By the radius bound quoted above,
-$h_t<H_{\mathrm{id}}$ implies $r_t\le\tau/(6L)$, $\omega_t\le\tau/(12L^2)$,
+$h_t<H_{\mathrm{id}}$ implies $\varrho_t\le\tau/(6L)$, $\omega_t\le\tau/(12L^2)$,
 $\omega_t\le1/12$ and $2h_t+R\sqrt{2h_t}\le\tau/6$.
 
 \emph{(i) Identification.} Let $h_t<H_{\mathrm{id}}$ and suppose
@@ -231,7 +231,7 @@ $\operatorname{supp}\alpha\not\subset F_V$. The worst active donor $u$
 minimises $s$ over the support, so by (F1) $u\notin F_V$. The away gap of
 side $V$ is $\gA_V=\sum_i\alpha_i(s_i-s_u)\ge\sum_{i\in F_V}\alpha_i\cdot5\tau/6\ge(1-\omega_t)5\tau/6\ge55\tau/72$.
 A side whose support lies in its face has
-$\gPW\le\gA+\gFW\le rL+(2h+R\sqrt{2h})\le\tau/3$ by (F1) and (F3), so the
+$\gPW\le\gA+\gFW\le\varrho L+(2h+R\sqrt{2h})\le\tau/3$ by (F1) and (F3), so the
 side with the larger pairwise gap, which the schedule steps first, is a
 side with a non-face support point whenever one exists. On that side
 pair~1 is $(r^*,u)$ with $r^*\in F_V$ the global argmax, so
@@ -257,8 +257,8 @@ is the support count of Theorem~\ref{thm:linear}.
 \emph{(ii) No late drops.} Let $t\ge\max(t_{\mathrm w},t_{\mathrm{id}}+N)$,
 so $p_t\in\mathcal F_V$, $q_t\in\mathcal F_W$ and, by the radius bound
 applied to the strict inequality $h_t<H_{\mathrm w}$,
-$r_t<\min\{\tau/(6L),\sigma\alpha_{\min}/2,\alpha_{\min}d_{\min}^2/(2L)\}$.
-By (A2), $\norm{\alpha_t-\alpha^*}_\infty\le r_t/\sigma<\alpha_{\min}/2$,
+$\varrho_t<\min\{\tau/(6L),\sigma\alpha_{\min}/2,\alpha_{\min}d_{\min}^2/(2L)\}$.
+By (A2), $\norm{\alpha_t-\alpha^*}_\infty\le \varrho_t/\sigma<\alpha_{\min}/2$,
 so by (A1) every face index carries weight
 $\alpha_{t,i}>\alpha^*_i-\alpha_{\min}/2\ge\alpha_{\min}/2>0$: the
 supports equal the faces and every support weight exceeds
@@ -302,53 +302,57 @@ Theorem~\ref{thm:activation} and of active-set identification and are
 pessimistic; the measured drop counts below are $0.3$--$70\%$ of the
 final support size.
 
-\begin{corollary}[Conditional work bound]\label{cor:work}
+\begin{corollary}[Conditional contraction and iteration count]\label{cor:work}
 Run the algorithm with requested block size $k$. At iteration $t$ let
 $k'_t\in\{1,\dots,k\}$ be the number of pairs retained by the block used
 in the progress argument (the first side's block; $k'_t=1$ on case-(b)
-and drop iterations, where only the leading pair is used), and let
-$k^{\mathrm{ev}}_t\le2k$ be the total number of pairs the implementation
-assembled and evaluated at that iteration (both sides' blocks under the
-two-sided schedule, including the pairs evaluated before an away drop).
-Let $t_1(k):=\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ as in
-Theorem~\ref{thm:ident}, $N_{\mathrm{cols}}(k)$ the number of distinct
-columns computed over the whole run, and suppose every case-(a)
-iteration $t\ge t_1(k)$ is $\eta$-diverse and $\beta_{\mathrm{flat}}$-flat.
-Then for every $T\ge t_1(k)$,
+and drop iterations, where only the leading pair is used). Let
+$t_1(k):=\max(t_{\mathrm w},t_{\mathrm{id}}+N)$ as in
+Theorem~\ref{thm:ident} and suppose every case-(a) iteration
+$t\ge t_1(k)$ is $\eta$-diverse and $\beta_{\mathrm{flat}}$-flat. Then
+for every $T\ge t_1(k)$,
 \[
 h_T\ \le\ h_{t_1(k)}\prod_{t=t_1(k)}^{T-1}\big(1-\rho^{\mathrm{act}}_t\big),\qquad
 \rho^{\mathrm{act}}_t\ \ge\ \underline\rho_{k'_t}
 \]
-on case-(a) iterations and $\rho^{\mathrm{act}}_t\ge\rho$ otherwise; this
-is the rigorous part. The fitted timing model then approximates the
-run's cost by
-\[
-W(k)\ \approx\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+\sum_{t<T}\big(a+b\,k^{\mathrm{ev}}_t\big).
-\]
+on case-(a) iterations and $\rho^{\mathrm{act}}_t\ge\rho$ otherwise.
 In particular, for a target $\varepsilon_h$ on the objective error
 (distinct from the relative certificate tolerance $\varepsilon$ of
-Section~\ref{sec:setting}): if $h_{t_1(k)}>\varepsilon_h$ and
-$k'_t\ge\underline k$ for some $\underline k\in\{1,\dots,k\}$ on every
-case-(a) iteration after $t_1(k)$, then $h_T\le\varepsilon_h$ for
+Section~\ref{sec:setting}; Corollary~\ref{cor:std} converts one into
+the other): if $h_{t_1(k)}>\varepsilon_h$ and $k'_t\ge\underline k$ for
+some $\underline k\in\{1,\dots,k\}$ on every case-(a) iteration after
+$t_1(k)$, then $h_T\le\varepsilon_h$ for
 $T=t_1(k)+\big\lceil\log(h_{t_1(k)}/\varepsilon_h)/\underline\rho_{\underline k}\big\rceil$
 when $\underline\rho_{\underline k}<1$ (and $T=t_1(k)+1$ when
-$\underline\rho_{\underline k}=1$), so that
-$W(k)\lesssim c_{\mathrm{col}}N_{\mathrm{cols}}(k)+(a+2bk)\big[t_1(k)+\lceil\log(h_{t_1(k)}/\varepsilon_h)/\underline\rho_{\underline k}\rceil\big]$;
-if $h_{t_1(k)}\le\varepsilon_h$ the run is over at $t_1(k)$.
+$\underline\rho_{\underline k}=1$); if $h_{t_1(k)}\le\varepsilon_h$ the
+run is over at $t_1(k)$.
 \end{corollary}
 \begin{proof}
 Theorem~\ref{thm:ident}(iii) with $k'$ read as $k'_t$ gives the product;
 since $\underline\rho_j$ is nondecreasing in $j$,
 $\underline\rho_{k'_t}\ge\underline\rho_{\underline k}$, and
 $\log(1/(1-\underline\rho))\ge\underline\rho$ turns the product into the
-iteration count; the timing model charges $a+bk^{\mathrm{ev}}_t\le a+2bk$
-per iteration.
+iteration count.
 \end{proof}
-The corollary is an absolute bound for one run. It does not by itself
-compare two block sizes: $N_{\mathrm{cols}}(k)$, $t_1(k)$ and
+
+\paragraph{Timing model.} The corollary counts iterations; what they
+cost is a matter of the fitted coefficients, not of a theorem. Let
+$k^{\mathrm{ev}}_t\le2k$ be the total number of pairs the implementation
+assembled and evaluated at iteration $t$ (both sides' blocks under the
+two-sided schedule, including the pairs evaluated before an away drop)
+and $N_{\mathrm{cols}}(k)$ the number of distinct columns computed over
+the whole run. The cost model approximates the run's work by
+\[
+W(k)\ \approx\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+\sum_{t<T}\big(a+b\,k^{\mathrm{ev}}_t\big)
+\ \lesssim\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+(a+2bk)\Big[t_1(k)+\Big\lceil\frac{\log(h_{t_1(k)}/\varepsilon_h)}{\underline\rho_{\underline k}}\Big\rceil\Big],
+\]
+the second expression using the iteration count of
+Corollary~\ref{cor:work} and $k^{\mathrm{ev}}_t\le2k$.
+Corollary and model together describe one run. They do not by
+themselves compare two block sizes: $N_{\mathrm{cols}}(k)$, $t_1(k)$ and
 $h_{t_1(k)}$ all depend on the trajectory, and comparing the
 multiplicative factors of two upper bounds is not a proof that one
-algorithm is faster. What it does say is which factor aggregation can act
+algorithm is faster. What they do say is which factor aggregation can act
 on. The per-iteration term after identification carries the factor
 $(a+bk^{\mathrm{ev}}_t)/\underline\rho_{k'_t}$, and if
 $k'_t\equiv k^{\mathrm{ev}}_t\equiv k$ (one-sided schedule, full blocks)
@@ -369,16 +373,16 @@ Theorem~\ref{thm:ident} was recorded on the five real cells of
 Table~\ref{tab:regime} (gisette $L_2$ and the kernel $L_2$ cells of
 ijcnn1, w8a, a9a and covtype, seed 0; \texttt{src/block\_diagnostics.py}, one process at a time on an
 otherwise idle machine, $k\in\{1,4,16,32\}$). At every block step the
-solver logs $\Delta_B$, $\Delta_1$, $Q$, $\kappa$, the candidate taken,
+solver logs $\Delta_B$, $\Delta_1$, $Q$, $\chi$, the candidate taken,
 the capped pairs, the column misses, the support size and a time split
 of the step next to a dry-run timing of the single MDM update from the
 same state. Table~\ref{tab:diag} fits the model per cell:
-$\hat\eta=(\kappa-1)/(k'-1)$ (median over uncapped block steps), $a$ and
+$\hat\eta=(\chi-1)/(k'-1)$ (median over uncapped block steps), $a$ and
 $b$ by least squares of the non-column time per iteration on $k$,
 $c_{\mathrm{col}}$ as column time per column.
 
 \begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{4pt}
-\caption{The model of Corollary~\ref{cor:work} fitted per cell (seed 0,
+\caption{The timing model fitted per cell (seed 0,
 isolated runs). $\hat\eta$ is the median over $k\in\{4,16,32\}$; the three
 estimates agree within $\pm0.03$ on every cell. $k^*$ from
 \eqref{eq:kstar}. Times for $k=1/4/16/32$; ``column share'' is the
@@ -418,13 +422,13 @@ combination is. The measured gain ratios ($3.4/6.9/7.5$ on gisette,
 $2.1/2.8/3.0$ on ijcnn1 for $k=4/16/32$) follow $k/(1+\hat\eta(k-1))$
 within $25\%$ and saturate at about $1/\hat\eta$.
 \item \emph{$k^*$ is $7$--$14$ on every cell}, because $a/b$ is
-$16$--$27$ throughout and $\hat\eta\in[0.07,0.29]$: a fixed block size
+$16$--$28$ throughout and $\hat\eta\in[0.07,0.29]$: a fixed block size
 of $8$--$16$ is within $16\%$ of the best measured time on all five
 cells ($k{=}16$ against the best size: $16\%$ on gisette, $0$--$5\%$
 elsewhere), which is why the untuned $k=16$ of Section~\ref{sec:exp}
 never lost to another size by more than that.
 \item \emph{The wall-clock gain is bounded by the column share.} The
-block cannot touch the column term of Corollary~\ref{cor:work}
+block cannot touch the column term of the timing model
 ($N_{\mathrm{cols}}$ varies by under $20\%$ across $k$ on every cell),
 so its speed-up over the guarded single pair is $1.1\times$ where columns
 are $93\%$ of the run (gisette), $2.2\times$ at $64\%$ (w8a),
@@ -450,11 +454,14 @@ receivers of small weight become the worst donor at once.
 \begin{table}[t]\centering\scriptsize
 \caption{The theorem's assumptions against the measured mechanism at
 $k=16$ (seed 0; \texttt{src/block\_diagnostics.py} on a second machine,
-with iteration and drop counts identical to the Studio run). Over the
+with iteration and drop counts identical to the runs of
+Table~\ref{tab:diag}; its $\hat\eta$ differs from Table~\ref{tab:diag}
+in the second decimal because it is the median over the all-uncapped
+calls at $k=16$ only). Over the
 block calls with every retained pair uncapped: median maximum absolute
 pairwise cosine of the retained directions (the $\eta$ of
 Proposition~\ref{prop:ratio}), median minimum relative pair gain (its
-$\beta$), and the gain ratio the proposition then guarantees,
+$\beta_{\mathrm{flat}}$), and the gain ratio the proposition then guarantees,
 $(1+\beta_{\mathrm{flat}}(k'-1))/(1+\eta(k'-1))$; against the effective correlation
 $\hat\eta$, the model ratio $k'/(1+\hat\eta(k'-1))$ and the measured
 median gain ratio $\max(\Delta_B,\Delta_1)/\Delta_1$.}\label{tab:assump}
@@ -477,7 +484,7 @@ $0.5$--$0.8$; and at $k=16$ only $43$--$96\%$ of the block calls have all
 pairs uncapped, so the proposition applies to a minority of the calls on
 gisette. The gain ratio the proposition guarantees from these constants
 is $1.5$--$2.2$, against measured medians of $2.7$--$6.9$; the exact
-identity $Q/\kappa$ (the ``model'' column) reproduces the measurement
+identity $Q/\chi$ (the ``model'' column) reproduces the measurement
 because it uses the $\gamma$-weighted aggregate in which the cross terms
 largely cancel, not the worst pair. The right reading of
 Proposition~\ref{prop:ratio} is therefore its first, exact, half; the
@@ -498,9 +505,9 @@ tests the theorem where its constants can be computed.
 \subsection{An adaptive block size}\label{sec:adaptive}
 
 Every quantity in \eqref{eq:kstar} is observable while the solver runs:
-$\kappa$ is computed by the guard at every block step, so
-$\hat\eta=(\kappa-1)/(k'-1)$ costs nothing, and $a/b$ is a property of
-the implementation ($15$--$30$ in Table~\ref{tab:diag}). The released
+$\chi$ is computed by the guard at every block step, so
+$\hat\eta=(\chi-1)/(k'-1)$ costs nothing, and $a/b$ is a property of
+the implementation ($16$--$28$ in Table~\ref{tab:diag}). The released
 code therefore offers \texttt{block\_size='auto'}: every $50$ iterations
 it sets $k$ to $\sqrt{(a/b)(1-\hat\eta)/\hat\eta}$, clipped to $[1,k_{\max}]$,
 with $\hat\eta$ the median over the window's block steps with $k'>1$
@@ -560,7 +567,7 @@ with both supports snapshotted at every iteration
 (\texttt{src/ident\_check.py}, $84$ runs). Three things are checked. The
 weight inequality (F2), $\omega_t\le h_t/\tau$, holds at every iteration
 of every run. From the first iteration at which the proof's radius and
-weight conditions hold (the conditions on $r_t$, $\omega_t$ and
+weight conditions hold (the conditions on $\varrho_t$, $\omega_t$ and
 $2h+R\sqrt{2h}$ that define $H_{\mathrm{id}}$ and $H_{\mathrm w}$),
 claims (i) and (ii) hold to the end of every run: every removal of a
 non-face point is a drop, no non-face point enters, and after

@@ -857,7 +857,9 @@ Heuristically ($\delta$ has no known bound in terms of the class
 hulls), $n_s\approx0.6n$ active atoms forming a near-regular simplex
 have pyramidal width $2/\sqrt{n_s}$ times the side \citep{lj2015}, so
 $\rho\sim1/n_s$ and the cost would be $O(n^2)$-type; the $n$-scaling
-experiment of Section~\ref{sec:nscale} measures the exponent.
+experiment of Section~\ref{sec:nscale} measures time growing as
+$n^{2.1}$--$n^{2.3}$, with the hull distance shrinking in $n$ as the
+larger cause.
 
 \subsection{Screening on a real cell}\label{sec:screen-real}
 Theorem~\ref{thm:activation} is exercised on gisette, the one real
@@ -874,12 +876,46 @@ run. \todo{table pending the Studio run.}
 \subsection{Scaling with $n$ in the dense-support regime}\label{sec:nscale}
 The heuristic $\rho\sim1/n_s$ of Section~\ref{sec:exp} predicts
 iterations growing linearly and time quadratically in $n$ when the
-support fraction is constant. Synthetic $L_2$ overlap instances
-($d\in\{100,1000\}$, $C{=}1$, $n\in\{1{,}000,\dots,20{,}000\}$ points
-per class, guarded blocks $k{=}16$, $\varepsilon=10^{-3}$, one process
-at a time; \texttt{src/n\_scaling.py}) give the log--log slopes of
-iterations and time against $n$ together with the support fraction.
-\todo{table pending the Studio run.}
+support fraction is constant. Table~\ref{tab:nscale} measures both on
+synthetic $L_2$ overlap instances ($d\in\{100,1000\}$, $C{=}1$,
+$n$ points per class, guarded blocks $k{=}16$, $\varepsilon=10^{-3}$,
+one process at a time; \texttt{src/n\_scaling.py}). Time grows as
+$n^{2.1}$ at $d{=}100$ and $n^{2.3}$ at $d{=}1{,}000$ over the range
+(log--log slopes), so the $O(n^2)$-type label is right, but not for the
+reason the heuristic gives. The support fraction is not constant: it
+doubles at $d{=}100$ and falls six-fold at $d{=}1{,}000$ as $n$ passes
+$d$, while the iteration count grows as $n^{1.5}$ and $n^{2.0}$, faster
+than the support in both cases. What does move with $n$ on both
+families is the hull distance itself, from $0.26$ to $0.036$ at
+$d{=}100$ and from $2.0$ to $0.10$ at $d{=}1{,}000$: at fixed $C$ more
+points overlap more, the augmented hulls approach each other, and since
+$\rho\propto(\delta/M)^2$ with $\delta\le\delta^*$, a shrinking distance
+compounds the growth of the support. The near-regular-simplex picture
+accounts for the support term only and under-predicts the exponent.
+\todo{$d{=}1{,}000$, $n{=}20{,}000$ row pending the Studio run.}
+
+\begin{table}[h]\centering\scriptsize
+\caption{Scaling with $n$ (points per class) on synthetic $L_2$
+overlap instances, $C{=}1$, guarded blocks $k{=}16$,
+$\varepsilon=10^{-3}$, one process at a time. Support = points with
+positive weight at the solution (fraction of $2n$); the last two
+columns are the log--log slopes against $n$ over the rows shown.}\label{tab:nscale}
+\begin{tabular}{rrrrrrrr}\toprule
+$d$ & $n$ & time (s) & iterations & columns & support (frac.) & distance & drops \\\midrule
+100 & 1,000 & 0.6 & 716 & 229 & 130 (.07) & 0.258 & 13 \\
+100 & 2,000 & 2.7 & 2,736 & 741 & 387 (.10) & 0.138 & 75 \\
+100 & 5,000 & 18.8 & 10,701 & 2,404 & 1,133 (.11) & 0.078 & 599 \\
+100 & 10,000 & 84.5 & 28,261 & 5,294 & 2,623 (.13) & 0.052 & 1,595 \\
+100 & 20,000 & 326.5 & 62,741 & 8,883 & 5,209 (.13) & 0.036 & 2,557 \\
+\multicolumn{2}{r}{slope} & 2.13 & 1.49 & 1.22 & 1.22 & & \\
+\midrule
+1,000 & 1,000 & 0.7 & 281 & 704 & 610 (.31) & 2.031 & 23 \\
+1,000 & 2,000 & 2.2 & 706 & 957 & 750 (.19) & 1.434 & 89 \\
+1,000 & 5,000 & 14.1 & 3,001 & 1,348 & 884 (.09) & 0.578 & 180 \\
+1,000 & 10,000 & 131.7 & 32,551 & 1,932 & 1,085 (.05) & 0.100 & 350 \\
+\multicolumn{2}{r}{slope} & 2.25 & 2.00 & 0.43 & 0.24 & & \\
+\bottomrule
+\end{tabular}\end{table}
 
 \subsection{Experimental details}\label{app:details}
 
@@ -888,8 +924,7 @@ transfers with $k=16$, guarded, away fallback, pairwise anti-zig-zag,
 stop at certified relative gap $10^{-3}$, iteration cap $2\times10^6$,
 600\,s cap. Every table and figure is produced by the released code (the schedule
 of Lemma~\ref{lem:twosided}, the case-(b) fallback in every path, the
-block Gram matrix from cached entries). \todo{Tables~\ref{tab:l2},
-\ref{tab:sched}, \ref{tab:t1} and~\ref{tab:kabl} and
+block Gram matrix from cached entries). \todo{Tables~\ref{tab:l2} and~\ref{tab:t1} and
 Figure~\ref{fig:trace} are being rerun under the protocol below
 (\texttt{src/provenance\_rerun.sh}); until the rerun lands they show the
 workshop version's numbers, produced by the same algorithm with the
@@ -1050,14 +1085,14 @@ at all.
 \caption{Two-sided schedules on the synthetic instances of Section~\ref{app:details} ($n{=}5{,}000$ per class, $k{=}16$): the unconditional $V$-then-$W$ order of the workshop version versus the schedule of Lemma~\ref{lem:twosided} (larger-gap side first, second side skipped after a drop). Drop steps and skipped second-side steps are counted over the run.}\label{tab:sched}
 \begin{tabular}{lllrrrr}\toprule
 instance & schedule & time (s) & iterations & drops & skips & distance \\\midrule
-hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & unconditional & 0.8 & 16 & 0 & 0 & 55.339365 \\
-hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & Lemma~\ref{lem:twosided} & 0.8 & 16 & 0 & 0 & 55.339365 \\
+hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & unconditional & 0.7 & 16 & 0 & 0 & 55.339365 \\
+hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & Lemma~\ref{lem:twosided} & 0.7 & 16 & 0 & 0 & 55.339365 \\
 \midrule
-$L_2$ overlap, $d{=}100$, $C{=}1$ & unconditional & 25.2 & 12,311 & 785 & 0 & 0.078400 \\
-$L_2$ overlap, $d{=}100$, $C{=}1$ & Lemma~\ref{lem:twosided} & 23.3 & 10,701 & 599 & 316 & 0.078400 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & unconditional & 22.2 & 12,311 & 785 & 0 & 0.078400 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & Lemma~\ref{lem:twosided} & 18.7 & 10,701 & 599 & 316 & 0.078400 \\
 \midrule
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & unconditional & 12.9 & 2,901 & 182 & 0 & 0.578143 \\
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & Lemma~\ref{lem:twosided} & 13.4 & 3,001 & 180 & 121 & 0.578143 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & unconditional & 11.5 & 2,901 & 182 & 0 & 0.578143 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & Lemma~\ref{lem:twosided} & 12.0 & 3,001 & 180 & 121 & 0.578143 \\
 \bottomrule
 \end{tabular}\end{table}
 
@@ -1224,19 +1259,19 @@ where columns do (gisette $L_2$).
 \begin{tabular}{lrrrrr}\toprule
 instance & $k$ & time (s) & iterations & columns & drops \\\midrule
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 1 & 0.6 & 301 & 104 & 0 \\
-hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 4 & 0.6 & 36 & 103 & 0 \\
+hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 4 & 0.5 & 36 & 103 & 0 \\
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 16 & 0.5 & 16 & 103 & 0 \\
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 32 & 0.6 & 16 & 109 & 0 \\
 \midrule
-$L_2$ overlap, $d{=}100$, $C{=}1$ & 1 & 26.3 & 72,546 & 1,345 & 0 \\
-$L_2$ overlap, $d{=}100$, $C{=}1$ & 4 & 27.2 & 24,606 & 1,632 & 416 \\
-$L_2$ overlap, $d{=}100$, $C{=}1$ & 16 & 23.9 & 10,701 & 2,404 & 599 \\
-$L_2$ overlap, $d{=}100$, $C{=}1$ & 32 & 27.4 & 7,606 & 3,076 & 305 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & 1 & 16.6 & 72,546 & 1,345 & 0 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & 4 & 21.8 & 24,606 & 1,632 & 416 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & 16 & 20.0 & 10,701 & 2,404 & 599 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & 32 & 24.3 & 7,606 & 3,076 & 305 \\
 \midrule
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & 1 & 24.8 & 43,486 & 1,242 & 0 \\
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & 4 & 17.7 & 10,071 & 1,330 & 177 \\
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & 16 & 13.5 & 3,001 & 1,348 & 180 \\
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & 32 & 13.1 & 1,741 & 1,396 & 170 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & 1 & 22.7 & 43,486 & 1,242 & 0 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & 4 & 18.3 & 10,071 & 1,330 & 177 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & 16 & 12.7 & 3,001 & 1,348 & 180 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & 32 & 12.0 & 1,741 & 1,396 & 170 \\
 \bottomrule
 \end{tabular}\end{table}
 

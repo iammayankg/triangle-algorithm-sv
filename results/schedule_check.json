@@ -2,9 +2,9 @@
   {
     "tag": "hard-d1000-eps1e-5",
     "drop_skip": false,
-    "time": 0.8120892940000886,
+    "time": 0.7121828649997042,
     "iters": 16,
-    "dist": 55.339365394814926,
+    "dist": 55.33936539481493,
     "status": "converged",
     "n_drops": 0,
     "n_drop_skips": 0,
@@ -16,7 +16,7 @@
   {
     "tag": "hard-d1000-eps1e-5",
     "drop_skip": true,
-    "time": 0.767070744999728,
+    "time": 0.6732805720002943,
     "iters": 16,
     "dist": 55.339365395595046,
     "status": "converged",
@@ -30,9 +30,9 @@
   {
     "tag": "soft-d100-C1",
     "drop_skip": false,
-    "time": 25.196861589000036,
+    "time": 22.18425065199972,
     "iters": 12311,
-    "dist": 0.07840029456614703,
+    "dist": 0.07840029456614986,
     "status": "converged",
     "n_drops": 785,
     "n_drop_skips": 0,
@@ -45,9 +45,9 @@
   {
     "tag": "soft-d100-C1",
     "drop_skip": true,
-    "time": 23.26029850399982,
+    "time": 18.748408329000085,
     "iters": 10701,
-    "dist": 0.07840028658535822,
+    "dist": 0.07840028658536105,
     "status": "converged",
     "n_drops": 599,
     "n_drop_skips": 316,
@@ -59,7 +59,7 @@
   {
     "tag": "soft-d1000-C1",
     "drop_skip": false,
-    "time": 12.891726421000385,
+    "time": 11.488290712999515,
     "iters": 2901,
     "dist": 0.5781430603725188,
     "status": "converged",
@@ -74,7 +74,7 @@
   {
     "tag": "soft-d1000-C1",
     "drop_skip": true,
-    "time": 13.36937194400025,
+    "time": 11.973627707999185,
     "iters": 3001,
     "dist": 0.578143010321634,
     "status": "converged",

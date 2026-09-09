@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt   # noqa: E402
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--shards', default='results/full_battery_uncapped.shards')
+    ap.add_argument('--shards', default='results/full_battery_uncapped.json.shards')
     ap.add_argument('--C', type=float, default=0.1)
     ap.add_argument('--out', nargs='*',
                     default=['paper/figs/fig_realdata_trace.pdf'])

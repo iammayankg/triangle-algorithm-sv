@@ -41,7 +41,7 @@ def first_time(trace, pred):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--shards', default='results/full_battery.json.shards')
-    ap.add_argument('--uncapped', default='results/full_battery_uncapped.shards')
+    ap.add_argument('--uncapped', default='results/full_battery_uncapped.json.shards')
     ap.add_argument('--sweep', default='results/liblin_tol_sweep.json')
     args = ap.parse_args()
 

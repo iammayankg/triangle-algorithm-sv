@@ -62,9 +62,9 @@ stage battery results/battery_analysis.log python3 src/battery_analysis.py \
 
 stage tables results/time_to_tol.md python3 src/time_to_tol.py \
     --shards results/full_battery2.json.shards \
-    --uncapped results/full_battery_uncapped.shards
+    --uncapped results/full_battery_uncapped.json.shards
 stage tables results/trace_fig.log python3 src/trace_fig.py \
-    --shards results/full_battery_uncapped.shards \
+    --shards results/full_battery_uncapped.json.shards \
     --out paper/figs/fig_realdata_trace.pdf
 
 echo "== $(date) done"

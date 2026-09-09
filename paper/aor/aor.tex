@@ -868,10 +868,47 @@ $L_2$ margin ($C{=}1$), at $\varepsilon=10^{-3}$ and $10^{-5}$ with
 screening off and on (every 25 iterations, compaction when at least
 $5\%$ of a class is removable), three seeds, one configuration at a
 time in a fresh process (\texttt{src/screening\_real.py}). Reported
-per configuration: time, iterations, columns, the number of points
-alive at the end of $12{,}000$, the number of compactions and the time
-of the first, and the distance, which must agree with the unscreened
-run. \todo{table pending the Studio run.}
+per configuration (Table~\ref{tab:screen}): time, iterations,
+columns, the number of points alive at the end of $6{,}000$, the number
+of compactions and the time of the first, and the distance, which must
+agree with the unscreened run.
+
+The rule does activate on real data, and it does not pay here. At
+$\varepsilon=10^{-3}$ no round removes $5\%$ of a class on either cell;
+the runs are identical with and without screening. At $10^{-5}$ the
+certificate closes enough in the last $2$--$4$\,s of a $29$\,s run for
+$15$--$16$ compactions to remove $70\%$ of the points ($1{,}738$ and
+$1{,}808$ survive of $6{,}000$, against optimal supports of $1{,}237$
+and $1{,}238$), with the distance and the iteration count unchanged.
+Wall-clock is a tie within CI, as Table~\ref{tab:kreal} predicts: the
+scan that screening shortens is under $1\%$ of the gisette time, the
+columns are $87$--$93\%$ of it, and the screened points never had
+columns. Screening buys time only where the scan is a large share of
+the iteration and the certificate closes early in the run, the regime
+of Figure~\ref{fig:shrink}; on the real cells of this paper the scan
+never is.
+
+\begin{table}[h]\centering\scriptsize\setlength{\tabcolsep}{4pt}
+\caption{Safe screening on gisette (linear hard margin and $L_2$
+margin at $C{=}1$; $6{,}000$ points, $d{=}5{,}000$), three seeds, one
+process at a time (\texttt{src/screening\_real.py}). Screening every
+$25$ iterations, compaction when at least $5\%$ of a class is
+removable. Alive = points remaining at the end; first = time of the
+first compaction; the optimal support has $1{,}237$ (LIN) and $1{,}238$
+($L_2$) points. Iterations, columns and distance are identical with and
+without screening on every seed.}\label{tab:screen}
+\begin{tabular}{llrrrrrrr}\toprule
+cell & $\varepsilon$ & screening & time (s) & iterations & columns & alive & compactions & first (s) \\\midrule
+LIN & $10^{-3}$ & off & $27.3\pm8.6$ & 821 & 1,468 & 6,000 & 0 & --- \\
+LIN & $10^{-3}$ & on & $26.9\pm6.8$ & 821 & 1,468 & 6,000 & 0 & --- \\
+LIN & $10^{-5}$ & off & $28.7\pm6.2$ & 1,331 & 1,469 & 6,000 & 0 & --- \\
+LIN & $10^{-5}$ & on & $29.0\pm7.6$ & 1,331 & 1,469 & 1,738 & 16 & 27.0 \\
+\midrule
+$L_2$ & $10^{-3}$ & off & $28.4\pm6.4$ & 831 & 1,480 & 6,000 & 0 & --- \\
+$L_2$ & $10^{-3}$ & on & $26.9\pm7.2$ & 831 & 1,480 & 6,000 & 0 & --- \\
+$L_2$ & $10^{-5}$ & off & $29.0\pm6.3$ & 1,361 & 1,482 & 6,000 & 0 & --- \\
+$L_2$ & $10^{-5}$ & on & $27.1\pm0.6$ & 1,361 & 1,482 & 1,808 & 15 & 25.3 \\
+\bottomrule\end{tabular}\end{table}
 
 \subsection{Scaling with $n$ in the dense-support regime}\label{sec:nscale}
 The heuristic $\rho\sim1/n_s$ of Section~\ref{sec:exp} predicts
@@ -880,19 +917,20 @@ support fraction is constant. Table~\ref{tab:nscale} measures both on
 synthetic $L_2$ overlap instances ($d\in\{100,1000\}$, $C{=}1$,
 $n$ points per class, guarded blocks $k{=}16$, $\varepsilon=10^{-3}$,
 one process at a time; \texttt{src/n\_scaling.py}). Time grows as
-$n^{2.1}$ at $d{=}100$ and $n^{2.3}$ at $d{=}1{,}000$ over the range
-(log--log slopes), so the $O(n^2)$-type label is right, but not for the
-reason the heuristic gives. The support fraction is not constant: it
-doubles at $d{=}100$ and falls six-fold at $d{=}1{,}000$ as $n$ passes
-$d$, while the iteration count grows as $n^{1.5}$ and $n^{2.0}$, faster
-than the support in both cases. What does move with $n$ on both
-families is the hull distance itself, from $0.26$ to $0.036$ at
-$d{=}100$ and from $2.0$ to $0.10$ at $d{=}1{,}000$: at fixed $C$ more
-points overlap more, the augmented hulls approach each other, and since
+$n^{2.1}$ at $d{=}100$ and $n^{2.7}$ at $d{=}1{,}000$ over the range
+(log--log slopes), so the $O(n^2)$-type label is a lower estimate, and
+the growth is not the one the heuristic gives. The support fraction is
+not constant: it doubles at $d{=}100$ and at $d{=}1{,}000$ falls from
+$0.31$ to $0.05$ and back to $0.10$ as $n$ passes $d$, while the
+iteration count grows as $n^{1.5}$ and $n^{2.6}$, far faster than the
+support in both cases; the last doubling at $d{=}1{,}000$ multiplies
+the iterations by $24$. What does move with $n$ on both families is the
+hull distance itself, from $0.26$ to $0.036$ at $d{=}100$ and from
+$2.0$ to $0.042$ at $d{=}1{,}000$: at fixed $C$ more points overlap
+more, the augmented hulls approach each other, and since
 $\rho\propto(\delta/M)^2$ with $\delta\le\delta^*$, a shrinking distance
 compounds the growth of the support. The near-regular-simplex picture
 accounts for the support term only and under-predicts the exponent.
-\todo{$d{=}1{,}000$, $n{=}20{,}000$ row pending the Studio run.}
 
 \begin{table}[h]\centering\scriptsize
 \caption{Scaling with $n$ (points per class) on synthetic $L_2$
@@ -913,7 +951,8 @@ $d$ & $n$ & time (s) & iterations & columns & support (frac.) & distance & drops
 1,000 & 2,000 & 2.2 & 706 & 957 & 750 (.19) & 1.434 & 89 \\
 1,000 & 5,000 & 14.1 & 3,001 & 1,348 & 884 (.09) & 0.578 & 180 \\
 1,000 & 10,000 & 131.7 & 32,551 & 1,932 & 1,085 (.05) & 0.100 & 350 \\
-\multicolumn{2}{r}{slope} & 2.25 & 2.00 & 0.43 & 0.24 & & \\
+1,000 & 20,000 & 2,812 & 781,011 & 6,895 & 3,906 (.10) & 0.042 & 782 \\
+\multicolumn{2}{r}{slope} & 2.71 & 2.57 & 0.68 & 0.53 & & \\
 \bottomrule
 \end{tabular}\end{table}
 
@@ -924,8 +963,8 @@ transfers with $k=16$, guarded, away fallback, pairwise anti-zig-zag,
 stop at certified relative gap $10^{-3}$, iteration cap $2\times10^6$,
 600\,s cap. Every table and figure is produced by the released code (the schedule
 of Lemma~\ref{lem:twosided}, the case-(b) fallback in every path, the
-block Gram matrix from cached entries). \todo{Tables~\ref{tab:l2} and~\ref{tab:t1} and
-Figure~\ref{fig:trace} are being rerun under the protocol below
+block Gram matrix from cached entries). \todo{Table~\ref{tab:l2} and the gisette rows and LIBLINEAR column
+of Table~\ref{tab:t1} are being rerun under the protocol below
 (\texttt{src/provenance\_rerun.sh}); until the rerun lands they show the
 workshop version's numbers, produced by the same algorithm with the
 unconditional $V$-then-$W$ order of Table~\ref{tab:sched}.} Screening
@@ -989,9 +1028,11 @@ scripts and text; every result was run and checked by the author.
 
 \begin{figure}[h]\centering
 \includegraphics[width=.8\linewidth]{figs/fig_realdata_trace.pdf}
-\caption{Certified relative gap of ETA on a9a and w8a ($L_2$, $C=0.1$,
-uncapped), versus iteration and wall-clock: linear-rate convergence in
-the dense-support regime, at $O(n^2)$-type cost.}\label{fig:trace}
+\caption{Certified relative gap of ETA on a9a, w8a and ijcnn1 ($L_2$,
+$C=0.1$, uncapped, seed 0), versus iteration and wall-clock: linear-rate
+convergence in the dense-support regime, reaching the certified
+$10^{-3}$ in $349$--$1{,}107$\,s against the $600$\,s cap of
+Table~\ref{tab:l2}.}\label{fig:trace}
 \end{figure}
 
 \paragraph{Hardware and protocol.} One dedicated 32-vCPU Intel Xeon
@@ -1085,14 +1126,14 @@ at all.
 \caption{Two-sided schedules on the synthetic instances of Section~\ref{app:details} ($n{=}5{,}000$ per class, $k{=}16$): the unconditional $V$-then-$W$ order of the workshop version versus the schedule of Lemma~\ref{lem:twosided} (larger-gap side first, second side skipped after a drop). Drop steps and skipped second-side steps are counted over the run.}\label{tab:sched}
 \begin{tabular}{lllrrrr}\toprule
 instance & schedule & time (s) & iterations & drops & skips & distance \\\midrule
-hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & unconditional & 0.7 & 16 & 0 & 0 & 55.339365 \\
+hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & unconditional & 0.8 & 16 & 0 & 0 & 55.339365 \\
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & Lemma~\ref{lem:twosided} & 0.7 & 16 & 0 & 0 & 55.339365 \\
 \midrule
-$L_2$ overlap, $d{=}100$, $C{=}1$ & unconditional & 22.2 & 12,311 & 785 & 0 & 0.078400 \\
-$L_2$ overlap, $d{=}100$, $C{=}1$ & Lemma~\ref{lem:twosided} & 18.7 & 10,701 & 599 & 316 & 0.078400 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & unconditional & 22.5 & 12,311 & 785 & 0 & 0.078400 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & Lemma~\ref{lem:twosided} & 19.1 & 10,701 & 599 & 316 & 0.078400 \\
 \midrule
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & unconditional & 11.5 & 2,901 & 182 & 0 & 0.578143 \\
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & Lemma~\ref{lem:twosided} & 12.0 & 3,001 & 180 & 121 & 0.578143 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & unconditional & 11.8 & 2,901 & 182 & 0 & 0.578143 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & Lemma~\ref{lem:twosided} & 13.2 & 3,001 & 180 & 121 & 0.578143 \\
 \bottomrule
 \end{tabular}\end{table}
 
@@ -1121,12 +1162,13 @@ certified dual value $2/\UB_t^2$ increases to the optimum,
 so $s_t=1-(2/\UB_t^2)/P^*$ with $P^*$ the best known primal (the lower
 of LIBLINEAR's $10^{-6}$ value and ETA's certified value); ``certified
 $1\%$'' is the first time the certificate itself proves
-$1-\LB_t^2/\UB_t^2\le1\%$. ETA's a9a and w8a times are from the
-uncapped runs of Figure~\ref{fig:trace}. For LIBLINEAR the entry is
+$1-\LB_t^2/\UB_t^2\le1\%$. ETA's a9a, w8a and ijcnn1 times are from
+the uncapped runs of Figure~\ref{fig:trace}. For LIBLINEAR the entry is
 the time of the coarsest tolerance whose primal is within $1\%$ of
 $P^*$; where only $10^{-6}$ has been run it is an upper bound. On the
 remaining cells ETA is not within $1\%$ at the 600\,s cap
-($s=30$--$99\%$).}\label{tab:t1}
+($s=30$--$99\%$). \todo{gisette rows and the LIBLINEAR column pending
+the battery rerun.}}\label{tab:t1}
 \setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{llrrrrrl}\toprule
 dataset & $C$ & $P^*$ & ETA $1\%$ & ETA $0.1\%$ & cert.\ $1\%$ & cert.\ $10^{-3}$ & LIBLINEAR $1\%$ \\\midrule
@@ -1134,9 +1176,9 @@ gisette & 0.1 & 0.14835 & 40 s & 42 s & 43 s & 43 s & $\le500$ s (tol $10^{-6}$)
 gisette & 1 & 0.14893 & 44 s & 46 s & 47 s & 48 s & $\le3916$ s (tol $10^{-6}$) \\
 gisette & 10 & 0.14899 & 34 s & 36 s & 37 s & 37 s & none at $10^{-4}$ or $10^{-6}$ \\
 \midrule
-a9a & 0.1 & 687.07 & 811 s & 1,413 s & 2,121 s & 3,030 s & 4 s \\
-w8a & 0.1 & 108.80 & 2,084 s & 2,960 s & 4,162 s & 5,386 s & 23 s \\
-ijcnn1 & 0.1 & 550.61 & 301 s & 472 s & $>600$ s & $>600$ s ($s{=}0.05\%$) & 0.3 s \\
+a9a & 0.1 & 687.07 & 274 s & 385 s & 524 s & 668 s & 4 s \\
+w8a & 0.1 & 108.80 & 589 s & 764 s & 929 s & 1,107 s & 23 s \\
+ijcnn1 & 0.1 & 550.61 & 108 s & 172 s & 256 s & 349 s & 0.3 s \\
 \bottomrule\end{tabular}\end{table}
 
 \begin{table}[h]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
@@ -1263,14 +1305,14 @@ hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 4 & 0.5 & 36 & 103 & 0 \\
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 16 & 0.5 & 16 & 103 & 0 \\
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 32 & 0.6 & 16 & 109 & 0 \\
 \midrule
-$L_2$ overlap, $d{=}100$, $C{=}1$ & 1 & 16.6 & 72,546 & 1,345 & 0 \\
-$L_2$ overlap, $d{=}100$, $C{=}1$ & 4 & 21.8 & 24,606 & 1,632 & 416 \\
-$L_2$ overlap, $d{=}100$, $C{=}1$ & 16 & 20.0 & 10,701 & 2,404 & 599 \\
-$L_2$ overlap, $d{=}100$, $C{=}1$ & 32 & 24.3 & 7,606 & 3,076 & 305 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & 1 & 16.1 & 72,546 & 1,345 & 0 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & 4 & 21.2 & 24,606 & 1,632 & 416 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & 16 & 18.9 & 10,701 & 2,404 & 599 \\
+$L_2$ overlap, $d{=}100$, $C{=}1$ & 32 & 22.8 & 7,606 & 3,076 & 305 \\
 \midrule
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & 1 & 22.7 & 43,486 & 1,242 & 0 \\
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & 4 & 18.3 & 10,071 & 1,330 & 177 \\
-$L_2$ overlap, $d{=}1000$, $C{=}1$ & 16 & 12.7 & 3,001 & 1,348 & 180 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & 1 & 19.7 & 43,486 & 1,242 & 0 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & 4 & 16.0 & 10,071 & 1,330 & 177 \\
+$L_2$ overlap, $d{=}1000$, $C{=}1$ & 16 & 11.9 & 3,001 & 1,348 & 180 \\
 $L_2$ overlap, $d{=}1000$, $C{=}1$ & 32 & 12.0 & 1,741 & 1,396 & 170 \\
 \bottomrule
 \end{tabular}\end{table}

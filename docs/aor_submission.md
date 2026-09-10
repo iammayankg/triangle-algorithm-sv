@@ -143,3 +143,32 @@ adaptive rule there.
 | 7 notation | Table 1 (notation); renames: gain ratio kappa -> chi, screening radius r -> varrho, support size s_t -> ell_t, a_k -> zeta_k, b_j -> varphi_j, c_j -> alpha_{u_j}, C_B -> calligraphic C, m_B -> n^new, m_V/M_W -> vartheta, R(V,mu) -> calligraphic R, Lemma-local sigma -> varsigma, varrho -> upsilon, FW/away atoms u^FW/u^A | check under sn-jnl |
 
 Also applied from the same review: KHM w8a reported as median [max] (0.0 [58.3] s), stale ranges in Section 6 (1.4-2.7x, 3.8-7.0x, 1.8-2.4x, 3.8-6.1x, 29-32 s, a/b 16-28), stale `tab_diag_rows.tex` deleted, eta-hat footnote in the assumption table, sigma in (A2) stated as a defined constant, delta*>0 remark after Theorem 4, AI-use sentence in the methods, "no cap" wording, RBF kernel formula in the Table caption, informal sentences removed.
+
+
+## Status 2026-09-10 (after the second review, docs/aor_review_2026-09-10.md)
+
+Applied in the draft: sn-jnl preamble fix (AMS packages and manyfoot in
+both branches), Declarations as \bmhead with the four extra headings,
+title renamed, abstract 243 words without undefined abbreviations,
+Kalantari 2015/2019 attribution, Garber-Hazan/Beck-Shtern, Bennett vs
+Crisp, Lacoste-Julien-Jaggi Thm. 3, the corrected DOI and 22 more DOIs
+plus pages/series, the theory improvement F1 (thresholds through
+||z-z*|| <= sqrt(2h): H_id, H_w gain about 11 orders; ident_check rerun),
+F2-F16, all D claims, all B1/B2 stale numbers (synthetic tables now
+\input from make_appendix_tables.py; SVC reference times; libdef rows;
+screening range; n-scaling exponent), C2/C6/C7/C9/C10 disclosures, the
+TA I and dataset tables, the split of the aggregation section into
+analysis (after Section 5) and measurements (with Tables 9-10),
+Limitations and open problems, figures at print size.
+
+Pending on the Studio: src/fairness_rerun.sh (see docs/lightning_runbook.md):
+full-cache SMO regime battery, SMO column of Table 5, LIBLINEAR dual +
+tolerance sweep, exact-LMO MDM / AFW rows, uncapped C=10 trace, Figures 2
+and 3 on the released code, dataset table. Then: fold in, remove the
+three 'listed in Section limits' caveats that the reruns settle.
+
+Not done (user or later): affiliation, ORCID (entered in Editorial
+Manager), repository URL/DOI, funding and competing-interest statements,
+OPT decision, the sn-jnl build itself (needs the class file), facial
+distance on the small instances (L5), Wolfe's method (L9), a
+side-transfer BPCG (C4), supplement split (H).

@@ -43,6 +43,10 @@ sys.path.insert(0, str(HERE))
 EPS, CAP, C = 1e-3, 600.0, 1.0
 CELLS = ['gisette-l2', 'ijcnn1-kl2', 'w8a-kl2', 'a9a-kl2', 'covtype-kl2']
 SOLVERS = ['mdm', 'guarded1', 'block16', 'auto', 'bpcg']
+# added after the 2026-09-10 review: plain MDM and away-step FW with the exact
+# receiver search every iteration (prioritized=False), the one-sided
+# analogue of what Theorem 6 counts
+EXTRA = ['mdm-exact', 'afw-exact', 'guarded1-exact']
 
 
 class Timers:
@@ -118,9 +122,12 @@ def run_one(cell, solver, seed, data_dir):
                    acc=float(np.mean(pred == yt)))
     else:
         mode, k = {'mdm': ('mdm', 1), 'guarded1': ('block', 1),
-                   'block16': ('block', 16), 'auto': ('block', 'auto')}[solver]
+                   'block16': ('block', 16), 'auto': ('block', 'auto'),
+                   'mdm-exact': ('mdm', 1), 'afw-exact': ('away', 1),
+                   'guarded1-exact': ('block', 1)}[solver]
+        extra = dict(prioritized=False) if solver.endswith('-exact') else {}
         ta = Cls(V, W, step_mode=mode, block_size=k,
-                 zigzag_strategy='pairwise', seed=0, **kw)
+                 zigzag_strategy='pairwise', seed=0, **kw, **extra)
         tm = Timers(ta)
         r = ta.solve_distance(eps=EPS, max_iter=2_000_000, time_cap=CAP)
         if kind == 'l2':

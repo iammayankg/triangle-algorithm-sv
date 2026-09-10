@@ -430,3 +430,31 @@ git commit -m "results: provenance rerun" && git push origin main
 Do not add the shard directories or the uncapped shards (they carry the
 full traces) unless they are small; `results/full_battery2.json` has the
 merged records.
+
+
+## Journal reruns after the 2026-09-10 review (baseline fairness)
+
+`src/fairness_rerun.sh` chains, with the same per-stage logging, SKIP and
+PAR conventions as `provenance_rerun.sh`:
+
+| stage | script | output | what it settles |
+|--|--|--|--|
+| datasets | `dataset_table.py` | `paper/aor/tab_datasets.tex` | dataset table (C9) |
+| profile | `step_profile.py --solvers mdm-exact afw-exact guarded1-exact` | `results/step_profile4.json` | exact-LMO MDM, away-step FW and guarded k=1 rows for Table 9 (C3, L3) |
+| liblin | `liblin_sweep.py` | `results/liblin_tol_sweep.json` | LIBLINEAR primal vs dual solver, tolerances 1e-4..1e-8, a9a and gisette (C2); `time_to_tol.py` then fills Table 8's LIBLINEAR column |
+| regime | `regime_battery.py --cache-rows 0` | `results/regime_battery2.json` | Table 2 on the released code, our SMO with a full kernel-row cache, PAR concurrent (C1, C5) |
+| smo | `full_battery.py --solvers SMO --cache-rows 0` (gisette, ijcnn1) | `results/full_battery2_smo.json` | Table 5's SMO column on the cells where it converges (C1) |
+| uncapped10 | `full_battery.py --time-cap 0` (ijcnn1, C=10) | `results/full_battery_uncapped10.json` | one uncapped C=10 trace (C8) |
+| shrink | `shrink_benchmark.py` | `results/shrink_benchmark.json` | Figure 2 on the released solver (B3) |
+| final | `final_benchmark.py --trials 5` | `results/final_benchmark2.json` | Figure 3 on the released code (B3) |
+
+```bash
+cd ~/triangle-algorithm-sv && git pull && pgrep -af "src/.*\.py"
+PAR=4 setsid nohup bash src/fairness_rerun.sh > results/fairness_rerun.log 2>&1 < /dev/null & disown
+```
+
+Rough times on the Studio: datasets and profile minutes; liblin an hour
+(gisette at 1e-8); regime 3-4 h at PAR=4 (the KHM cells cap at 600 s);
+smo 30 min; uncapped10 up to an hour; shrink and final 30 min. Start it
+detached (a closed web terminal kills the process group) with auto-sleep
+off.

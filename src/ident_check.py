@@ -124,13 +124,23 @@ def face_constants(V, W, tol=1e-7):
     # h3: largest h with 2h + R sqrt(2h) <= tau/6  (x = sqrt(2h): x^2 + R x - tau/6 <= 0)
     x = (-R + np.sqrt(R * R + 4 * tau / 6)) / 2
     h3 = x * x / 2
-    Hid = min(tau ** 4 * dstar ** 2 / (41472 * R ** 4 * L ** 4), tau ** 2 / (12 * L ** 2), tau / 12, h3)
+    # thresholds of the journal version (Section 'Drops are an identification
+    # cost'): the distance to the optimum is bounded by sqrt(2h) directly
+    # (1-strong convexity plus optimality of z*), so no screening radius,
+    # no fourth powers and no R^4/delta*^2 enter.  The earlier thresholds
+    # through r^2 <= 4R^2 sqrt(2h)/delta* are kept for comparison as Hid_r/Hw_r.
+    Hid = min(tau ** 2 / (72 * L ** 2), tau / 12, h3)
     Hw = min(Hid,
-             (sigma * amin / 2) ** 4 * dstar ** 2 / (32 * R ** 4) if np.isfinite(sigma) else np.inf,
-             (amin * dmin ** 2 / (2 * L)) ** 4 * dstar ** 2 / (32 * R ** 4) if np.isfinite(dmin) else np.inf)
+             (sigma * amin) ** 2 / 8 if np.isfinite(sigma) else np.inf,
+             (amin * dmin) ** 2 / 8 if np.isfinite(dmin) else np.inf)
+    Hid_r = min(tau ** 4 * dstar ** 2 / (41472 * R ** 4 * L ** 4), tau ** 2 / (12 * L ** 2), tau / 12, h3)
+    Hw_r = min(Hid_r,
+               (sigma * amin / 2) ** 4 * dstar ** 2 / (32 * R ** 4) if np.isfinite(sigma) else np.inf,
+               (amin * dmin ** 2 / (2 * L)) ** 4 * dstar ** 2 / (32 * R ** 4) if np.isfinite(dmin) else np.inf)
     return dict(a=a, b=b, zs=zs, dstar=dstar, FV=set(int(i) for i in FV), FW=set(int(j) for j in FW),
                 tau=tau, L=float(L), R=float(R), amin=amin, dmin=dmin, sigma=sigma,
-                strict=strict, affind=affind, Hid=float(Hid), Hw=float(Hw))
+                strict=strict, affind=affind, Hid=float(Hid), Hw=float(Hw),
+                Hid_r=float(Hid_r), Hw_r=float(Hw_r))
 
 
 def run_instance(V, W, k, eps=1e-10, max_iter=100_000):
@@ -153,10 +163,14 @@ def run_instance(V, W, k, eps=1e-10, max_iter=100_000):
         h = max(0.5 * (d2 - fc['dstar'] ** 2), 0.0)
         omega = sum(w for i, w in ta.wV.items() if i >= 0 and i not in fc['FV']) \
             + sum(w for j, w in ta.wW.items() if j >= 0 and j not in fc['FW'])
-        c_id = (r <= tau / (6 * L) and omega <= tau / (12 * L * L) and omega <= 1 / 12
+        # the proof's conditions, on the distance bound s = sqrt(2h) that the
+        # journal proof uses (the screening radius r >= ||z - z*|| is logged
+        # for comparison only)
+        sd = np.sqrt(2 * h)
+        c_id = (sd <= tau / (6 * L) and omega <= tau / (72 * L * L) and omega <= 1 / 12
                 and 2 * h + R * np.sqrt(2 * h) <= tau / 6)
-        c_w = c_id and (not np.isfinite(sigma) or r <= sigma * amin / 2) \
-            and (not np.isfinite(dmin) or r <= amin * dmin * dmin / (2 * L))
+        c_w = c_id and (not np.isfinite(sigma) or sd < sigma * amin / 2) \
+            and (not np.isfinite(dmin) or sd < amin * dmin / 2)
         ok = step(*args, **kw)
         sV1, sW1 = supp()
         log.append(dict(h=h, r=r, omega=omega, c_id=c_id, c_w=c_w,
@@ -170,6 +184,7 @@ def run_instance(V, W, k, eps=1e-10, max_iter=100_000):
     h = np.array([x['h'] for x in log])
     out = dict(k=k, status=r.status, iters=len(log), h_min=float(h.min()) if len(h) else np.nan,
                strict=fc['strict'], affind=fc['affind'], Hid=fc['Hid'], Hw=fc['Hw'],
+               Hid_r=fc['Hid_r'], Hw_r=fc['Hw_r'], dstar_intersect=fc['dstar'] < 1e-3,
                tau=fc['tau'], dstar=fc['dstar'], amin=fc['amin'], dmin=fc['dmin'], sigma=fc['sigma'],
                faces=(len(fc['FV']), len(fc['FW'])), n_drops=ta.n_drops)
     out['F2_ok'] = all(x['omega'] <= x['h'] / fc['tau'] * (1 + 1e-9) + 1e-12 for x in log)
@@ -226,6 +241,8 @@ def main():
         tot['instances'] += 1
         if not (fc['strict'] and fc['affind']) or fc['dstar'] < 1e-3:
             tot['degenerate'] += 1
+            why = 'intersect' if fc['dstar'] < 1e-3 else ('strict' if not fc['strict'] else 'affind')
+            tot['skip_' + why] = tot.get('skip_' + why, 0) + 1
             continue
         for k in a.ks:
             o = run_instance(V, W, k)
@@ -253,8 +270,9 @@ def main():
         import statistics as st
         med = lambda key: st.median([r[key] for r in recs if r.get(key) is not None])
         print(f"medians over {len(recs)} runs: h0 {med('h0'):.2e}; mechanism (i) holds from h {med('h_i_star'):.1e}, "
-              f"(ii) from h {med('h_ii_star'):.1e}; proof's r-conditions first hold at h {med('h_at_tid'):.1e} (id) / "
-              f"{med('h_at_tw'):.1e} (w); h-thresholds H_id {med('Hid'):.1e}, H_w {med('Hw'):.1e}")
+              f"(ii) from h {med('h_ii_star'):.1e}; proof's conditions first hold at h {med('h_at_tid'):.1e} (id) / "
+              f"{med('h_at_tw'):.1e} (w); h-thresholds H_id {med('Hid'):.1e}, H_w {med('Hw'):.1e} "
+              f"(radius-based thresholds of the workshop proof: H_id {med('Hid_r'):.1e}, H_w {med('Hw_r'):.1e})")
         print(f"orders of magnitude between the mechanism and the theorem's h-threshold (median): "
               f"{st.median([np.log10(max(r['h_i_star'],1e-300)/r['Hid']) for r in recs]):.1f} (i), "
               f"{st.median([np.log10(max(r['h_ii_star'],1e-300)/r['Hw']) for r in recs]):.1f} (ii)")

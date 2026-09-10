@@ -149,7 +149,7 @@ def run_cell(X, y, Xt, yt, C, trace, liblin_cap=None,
     ys = np.concatenate([np.ones(len(V)), -np.ones(len(W))])
     if 'SMO' in solvers:
         s = SoftMarginSMO(Xs, ys, C_soft=C, tol=1e-3, max_iter=2_000_000,
-                          time_cap=time_cap)
+                          time_cap=time_cap, cache_rows=CACHE_ROWS or len(Xs))
         rs = s.solve()
         out['SMO'] = dict(time=rs.time, iters=rs.iterations,
                           oracle=s.row_evals,
@@ -164,20 +164,29 @@ def run_cell(X, y, Xt, yt, C, trace, liblin_cap=None,
     return out
 
 
-def fit_liblin(Xs, ys, Xt, yt, C, tol=1e-6):
+CACHE_ROWS: int | None = None      # our SMO's kernel-row cache; None = all rows
+LIBLIN_DUAL = 'auto'               # LinearSVC dual= ('auto' = primal Newton here)
+
+
+def fit_liblin(Xs, ys, Xt, yt, C, tol=1e-6, dual=None):
     """LIBLINEAR (LinearSVC, squared hinge, parameter C/2 so that the
-    objective is 1/2||w||^2 + C/2 sum xi^2); returns the LIBLIN record."""
+    objective is 1/2||w||^2 + C/2 sum xi^2); returns the LIBLIN record.
+    dual='auto' (scikit-learn's default) selects the primal trust-region
+    Newton solver whenever n_samples >= n_features, i.e. on every dataset
+    of the paper; dual=True runs the dual coordinate-descent solver."""
+    dual = LIBLIN_DUAL if dual is None else dual
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         t0 = time.perf_counter()
-        m = LinearSVC(loss='squared_hinge', C=C / 2.0, tol=tol,
+        m = LinearSVC(loss='squared_hinge', C=C / 2.0, tol=tol, dual=dual,
                       max_iter=200_000, intercept_scaling=100.0).fit(Xs, ys)
         el = time.perf_counter() - t0
     wv, bv = m.coef_.ravel(), float(m.intercept_[0])
     xi = np.maximum(0.0, 1.0 - ys * (Xs @ wv + bv))
     return dict(time=el, iters=int(np.ravel(m.n_iter_)[0]),
                 primal=0.5 * float(wv @ wv) + 0.5 * C * float(xi @ xi),
-                acc=acc(wv, bv, Xt, yt), status='converged')
+                acc=acc(wv, bv, Xt, yt), status='converged',
+                solver_dual=str(dual))
 
 
 def _liblin_capped(cap, name, C, seed, data_dir, max_n):
@@ -287,7 +296,16 @@ def main():
                          'traces of Figure 1 (use a separate --out)')
     ap.add_argument('--solvers', nargs='*', default=['ETA', 'SMO', 'LIBLIN'],
                     help='subset of ETA SMO LIBLIN to run per cell')
+    ap.add_argument('--cache-rows', type=int, default=0,
+                    help='kernel-row cache of our SMO (0 = all rows; the '
+                         'batteries of Tables 2 and 5 used the default 512)')
+    ap.add_argument('--liblin-dual', default='auto',
+                    help="LinearSVC dual=: 'auto' (primal Newton here), "
+                         "'true' (dual coordinate descent)")
     args = ap.parse_args()
+    global CACHE_ROWS, LIBLIN_DUAL
+    CACHE_ROWS = None if args.cache_rows <= 0 else args.cache_rows
+    LIBLIN_DUAL = {'auto': 'auto', 'true': True, 'false': False}[args.liblin_dual.lower()]
     time_cap = None if args.time_cap <= 0 else args.time_cap
 
     if args.liblin_child:

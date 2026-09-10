@@ -89,6 +89,16 @@ def _svc(X, y, Xt, yt, **kw):
     return m, el, status
 
 
+# kernel-row cache of our SMO baselines: the paper's Table 2 ran with the
+# solver default (512 rows, LRU), so its row counts include re-computed
+# rows; CACHE_ROWS=None (the default now) caches every row, like ETA
+CACHE_ROWS: int | None = None
+
+
+def _cache_rows(n):
+    return n if CACHE_ROWS is None else int(CACHE_ROWS)
+
+
 def cell_feas(V, W):
     ta = EnhancedTriangleAlgorithm(V, W, zigzag_strategy='pairwise', seed=0)
     r = ta.solve_intersection(eps=EPS, max_iter=50_000, time_cap=CAP)
@@ -115,7 +125,8 @@ def cell_lin(V, W, Xt, yt):
                       alive=ta.n + ta.m)
     X = np.vstack([V, W])
     y = np.concatenate([np.ones(len(V)), -np.ones(len(W))])
-    s = SMO(X, y, C=1e12, tol=EPS, max_iter=2_000_000, time_cap=CAP)
+    s = SMO(X, y, C=1e12, tol=EPS, max_iter=2_000_000, time_cap=CAP,
+            cache_rows=_cache_rows(len(X)))
     rs = s.solve()
     out['SMO'] = dict(time=rs.time, iters=rs.iterations, oracle=s.row_evals,
                       dist=rs.hull_distance, sv=rs.sparsity,
@@ -176,7 +187,7 @@ def cell_kl2(V, W, Xt, yt, gamma, C=1.0):
     X = np.vstack([V, W])
     y = np.concatenate([np.ones(len(V)), -np.ones(len(W))])
     s = KernelSMO(X, y, kernel='rbf', gamma=gamma, reg_C=C, tol=EPS,
-                  max_iter=2_000_000, time_cap=CAP)
+                  max_iter=2_000_000, time_cap=CAP, cache_rows=_cache_rows(len(X)))
     rs = s.solve()
     # kernel SMO classifier: dual expansion with a kernel-space intercept
     # (the base SMO's b is computed from a linear w - meaningless here).
@@ -301,7 +312,12 @@ def main():
     ap.add_argument('--max-n-kernel', type=int, default=10_000)
     ap.add_argument('--parallel', type=int, default=1)
     ap.add_argument('--out', default='results/regime_battery.json')
+    ap.add_argument('--cache-rows', type=int, default=0,
+                    help='kernel-row cache of our SMO (0 = all rows, no eviction; '
+                         'the workshop battery used the solver default 512)')
     args = ap.parse_args()
+    global CACHE_ROWS
+    CACHE_ROWS = None if args.cache_rows <= 0 else args.cache_rows
     if args.parallel > 1 and os.environ.get('OMP_NUM_THREADS') != '1':
         print('WARNING: set OMP_NUM_THREADS=1 when using --parallel')
     jobs, done = [], []

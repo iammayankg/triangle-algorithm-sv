@@ -58,7 +58,8 @@ def main():
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    fig, axes = plt.subplots(1, 3, figsize=(9.6, 2.6))
+    plt.rcParams.update({'font.size': 8, 'axes.labelsize': 9, 'legend.fontsize': 7.5})
+    fig, axes = plt.subplots(1, 3, figsize=(6.3, 2.3))
     x = np.arange(1, 11)
     for cell, label in CELLS:
         run = [r for r in R if r['cell'] == cell and r['k'] == a.k and 'records' in r]
@@ -77,7 +78,7 @@ def main():
         ax.set_xlabel('decile of the run (iterations)')
         ax.set_xticks(x)
         ax.grid(alpha=.3)
-    axes[2].legend(fontsize=7, frameon=False)
+    axes[2].legend(fontsize=7, frameon=True, framealpha=0.9, loc='upper right')
     fig.tight_layout()
     fig.savefig(a.fig)
     print('wrote', a.fig)

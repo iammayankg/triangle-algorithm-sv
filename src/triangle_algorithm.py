@@ -100,7 +100,7 @@ class EnhancedTriangleAlgorithm:
         two-sided schedule, Lemma 6 of the paper), skips the other side
         whenever that first step is a drop step (an away step that
         removes a support index); drop_skip=False steps V then W
-        unconditionally (the schedule used for the paper's batteries).
+        unconditionally (the workshop-era order, kept as an ablation).
 
         shrink: gap-certified safe screening (solve_distance only).  With
         the current bounds [LB, UB], strong convexity of 1/2||x||^2 over

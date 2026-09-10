@@ -1,7 +1,8 @@
 """Two-sided schedule check (paper Lemma 6 / App. C): the analysed
 schedule (larger-gap side first, second side skipped after a drop;
-drop_skip=True) versus the unconditional V-then-W order used for the
-batteries (drop_skip=False), on the synthetic instances of App. C."""
+drop_skip=True) versus the unconditional V-then-W order of the workshop
+version (drop_skip=False, an ablation of the skip), on the synthetic
+instances of the experiments section."""
 import json, sys, time
 from pathlib import Path
 import numpy as np

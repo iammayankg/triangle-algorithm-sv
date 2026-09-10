@@ -75,10 +75,10 @@ def main():
     axes[2].set_ylabel(r'$\hat\eta$ (median over decile)')
     axes[2].set_ylim(0, 0.35)
     for ax in axes:
-        ax.set_xlabel('decile of the run (iterations)')
+        ax.set_xlabel('decile of the run')
         ax.set_xticks(x)
         ax.grid(alpha=.3)
-    axes[2].legend(fontsize=7, frameon=True, framealpha=0.9, loc='upper right')
+    axes[0].legend(fontsize=7, frameon=False, loc='upper right')
     fig.tight_layout()
     fig.savefig(a.fig)
     print('wrote', a.fig)

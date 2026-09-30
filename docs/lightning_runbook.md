@@ -78,7 +78,7 @@ Paper-table to script map:
 | Table 6 (time to 1%) | `time_to_tol.py` | stdout (markdown) |
 | Table 7 (synthetic k ablation) | `k_ablation_synth.py` + `make_appendix_tables.py` | `results/k_ablation_synth.json` |
 | Fig. 1 (uncapped traces) | `full_battery.py` seed-0 shards, uncapped | `results/full_battery_uncapped.shards/` |
-| Fig. 2 (screening speed-up) | `shrink_benchmark.py` + `shrink_fig.py` (renders `paper/figs/fig_shrink.pdf`) | `results/shrink_benchmark.json` |
+| Fig. 2 (screening speed-up) | `shrink_benchmark.py` + `shrink_fig.py` (renders `paper/figs/fig_shrink.pdf`) | `results/prefix/shrink_benchmark.json` |
 | Fig. 3 (consolidated benchmark) | `final_benchmark.py` + `final_benchmark_fig.py --out paper/figs/fig_final.pdf ...` (vector for the paper) | `results/final_benchmark.json` |
 
 > **Post-submission fix (2026-09-06).** `src/triangle_algorithm.py` used to
@@ -445,7 +445,7 @@ PAR conventions as `provenance_rerun.sh`:
 | regime | `regime_battery.py --cache-rows 0` | `results/regime_battery2.json` | Table 2 on the released code, our SMO with a full kernel-row cache, PAR concurrent (C1, C5) |
 | smo | `full_battery.py --solvers SMO --cache-rows 0` (gisette, ijcnn1) | `results/full_battery2_smo.json` | Table 5's SMO column on the cells where it converges (C1) |
 | uncapped10 | `full_battery.py --time-cap 0` (ijcnn1, C=10) | `results/full_battery_uncapped10.json` | one uncapped C=10 trace (C8) |
-| shrink | `shrink_benchmark.py` | `results/shrink_benchmark.json` | Figure 2 on the released solver (B3) |
+| shrink | `shrink_benchmark.py` | `results/prefix/shrink_benchmark.json` | Figure 2 on the released solver (B3) |
 | final | `final_benchmark.py --trials 5` | `results/final_benchmark2.json` | Figure 3 on the released code (B3) |
 
 ```bash

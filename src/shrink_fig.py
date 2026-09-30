@@ -10,7 +10,7 @@ INK, INK2, GRID = '#0b0b0b', '#52514e', '#e5e4e0'
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--json', default='results/shrink_benchmark.json')
+    ap.add_argument('--json', default='results/prefix/shrink_benchmark.json')
     ap.add_argument('--out', nargs='+', default=['paper/figs/fig_shrink.pdf'])
     a = ap.parse_args()
     rows = json.loads(Path(a.json).read_text())['dims']

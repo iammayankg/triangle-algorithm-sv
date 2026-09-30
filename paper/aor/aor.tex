@@ -918,7 +918,7 @@ The same boundary appears within one problem class. Gisette is
 separable, so its $L_2$ margin has a sparse support and ETA converges to
 the certified gap in $28$--$30$\,s at every $C$, $7\times$ faster than
 our SMO. LIBLINEAR at matched tolerance ($10^{-6}$) takes $8$\,min to
-$1.4$\,h; at its default $10^{-4}$ it takes $4$--$51$\,s but stops $5$--$24\%$ above the certified optimum with lower
+$1.4$\,h; at its default $10^{-4}$ it takes $3.5$--$51$\,s but stops $5$--$24\%$ above the certified optimum with lower
 test accuracy (Table~\ref{tab:libdef}). ETA has no wall-clock
 advantage over LIBLINEAR on gisette; it adds the certificate that the
 fast answer is not the optimum. On the four overlapping datasets
@@ -1100,7 +1100,7 @@ $C{=}10$, where it nevertheless stops $5.1\%$ above the certified optimum
 Table~\ref{tab:l2} are therefore the cost of matching ETA's primal;
 Table~\ref{tab:libdef} reports the same configuration at
 scikit-learn's default tolerance $10^{-4}$ (five seeds, run separately
-without concurrent load): $4$--$51$\,s, but primals $5$--$24\%$ above
+without concurrent load): $3.5$--$51$\,s, but primals $5$--$24\%$ above
 the certified optimum and lower test accuracy.
 Intercept scaling $100$, so LIBLINEAR regularises $b/100$ where the
 geometric formulation leaves $b$ free (the primals agree to five
@@ -1270,11 +1270,11 @@ $C=0.1$ / $1$ / $10$, reached in $28$--$30$\,s with test accuracy
 $0.981$.}\label{tab:libdef}
 \begin{tabular}{lrrrlr}\toprule
 $C$ & tol & time (s) & iterations & primal (vs certified) & accuracy \\\midrule
-0.1 & $10^{-4}$ & $66\pm10$ & 363 & 0.15648 ($+5.5\%$) & .978 \\
+0.1 & $10^{-4}$ & $51\pm1$ & 363 & 0.15648 ($+5.5\%$) & .978 \\
 0.1 & $10^{-6}$ & $462\pm70$ & 2,434 & 0.14835 ($+0.0\%$) & .981 \\
-1 & $10^{-4}$ & $5.5\pm0.8$ & 10 & 0.18427 ($+24\%$) & .974 \\
+1 & $10^{-4}$ & $4.3\pm0.1$ & 10 & 0.18427 ($+24\%$) & .974 \\
 1 & $10^{-6}$ & $3{,}060\pm491$ & 18,063 & 0.14900 ($+0.05\%$) & .981 \\
-10 & $10^{-4}$ & $4.8\pm0.1$ & 8 & 0.18487 ($+24\%$) & .973 \\
+10 & $10^{-4}$ & $3.5\pm0.1$ & 8 & 0.18487 ($+24\%$) & .973 \\
 10 & $10^{-6}$ & $5{,}031\pm337$ & 35,411 & 0.15663 ($+5.1\%$) & .977 \\
 \bottomrule\end{tabular}\end{table}
 

@@ -10,7 +10,9 @@
 \usepackage{booktabs}
 \usepackage[expansion=false]{microtype}
 \usepackage{xcolor}
-\hypersetup{hidelinks}
+\hypersetup{hidelinks,
+  pdftitle={Guarded Block Transfers for Polytope Distance: Linear Convergence with Explicit Constants and Gap-Certified Screening for SVM Training},
+  pdfauthor={Mayank Gupta}}
 \setlength{\emergencystretch}{2em}   % avoid overfull lines with long inline math
 % the class's proof environment ignores an optional argument; give it one
 \renewenvironment{proof}[1][]{\par\noindent{\bfseries\upshape Proof#1.}\ }{\jmlrQED}
@@ -331,7 +333,8 @@ vs the same surrogate); KL2, kernel $L_2$ margin, $C{=}1$ (K-ETA vs
 kernel SMO, exact objective; in brackets LIBSVM on the precomputed
 $K+I/C$ kernel, fit time $+$ kernel construction).
 conv = seeds in which ETA certified; oracle = $O(nd)$ column (ETA) or
-row (SMO) evaluations, thousands. Run with the released code (fallback
+row (SMO) evaluations, thousands; SMO's include rows recomputed after
+eviction from its 512-row cache. Run with the released code (fallback
 in every path, schedule of Lemma~\ref{lem:twosided}).}\label{tab:regime}
 \begin{tabular}{llrrlcllr}
 \toprule
@@ -356,19 +359,19 @@ KL2 & ijcnn1 & 9853 / 22 & $7.7\pm1.9$ & $5.3\pm0.4$ [$1.1\pm0.1+2$] & 5/5 & .04
 
 \paragraph{Real data, sparse-support regime (Table~\ref{tab:regime}).}
 TA~I first certifies separability (gisette yes, the other four no, in
-$0.1$--$35$\,s), a diagnostic no baseline produces. On gisette ($d{=}5{,}000$; $1{,}237$ of $6{,}000$ points in
+$0.1$--$35$\,s). On gisette ($d{=}5{,}000$; $1{,}237$ of $6{,}000$ points in
 the support) ETA ties LIBSVM on the linear hard margin, both $7$--$8\times$
 ahead of our SMO; K-ETA is $1.2\times$ faster than LIBSVM on the RBF
 hard margin and $2.9\times$ faster than kernel SMO on the kernel $L_2$
 margin, with identical solutions. Across all five KL2 cells K-ETA
 matches kernel SMO's solution with $4$--$6\times$ fewer kernel-column
-evaluations; in wall-clock it is $3\times$ faster where columns are
+evaluations, partly a cache effect (our SMO evicts from a 512-row cache,
+ETA never evicts); in wall-clock it is $3\times$ faster where columns are
 expensive (gisette, w8a) and $1.4\times$ slower where they are cheap
 (ijcnn1, covtype). Against
 BPCG \cite{tsuji2022} with the same column cache and certificate
 (Table~\ref{tab:bpcg}), block ETA needs $12$--$35\times$ fewer
-iterations, is $2.5$--$5.6\times$ faster on the five KL2 cells
-($3.0\times$ on ijcnn1 in isolation) and ties on the gisette $L_2$
+iterations, is $2.5$--$5.6\times$ faster on the five KL2 cells and ties on the gisette $L_2$
 margin, where columns dominate. LIBSVM on the
 precomputed $K+I/C$ kernel (brackets in Table~\ref{tab:regime}) reaches
 the same distances $2.5$--$24\times$ faster than K-ETA, kernel
@@ -381,8 +384,7 @@ iterations and $351$\,s against LIBSVM's $1.1$\,s: the hulls are
 $0.004$ apart in a space of diameter $\approx\sqrt2$, so a relative
 certificate needs an absolute gap of order $10^{-6}$, which
 suits LIBSVM's second-order selection far better. On a9a and covtype the hulls are within $10^{-4}$ and
-$5\times10^{-4}$ of touching, and neither solver certifies anything
-(K-ETA times out; LIBSVM's surrogate stops at its KKT tolerance). On w8a the hulls intersect (duplicate points, opposite labels);
+$5\times10^{-4}$ of touching, and neither solver certifies anything. On w8a the hulls intersect (duplicate points, opposite labels);
 K-ETA certifies this in $12$\,s.
 
 \paragraph{Real data, $L_2$ soft margins (Table~\ref{tab:l2}, appendix).}
@@ -392,8 +394,8 @@ the certified gap in $28$--$30$\,s at every $C$, $7\times$ faster than
 our SMO. LIBLINEAR at matched tolerance ($10^{-6}$) takes $8$\,min to
 $1.4$\,h; at its default $10^{-4}$ it takes $3.5$--$51$\,s but stops
 $5$--$24\%$ above the certified optimum with lower test accuracy
-(Table~\ref{tab:libdef}). On gisette ETA's advantage over LIBLINEAR is the certificate, which
-shows that the fast answer is not the optimum, not wall-clock. On the four overlapping datasets LIBLINEAR finishes in
+(Table~\ref{tab:libdef}). On gisette ETA's advantage over LIBLINEAR is the certificate, not
+wall-clock. On the four overlapping datasets LIBLINEAR finishes in
 $0.1$--$23$\,s, while the geometric solvers converge within the cap
 only on ijcnn1 at $C{=}0.1$ (ETA $418$\,s, our SMO $200$\,s); at
 $C{=}10$ the capped ETA iterate loses $2$--$34$ accuracy points, and on
@@ -764,14 +766,19 @@ changes a block trajectory only on such iterations. Block assembly copies the $k
 array, an $O(k'n)$ copy, before the $O(k'^2)$ products; screening (every 25 iterations) only in the LIN cell, where
 it never activated at $10^{-3}$ (Theorem~\ref{thm:activation} gives a
 sufficient condition only, which these runs stop before meeting). Our SMO: maximal-violating-pair selection, KKT gap $10^{-3}$,
-same caps; hard margin as $C=10^{12}$; kernel SMO on $K+I/C$. LIBSVM
+same caps; hard margin as $C=10^{12}$; kernel SMO on $K+I/C$, with a
+512-row least-recently-used kernel-row cache, so its row counts and times
+include rows recomputed after eviction, while ETA's column cache never
+evicts (a full-cache SMO rerun was not made). LIBSVM
 on the precomputed $K+I/C$ kernel (scikit-learn \texttt{SVC},
 \texttt{kernel='precomputed'}, $C{=}10^6$, tolerance $10^{-3}$, five
 seeds; \texttt{src/libsvm\_kl2.py}) solves the same kernel $L_2$
 margin: the RBF kernel with $1/C$ on the diagonal is built with BLAS in
 $1$--$3$\,s and the fit takes $0.5$--$2.2$\,s, with distances equal to
 K-ETA's to five digits. LIBLINEAR
-(scikit-learn 1.8 \texttt{LinearSVC}): squared hinge with parameter
+(scikit-learn 1.8 \texttt{LinearSVC} with its default
+\texttt{dual=\textquotesingle auto\textquotesingle}, which selects the primal trust-region Newton solver
+on these datasets, not dual coordinate descent): squared hinge with parameter
 $C/2$, so that its objective equals $\tfrac12\norm w^2+\tfrac C2\sum\xi_i^2$;
 tolerance $10^{-6}$, chosen so that its final primal matches ETA's
 certified value on every cell where ETA converges except gisette at

@@ -3,6 +3,8 @@ import argparse, json
 from pathlib import Path
 import matplotlib
 matplotlib.use('Agg')
+matplotlib.rcParams['pdf.fonttype'] = 42   # TrueType, not Type 3, in PDF output
+matplotlib.rcParams['ps.fonttype'] = 42
 import matplotlib.pyplot as plt
 
 COL = {'1e-3': '#2a78d6', '1e-5': '#eb6834'}

@@ -15,12 +15,15 @@
 # A stage that exits non-zero stops the script.
 #
 # Memory: our SMO caches full-length float64 kernel rows. Uncapped, one
-# covtype run can reach ~45 GB and ijcnn1/w8a ~20 GB, so covtype runs two
-# cells at a time and everything else four. Needs >= 120 GB RAM.
+# covtype run can reach ~45 GB and ijcnn1/w8a ~20 GB. Defaults (L2_PAR=4,
+# COV_PAR=2) need >= 120 GB RAM; on a 64 GB machine use
+#   L2_PAR=2 COV_PAR=1 bash src/rerun_new_machine.sh ...
 set -uo pipefail
 cd "$(dirname "$0")/.."
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 SKIP="${SKIP:-}"
+L2_PAR="${L2_PAR:-4}"
+COV_PAR="${COV_PAR:-2}"
 mkdir -p results
 
 stage() {
@@ -61,7 +64,7 @@ liblin_sweep() {   # three independent processes, then wait for all three
     return $rc
 }
 
-echo "== $(date) start; commit $(git rev-parse --short HEAD); SKIP='$SKIP'"
+echo "== $(date) start; commit $(git rev-parse --short HEAD); SKIP='$SKIP' L2_PAR=$L2_PAR COV_PAR=$COV_PAR"
 stage machine record_machine
 stage data check_data
 
@@ -70,10 +73,10 @@ stage data check_data
 stage battery1 env PAR=4 SKIP="liblin profile smo uncapped10" bash src/fairness_rerun.sh
 
 # 2. Whole L2 battery (Table 2, matched-tolerance rows of the LIBLINEAR
-#    table) with the full SMO cache; covtype two cells at a time for memory.
-stage l2 python3 -u src/full_battery.py --data-dir data --seeds 5 --parallel 4 --cache-rows 0 \
+#    table) with the full SMO cache; covtype separately, for memory.
+stage l2 python3 -u src/full_battery.py --data-dir data --seeds 5 --parallel "$L2_PAR" --cache-rows 0 \
     --datasets gisette ijcnn1 a9a w8a --out results/full_battery3.json
-stage l2covtype python3 -u src/full_battery.py --data-dir data --seeds 5 --parallel 2 --cache-rows 0 \
+stage l2covtype python3 -u src/full_battery.py --data-dir data --seeds 5 --parallel "$COV_PAR" --cache-rows 0 \
     --datasets covtype --out results/full_battery3.json
 
 # 3. Uncapped seed-0 traces (Figure 1, time-to-1% table), one at a time;

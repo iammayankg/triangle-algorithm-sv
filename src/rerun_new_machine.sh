@@ -14,8 +14,9 @@
 #   SKIP="machine battery1" bash src/rerun_new_machine.sh ...
 # A stage that exits non-zero stops the script.
 #
-# Memory: our SMO caches full-length float64 kernel rows. Uncapped, one
-# covtype run can reach ~45 GB and ijcnn1/w8a ~20 GB. Defaults (L2_PAR=4,
+# Memory: ETA and our SMO cache full-length float64 Gram columns / kernel
+# rows; in one cell ETA's cache is freed before SMO starts, so a covtype
+# cell peaks at ~45 GB (either cache alone) and ijcnn1/w8a at ~20 GB. Defaults (L2_PAR=4,
 # COV_PAR=2) need >= 120 GB RAM; on a 64 GB machine use
 #   L2_PAR=2 COV_PAR=1 bash src/rerun_new_machine.sh ...
 set -uo pipefail

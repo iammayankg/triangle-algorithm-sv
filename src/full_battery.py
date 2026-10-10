@@ -28,7 +28,9 @@ Smoke test (no downloads): --datasets synthetic --seeds 2 --parallel 2
 from __future__ import annotations
 
 import argparse
+import ctypes
 import functools
+import gc
 import json
 import os
 import sys
@@ -144,6 +146,16 @@ def run_cell(X, y, Xt, yt, C, trace, liblin_cap=None,
                           gap=(r.distance - r.lower_bound) / r.distance,
                           acc=acc(w, b, Xt, yt), status=r.status,
                           trace=ta.trace if trace else None)
+        # release ETA's Gram-column cache before SMO builds its own: on
+        # covtype each can reach ~45 GB, and holding both at once exceeded
+        # a 64 GB machine.  Freed after ETA's result is recorded and before
+        # SMO's clock starts, so no timing changes.
+        del ta, r
+        gc.collect()
+        try:   # glibc: hand the freed pages back to the OS as well
+            ctypes.CDLL('libc.so.6').malloc_trim(0)
+        except (OSError, AttributeError):
+            pass
 
     Xs = np.vstack([V, W])
     ys = np.concatenate([np.ones(len(V)), -np.ones(len(W))])

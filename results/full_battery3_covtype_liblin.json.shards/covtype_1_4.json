@@ -1,0 +1,1 @@
+[{"time": 4.309134956999969, "iters": 20, "primal": 34689.73443425752, "acc": 0.7566315325673136, "status": "converged", "solver_dual": "auto", "dataset": "covtype", "C": 1.0, "seed": 4, "solver": "LIBLIN", "n": 100000, "d": 54}]

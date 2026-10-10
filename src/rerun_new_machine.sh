@@ -15,16 +15,20 @@
 # A stage that exits non-zero stops the script.
 #
 # Memory: ETA and our SMO cache full-length float64 Gram columns / kernel
-# rows; in one cell ETA's cache is freed before SMO starts, so a covtype
-# cell peaks at ~45 GB (either cache alone) and ijcnn1/w8a at ~20 GB. Defaults (L2_PAR=4,
-# COV_PAR=2) need >= 120 GB RAM; on a 64 GB machine use
-#   L2_PAR=2 COV_PAR=1 bash src/rerun_new_machine.sh ...
+# rows, and a cell frees ETA's cache before SMO starts. covtype trains on a
+# 100,000-point subsample, so each cached vector is 800 KB: ETA reaches
+# ~59 GB at the 600 s cap and a full SMO cache up to ~80 GB. The covtype
+# stage therefore needs a 128 GB machine and runs one cell at a time
+# (COV_PAR=1, the default); it cannot run on a 64 GB machine. Other cells
+# peak at ~20 GB (ijcnn1, w8a): L2_PAR=4 needs ~96 GB, L2_PAR=2 fits 64 GB.
+# The October covtype cells ran on a second machine (AMD EPYC 7B13,
+# 128 GB); every other stage ran on the AMD EPYC 9754 (60 GB).
 set -uo pipefail
 cd "$(dirname "$0")/.."
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
 SKIP="${SKIP:-}"
 L2_PAR="${L2_PAR:-4}"
-COV_PAR="${COV_PAR:-2}"
+COV_PAR="${COV_PAR:-1}"
 mkdir -p results
 
 stage() {

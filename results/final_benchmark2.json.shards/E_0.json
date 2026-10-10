@@ -1,0 +1,29 @@
+[
+  {
+    "bench": "E mnist-oe",
+    "solver": "ETA mdm",
+    "time": 53.80610535099913,
+    "dist": 0.07766764096281188,
+    "status": "maxiter",
+    "extra": "",
+    "trial": 0
+  },
+  {
+    "bench": "E mnist-oe",
+    "solver": "ETA block(8)",
+    "time": 121.55867255500016,
+    "dist": 0.07763246716325616,
+    "status": "converged",
+    "extra": "",
+    "trial": 0
+  },
+  {
+    "bench": "E mnist-oe",
+    "solver": "LIBLINEAR sq-hinge",
+    "time": 73.39841628399881,
+    "dist": 0.07763244285958718,
+    "status": "converged",
+    "extra": "(dist from primal)",
+    "trial": 0
+  }
+]

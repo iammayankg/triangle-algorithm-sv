@@ -84,19 +84,19 @@ combinatorial swap-step bounds, and a finite activation bound for
 gap-safe screening. We then ask when
 aggregation pays. The gain of a block over the single transfer has an
 exact expression in two quantities the guard
-already computes, the summed relative pair gain and the loss to
+computes, the summed relative pair gain and the loss to
 combining the directions; under strict complementarity and
 non-degeneracy every drop step occurs before an explicit
 identification iteration; and a fitted work model gives the block size
 that minimises the per-iteration term, which the solver sets
-adaptively from the measured combination loss. On five LIBSVM problems aggregation pays only
-where per-iteration work rather than column computation dominates, by
-at most 2.8 times. On the one separable real dataset the solver ties
-LIBSVM; on kernel $L_2$ margins it beats our own implementations of
-blended pairwise conditional gradients and, where kernel columns are
-expensive, of sequential minimal optimisation, but not LIBSVM with the
-kernel in memory; on dense-support $L_2$ margins it is at least two
-orders of magnitude slower than LIBLINEAR.}
+adaptively from the measured combination loss. On five LIBSVM problems aggregation pays only where per-iteration work
+rather than column computation dominates: by at most 2.8 times over the
+guarded single transfer and 1.9 times over an exact-search one. On the
+one separable real dataset the solver ties LIBSVM, but LIBLINEAR's dual
+solver is four to seven times faster there, and our full-cache
+sequential minimal optimisation ties or beats it on every kernel
+$L_2$ margin; on dense-support $L_2$ margins it is one to three orders
+of magnitude slower than LIBLINEAR.}
 \keywords{polytope distance, Frank--Wolfe methods, Triangle Algorithm, support vector machines, safe screening, linear convergence}
 \maketitle
 \else
@@ -117,19 +117,19 @@ combinatorial swap-step bounds, and a finite activation bound for
 gap-safe screening. We then ask when
 aggregation pays. The gain of a block over the single transfer has an
 exact expression in two quantities the guard
-already computes, the summed relative pair gain and the loss to
+computes, the summed relative pair gain and the loss to
 combining the directions; under strict complementarity and
 non-degeneracy every drop step occurs before an explicit
 identification iteration; and a fitted work model gives the block size
 that minimises the per-iteration term, which the solver sets
-adaptively from the measured combination loss. On five LIBSVM problems aggregation pays only
-where per-iteration work rather than column computation dominates, by
-at most 2.8 times. On the one separable real dataset the solver ties
-LIBSVM; on kernel $L_2$ margins it beats our own implementations of
-blended pairwise conditional gradients and, where kernel columns are
-expensive, of sequential minimal optimisation, but not LIBSVM with the
-kernel in memory; on dense-support $L_2$ margins it is at least two
-orders of magnitude slower than LIBLINEAR.
+adaptively from the measured combination loss. On five LIBSVM problems aggregation pays only where per-iteration work
+rather than column computation dominates: by at most 2.8 times over the
+guarded single transfer and 1.9 times over an exact-search one. On the
+one separable real dataset the solver ties LIBSVM, but LIBLINEAR's dual
+solver is four to seven times faster there, and our full-cache
+sequential minimal optimisation ties or beats it on every kernel
+$L_2$ margin; on dense-support $L_2$ margins it is one to three orders
+of magnitude slower than LIBLINEAR.
 \end{abstract}
 \noindent\textbf{Keywords:} polytope distance; Frank--Wolfe methods; Triangle Algorithm; support vector machines; safe screening; linear convergence
 \fi
@@ -200,8 +200,9 @@ by the distance (Lemma~\ref{lem:gapid}), so gap-safe screening
 removed every zero-weight point off the optimal faces.
 \item \textbf{A regime study on real data} (Section~\ref{sec:exp}): two
 batteries on five LIBSVM datasets locate the boundary between the
-sparse-support regime, where the certified solver competes with LIBSVM,
-and the dense-support regime, where it does not.
+sparse-support regime, where the certified solver ties LIBSVM but not
+LIBLINEAR's dual solver or a full-cache SMO, and the dense-support
+regime, where it is one to three orders of magnitude slower.
 \item \textbf{When aggregation pays} (Sections~\ref{sec:pay}
 and~\ref{sec:pay-meas}): (a) the exact gain ratio of a block over the
 single MDM step at the same iterate, $Q(2-\chi)$ or $Q/\chi$ in two
@@ -813,8 +814,8 @@ of \citet{gupta2026} as implemented in the released code (two Gaussian
 clouds, $n=5{,}000$ per class). Real data
 are the LIBSVM sets a9a, w8a, ijcnn1, gisette and covtype (100k
 subsample), standardised, official test sets where they exist, five
-seeds, 600\,s per solver and cell, all on one dedicated 32-vCPU Xeon
-2.6\,GHz machine (Section~\ref{app:details}).
+seeds, 600\,s per solver and cell, on one dedicated AMD EPYC 9754
+machine except where Section~\ref{app:details} states otherwise.
 LIBSVM \citep{chang2011} and LIBLINEAR \citep{fan2008} are called
 through scikit-learn \citep{pedregosa2011}; ``our SMO'' is our own
 implementation of sequential minimal optimisation \citep{platt1998} and
@@ -825,7 +826,7 @@ on real data are the measurements of Section~\ref{sec:pay-meas}
 (Table~\ref{tab:kreal}); the batteries below use the untuned $k{=}16$,
 which Section~\ref{sec:pay-meas} shows to be within $16\%$ of the best
 size on every cell. On the synthetic protocol screening gives
-$1.1$--$2.9\times$ at $\varepsilon=10^{-5}$ and is neutral at $10^{-3}$
+$1.3$--$2.4\times$ at $\varepsilon=10^{-5}$ and is neutral at $10^{-3}$
 (Figure~\ref{fig:shrink}); Section~\ref{sec:screen-real} reports it on
 a real cell.
 
@@ -838,71 +839,68 @@ linear hard margin (ETA with screening vs LIBSVM's $C{=}10^6$
 surrogate; our SMO in brackets); KHM, feature-space hard margin (K-ETA
 vs the same surrogate); KL2, kernel $L_2$ margin, $C{=}1$ (K-ETA vs
 kernel SMO, exact objective; in brackets LIBSVM on the precomputed
-$K+I/C$ kernel, fit time $+$ kernel construction).
+$K+I/C$ kernel, fit time $+$ kernel construction, from the September
+run on the earlier machine, Section~\ref{app:details}).
 conv = seeds in which ETA certified a distance or an intersection; oracle = $O(nd)$ column (ETA) or
-row (SMO) evaluations, thousands; our SMO ran with a 512-row cache, so
-its count includes re-computed rows (Section~\ref{app:details}). Run
-with the released algorithm (fallback in every path, schedule of
-Lemma~\ref{lem:twosided}) as up to 19 concurrent single-threaded
-processes, before the constant-factor speed-ups of the final code
-(Section~\ref{app:details}); the isolated reruns of Table~\ref{tab:kreal}
-give the final timings of the ETA and BPCG configurations.}\label{tab:regime}
+row (SMO) evaluations, thousands; both solvers cache every column or
+row they compute. Released code on the AMD EPYC 9754 machine, four
+single-threaded cells at a time (Section~\ref{app:details}).}\label{tab:regime}
 \begin{tabular}{llrrlcllr}
 \toprule
 cell & dataset & $n_k$ / $d$ & ETA (s) & baseline (s) & conv & dist.\ ETA / base & acc.\ ETA / base & oracle \\
 \midrule
-LIN & gisette & 6000 / 5000 & $31.6\pm2.8$ & $36.5\pm5.9$ [$259\pm30$] & 5/5 & 3.6638 / 3.6640 & .981 / .981 & 1.5 [11.1] \\
+LIN & gisette & 6000 / 5000 & $38.2\pm3.2$ & $38.5\pm3.1$ [$34.0\pm3.2$] & 5/5 & 3.6638 / 3.6640 & .981 / .981 & 1.5 [1.4] \\
 \midrule
-KHM & gisette & 6000 / 5000 & $57.8\pm8.7$ & $68.1\pm13.4$ & 5/5 & .05215 / .05215 & .979 / .979 & 2.6 \\
-KHM & ijcnn1 & 9853 / 22 & $351\pm109$ & $1.1\pm0.2$ & 5/5 & .00430 / .00430 & .946 / .946 & 2.6 \\
-KHM & a9a & 10000 / 123 & $>600$ & $19.8\pm1.3$ & 0/5 & $\le$.00006 / .0033 & .707 / .752 & 5.9 \\
-KHM & covtype & 10000 / 54 & $>600$ & $134\pm3$ (maxiter) & 0/5 & $\le$.00055 / .00025 & .694 / .712 & 7.5 \\
-KHM & w8a & 6479 / 300 & $0.0$ [$58.3$] & --- & 5/5 & hulls intersect & --- & 0.5 \\
+KHM & gisette & 6000 / 5000 & $64.6\pm6.2$ & $75.6\pm3.1$ & 5/5 & .05215 / .05215 & .979 / .979 & 2.6 \\
+KHM & ijcnn1 & 9853 / 22 & $242\pm69$ & $1.1\pm0.2$ & 5/5 & .00430 / .00430 & .946 / .946 & 2.6 \\
+KHM & a9a & 10000 / 123 & $>600$ & $18.5\pm2.0$ & 0/5 & $\le$.00002 / .0033 & .685 / .752 & 6.0 \\
+KHM & covtype & 10000 / 54 & $>600$ & $122\pm33$ (maxiter) & 0/5 & $\le$.00044 / .00025 & .711 / .712 & 7.6 \\
+KHM & w8a & 6479 / 300 & $0.0$ [$36.2$] & --- & 5/5 & hulls intersect & --- & 0.5 \\
 \midrule
-KL2 & gisette & 6000 / 5000 & $84.8\pm15.4$ & $243\pm15$ [$0.5\pm0.1+3$] & 5/5 & .06882 / .06882 & .971 / .971 & 3.7 / 15.2 \\
-KL2 & w8a & 6479 / 300 & $8.7\pm1.6$ & $28.5\pm1.3$ [$0.6\pm0.1+1$] & 5/5 & .05682 / .05682 & .975 / .975 & 3.6 / 20.2 \\
-KL2 & a9a & 10000 / 123 & $15.3\pm2.8$ & $27.0\pm4.7$ [$2.2\pm0.2+2$] & 5/5 & .03019 / .03019 & .795 / .795 & 7.6 / 43.6 \\
-KL2 & covtype & 10000 / 54 & $21.4\pm1.8$ & $15.4\pm0.6$ [$2.1\pm0.1+2$] & 5/5 & .02609 / .02609 & .792 / .792 & 9.1 / 56.2 \\
-KL2 & ijcnn1 & 9853 / 22 & $7.7\pm1.9$ & $5.3\pm0.4$ [$1.1\pm0.1+2$] & 5/5 & .04790 / .04790 & .959 / .959 & 4.6 / 26.1 \\
+KL2 & gisette & 6000 / 5000 & $89.8\pm7.8$ & $90.6\pm8.5$ [$0.5\pm0.1+3$] & 5/5 & .06882 / .06882 & .971 / .971 & 3.7 / 3.6 \\
+KL2 & w8a & 6479 / 300 & $6.3\pm1.0$ & $5.2\pm1.5$ [$0.6\pm0.1+1$] & 5/5 & .05682 / .05682 & .9745 / .9745 & 3.6 / 3.6 \\
+KL2 & a9a & 10000 / 123 & $13.2\pm1.0$ & $8.9\pm1.5$ [$2.2\pm0.2+2$] & 5/5 & .03019 / .03019 & .795 / .795 & 7.6 / 7.6 \\
+KL2 & covtype & 10000 / 54 & $16.8\pm4.3$ & $5.8\pm1.2$ [$2.1\pm0.1+2$] & 5/5 & .02609 / .02609 & .792 / .792 & 9.1 / 9.1 \\
+KL2 & ijcnn1 & 9853 / 22 & $5.3\pm0.3$ & $2.6\pm0.3$ [$1.1\pm0.1+2$] & 5/5 & .04790 / .04790 & .959 / .959 & 4.6 / 4.5 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Real data, sparse-support regime (Table~\ref{tab:regime}).}
 TA~I first decides separability to its tolerance
-(Table~\ref{tab:ta1}): on gisette it returns a witness pair in $8$\,s;
-on the other four it returns an iterate with $\norm{p-q}\le10^{-3}$,
-an $\varepsilon$-witness that the hulls are within $10^{-3}$ of
-touching, in $0.1$--$1$\,s except on w8a, where it takes $24{,}867$
-iterations and $27$--$35$\,s, twice LIBLINEAR's whole $L_2$ solve.
-Any solver with a FW-gap certificate can produce the same bound; the
-value here is that it is computed before the distance run and decides
-which of the baselines is meaningful. On gisette ($d{=}5{,}000$; $1{,}237$ of $6{,}000$ points in
-the support) ETA ties LIBSVM on the linear hard margin, both $7$--$8\times$
-ahead of our SMO; K-ETA ties LIBSVM on the RBF hard margin
-($57.8\pm8.7$ vs $68.1\pm13.4$\,s, overlapping intervals) and is
-$2.9\times$ faster than kernel SMO on the kernel $L_2$ margin, with
-identical solutions. Across all five KL2 cells K-ETA matches kernel
-SMO's solution; its column count is $4$--$6\times$ below our SMO's row
-count, which includes rows re-computed after eviction from its 512-row
-cache, so this ratio and the wall-clock ratios below measure the
-baseline's cache policy as well as the step rule (a full-cache rerun
-is listed in Section~\ref{sec:limits}). In wall-clock K-ETA is $1.8$--$3.3\times$ faster where
-columns are expensive (gisette, w8a, a9a) and $1.4\times$ slower where
-they are cheap (ijcnn1, covtype). Against
-BPCG \citep{tsuji2022} with the same column cache and certificate
-(Table~\ref{tab:bpcg}), block ETA needs $11$--$35\times$ fewer
-iterations, is $2.5$--$5.6\times$ faster on the five KL2 cells
-($3.8$--$6.1\times$ in the isolated runs of Table~\ref{tab:kreal}) and ties on the gisette $L_2$
-margin, where columns dominate. LIBSVM on the
-precomputed $K+I/C$ kernel (brackets in Table~\ref{tab:regime}) reaches
-the same distances $2.7$--$22\times$ faster than K-ETA, kernel
-construction included: the KL2 wins are over column-oracle solvers only.
+(Table~\ref{tab:ta1}): on gisette it returns a witness pair in
+$9$--$12$\,s; on the other four it returns an iterate with
+$\norm{p-q}\le10^{-3}$, an $\varepsilon$-witness that the hulls are
+within $10^{-3}$ of touching, in $0.1$--$1$\,s except on w8a, where it
+takes $24{,}867$ iterations and $28$--$30$\,s. Any solver with a FW-gap
+certificate can produce the same bound; the value here is that it is
+computed before the distance run and decides which of the baselines is
+meaningful. On gisette ($d{=}5{,}000$; $1{,}237$ of $6{,}000$ points in
+the support) ETA ties LIBSVM on the linear hard margin ($38.2\pm3.2$ vs
+$38.5\pm3.1$\,s), and our full-cache SMO is $1.1\times$ faster than
+both (overlapping intervals); K-ETA is $1.2\times$ faster than LIBSVM on the RBF hard margin
+($64.6\pm6.2$ vs $75.6\pm3.1$\,s, separated intervals), with identical
+solutions. On the kernel $L_2$ margins K-ETA matches kernel SMO's
+solution, and since both now cache every column or row they compute,
+it computes as many kernel columns as SMO computes rows. Kernel SMO
+ties it on gisette and w8a and is $1.5$--$2.9\times$ faster on a9a,
+covtype and ijcnn1. In the September run, with a 512-row SMO cache,
+K-ETA computed $4$--$6\times$ fewer columns than SMO recomputed rows and
+was up to $3.3\times$ faster: that advantage was the baseline's cache
+policy, not the step rule. Against BPCG \citep{tsuji2022} with the same
+column cache and certificate (Table~\ref{tab:bpcg}), block ETA needs
+$11$--$35\times$ fewer iterations, is $4.4$--$7.1\times$ faster on the
+four kernel $L_2$ cells of the isolated runs, and ties on the gisette
+$L_2$ margin, where columns dominate. LIBSVM on the precomputed $K+I/C$
+kernel (brackets in Table~\ref{tab:regime}), run only in September on
+the earlier machine, reached the same distances $2.7$--$22\times$ faster
+than K-ETA did in that run, kernel construction included; K-ETA's kernel
+$L_2$ results therefore beat only our BPCG implementation.
 
 The KHM column shows where the geometry turns against the method. On
 ijcnn1 both return the same solution ($819$ support vectors), but
-K-ETA needs $1.6$--$2.7\times10^5$
-iterations and $351$\,s against LIBSVM's $1.1$\,s: the hulls are
+K-ETA needs $1.5$--$2.7\times10^5$ iterations and $242$\,s against
+LIBSVM's $1.1$\,s: the hulls are
 $0.004$ apart in a space of diameter $\approx\sqrt2$, so a relative
 certificate needs an absolute gap of order $10^{-6}$ (a log-factor
 cost; $\delta/M$ is translation-invariant and unknown here), which
@@ -912,30 +910,33 @@ iterate and LIBSVM's $C{=}10^6$ surrogate stops at its KKT tolerance
 (iteration cap on covtype), so neither certifies anything and the
 LIBSVM entries of those two rows are not solutions of the hard margin
 either. On w8a the hulls intersect (duplicate points, opposite labels);
-K-ETA certifies this in under $0.1$\,s in four seeds and in $58$\,s in the fifth.
+K-ETA certifies this in under $0.1$\,s in four seeds and in $36$\,s in the fifth.
 
 \paragraph{Real data, $L_2$ soft margins (Table~\ref{tab:l2}).}
 The same boundary appears within one problem class. Gisette is
 separable, so its $L_2$ margin has a sparse support and ETA converges to
-the certified gap in $28$--$30$\,s at every $C$, $7\times$ faster than
-our SMO. LIBLINEAR at matched tolerance ($10^{-6}$) takes $8$\,min to
-$1.4$\,h; at its default $10^{-4}$ it takes $3.5$--$51$\,s but stops $5$--$24\%$ above the certified optimum with lower
-test accuracy (Table~\ref{tab:libdef}). ETA has no wall-clock
-advantage over LIBLINEAR on gisette; it adds the certificate that the
-fast answer is not the optimum. On the four overlapping datasets
-LIBLINEAR finishes in $0.1$--$23$\,s. The geometric solvers converge
-within the cap on one cell (ijcnn1 at $C{=}0.1$: ETA $418$\,s, our SMO
-$200$\,s) and time out on the other eleven; at $C{=}0.1$ the capped ETA
-iterate's dual value is within $0.01\%$ of the best known primal on a9a
-and within $1$--$7\%$ on w8a, with the accuracy of the LIBLINEAR
-solution, at $C{=}10$ it loses $2$--$34$ accuracy points, and on
-covtype it is not usable at any $C$ (Table~\ref{tab:t1}). The uncapped
-traces (Figure~\ref{fig:trace}) show a rate at least linear, improving
-along the run (the plotted certified gap scales like $\sqrt h$,
+the certified gap in $19$--$21$\,s at every $C$; our full-cache SMO is
+$1.1$--$1.3\times$ faster. LIBLINEAR's two solvers behave very
+differently here (Table~\ref{tab:libdef}). Its primal Newton solver,
+which the batteries ran, needs $4$\,min to $1.2$\,h at the matched
+tolerance $10^{-6}$ and stops $3$--$24\%$ above the certified optimum at
+coarser ones; its dual coordinate-descent solver reaches the certified
+optimum in $3$--$4.5$\,s at every tolerance from $10^{-4}$ to $10^{-6}$,
+four to seven times faster than ETA. On gisette ETA therefore adds only
+the certificate. On the four overlapping datasets LIBLINEAR's Newton
+solver finishes in $0.1$--$24$\,s (its dual solver is far slower there:
+$131$\,s to $31$\,min on a9a). Within the cap ETA converges only on
+a9a and ijcnn1 at $C{=}0.1$ ($583$ and $336$\,s, one a9a seed just over
+the cap), where our SMO takes $163$ and $59$\,s; our SMO also converges
+on ijcnn1 at $C{=}1$ and w8a at $C{=}0.1$. At $C{=}10$ the capped ETA
+iterate loses $1$--$27$ accuracy points, and on covtype it is not usable
+at any $C$ (Table~\ref{tab:t1}). The uncapped traces
+(Figure~\ref{fig:trace}) show a rate at least linear, improving along
+the run (the plotted certified gap scales like $\sqrt h$,
 Corollary~\ref{cor:std}), and reach the certified $10^{-3}$ in
-$349$--$1{,}107$\,s, $80$--$2{,}200\times$ LIBLINEAR's time on the
-three cells run to convergence; the nine capped cells give only lower
-bounds on that ratio.
+$259$--$792$\,s, $30$--$1{,}800\times$ LIBLINEAR's matched-tolerance time
+on those three cells; the nine capped cells give only lower bounds on
+that ratio.
 Heuristically ($\delta$ has no known bound in terms of the class
 hulls), $n_s\approx0.6n$ active atoms forming a near-regular simplex
 have pyramidal width $\sqrt{2/n_s}$ times the side \citep{lj2015}, so
@@ -965,7 +966,7 @@ $1{,}808$ survive of $6{,}000$, against optimal supports of $1{,}237$
 and $1{,}238$), with the distance and the iteration count unchanged.
 Wall-clock is a tie within CI, as Table~\ref{tab:kreal} predicts: the
 scan that screening shortens is under $1\%$ of the gisette time, the
-columns are $88$--$93\%$ of it, and the screened points never had
+columns are $82$--$89\%$ of it, and the screened points never had
 columns. Screening buys time only where the scan is a large share of
 the iteration and the certificate closes early in the run, the regime
 of Figure~\ref{fig:shrink}; on the real cells of this paper the scan
@@ -1056,28 +1057,29 @@ the points touched so far (\texttt{prioritized=True},
 exactly every $100$ iterations (this refresh is most of the ``rest''
 column of Table~\ref{tab:kreal}), a side whose best score is within
 $10^{-11}$ of its worst active score is skipped before the side
-comparison, and the adaptive size starts from $k=16$. Every table and
-figure comes from the released code; the algorithm (schedule of
-Lemma~\ref{lem:twosided}, case-(b) fallback in every path) is the same
-throughout, while Tables~\ref{tab:regime} and~\ref{tab:bpcg}, the
-LIBSVM-precomputed entries and Figure~\ref{fig:final} were timed
-before two constant-factor changes (vectorised donor selection, block
-Gram matrix from cached entries), with trajectories unchanged;
-\texttt{src/provenance\_rerun.sh} reproduces Tables~\ref{tab:l2},
-\ref{tab:sched}, \ref{tab:t1} (ETA columns), \ref{tab:kabl},
-\ref{tab:screen} and~\ref{tab:nscale} and Figure~\ref{fig:trace} in
-one sequence, \texttt{src/regime\_battery.py},
-\texttt{src/bpcg\_baseline.py}, \texttt{src/step\_profile.py},
-\texttt{src/block\_diagnostics.py}, \texttt{src/adaptive\_sweep.py}
-and \texttt{src/final\_benchmark.py} the remaining tables and
-Figure~\ref{fig:final}. Screening
+comparison, and the adaptive size starts from $k=16$. Every table and figure comes from the released code, and the
+algorithm (schedule of Lemma~\ref{lem:twosided}, case-(b) fallback in
+every path) is the same throughout. The October results
+(Tables~\ref{tab:regime}, \ref{tab:ta1}, \ref{tab:l2}, \ref{tab:libdef},
+\ref{tab:t1}, \ref{tab:kreal} and~\ref{tab:bpcg} and
+Figures~\ref{fig:trace}, \ref{fig:shrink} and~\ref{fig:final}) were
+timed with the final code; the September results named in the
+hardware paragraph below were timed before two constant-factor changes
+(vectorised donor selection, block Gram matrix from cached entries),
+with trajectories unchanged. \texttt{src/rerun\_new\_machine.sh}
+reproduces the October results in one sequence;
+\texttt{src/provenance\_rerun.sh}, \texttt{src/block\_diagnostics.py},
+\texttt{src/adaptive\_sweep.py} and \texttt{src/libsvm\_kl2.py} the
+September ones. Screening
 runs every 25 iterations in the LIN cell only, where it never activated
 at $10^{-3}$ (Theorem~\ref{thm:activation} is a sufficient condition,
 which these runs stop before meeting); Section~\ref{sec:screen-real}
 exercises it at $10^{-5}$. Our SMO: maximal-violating-pair selection, KKT gap $10^{-3}$,
-same caps; hard margin as $C=10^{12}$; kernel SMO on $K+I/C$; a
-512-row least-recently-used kernel-row cache, so its row counts include
-re-computations (the ETA, BPCG and LIBSVM caches never evict). LIBSVM
+same caps; hard margin as $C=10^{12}$; kernel SMO on $K+I/C$; in the October runs a cache that keeps every
+row it computes, as the ETA, BPCG and LIBSVM caches do (the September
+runs, and covtype in Table~\ref{tab:l2}, used a 512-row
+least-recently-used cache, so their row counts include
+re-computations). LIBSVM
 on the precomputed $K+I/C$ kernel (scikit-learn \texttt{SVC},
 \texttt{kernel='precomputed'}, $C{=}10^6$, tolerance $10^{-3}$, five
 seeds; \texttt{src/libsvm\_kl2.py}) solves the same kernel $L_2$
@@ -1091,18 +1093,18 @@ iterations): squared hinge with parameter
 $C/2$, so that its objective equals $\tfrac12\norm w^2+\tfrac C2\sum\xi_i^2$;
 tolerance $10^{-6}$, chosen so that its final primal matches ETA's
 certified value on every cell where ETA converges except gisette at
-$C{=}10$ (ijcnn1 $550.61$ vs $550.61$; gisette $0.14900$ vs $0.14893$,
-inside ETA's certified $10^{-3}$; a9a $687.07$ against ETA's dual
-$687.04$ at its capped gap $4.5\times10^{-3}$); this
-tolerance is also why LIBLINEAR needs $18{,}000$ iterations and $51$
-minutes on gisette at $C{=}1$, and $35{,}000$ iterations and $1.4$\,h at
-$C{=}10$, where it nevertheless stops $5.1\%$ above the certified optimum
-($0.15663$ vs $0.14899$, Table~\ref{tab:libdef}). The gisette LIBLINEAR times in
-Table~\ref{tab:l2} are therefore the cost of matching ETA's primal;
-Table~\ref{tab:libdef} reports the same configuration at
-scikit-learn's default tolerance $10^{-4}$ (five seeds, run separately
-without concurrent load): $3.5$--$51$\,s, but primals $5$--$24\%$ above
-the certified optimum and lower test accuracy.
+$C{=}10$ (ijcnn1 $550.61$ vs $550.61$; gisette $0.14900$ vs $0.14893$, inside
+ETA's certified $10^{-3}$; a9a $687.07$ vs $687.07$); this
+tolerance is also why the Newton solver needs $17{,}550$ iterations
+and $32$ minutes on gisette at $C{=}1$, and $44{,}569$ iterations and
+$1.2$\,h at $C{=}10$, where it nevertheless stops $4.2\%$ above the
+certified optimum ($0.15532$ vs $0.14899$). The gisette LIBLINEAR times
+in Table~\ref{tab:l2} are therefore the cost of matching ETA's primal
+with the Newton solver. Table~\ref{tab:libdef} sweeps the tolerance for
+both solvers: at scikit-learn's default $10^{-4}$ the Newton solver
+takes $3$--$40$\,s on gisette but stops $3$--$24\%$ above the certified
+optimum with lower test accuracy, while the dual solver reaches the
+optimum in $3$--$4.5$\,s at every tolerance; on a9a the order reverses.
 Intercept scaling $100$, so LIBLINEAR regularises $b/100$ where the
 geometric formulation leaves $b$ free (the primals agree to five
 digits); iteration cap
@@ -1137,7 +1139,7 @@ datasets with fixed splits the deterministic solvers return identical
 solutions across seeds, which is why several accuracy CIs are zero.
 Confidence intervals are $t$-based 95\% intervals over seeds; on the
 capped cells of Table~\ref{tab:l2} the accuracy of the returned
-iterate varies across seeds (a9a $C{=}10$: $.505\pm.279$), which the
+iterate varies across seeds (a9a $C{=}10$: $.594\pm.230$), which the
 table's single accuracy figure hides. gisette's test set has $1{,}000$
 points, so accuracy differences of $0.003$--$0.008$ there are $3$--$8$
 examples, about two binomial standard errors; w8a's majority-class
@@ -1150,75 +1152,95 @@ result was run and checked by the author.
 \input{tab_ta1}
 
 \begin{figure}[htbp]\centering
-\includegraphics[width=\linewidth]{figs/fig_realdata_trace.pdf}
+\includegraphics[width=\linewidth]{figs/fig_realdata_trace_oct.pdf}
 \caption{Certified relative gap of ETA on a9a, w8a and ijcnn1 ($L_2$,
 $C=0.1$, uncapped, seed 0), versus iteration and wall-clock: linear-rate
 convergence in the dense-support regime, reaching the certified
-$10^{-3}$ in $349$--$1{,}107$\,s against the $600$\,s cap of
-Table~\ref{tab:l2}.}\label{fig:trace}
+$10^{-3}$ in $259$--$792$\,s against the $600$\,s cap of
+Table~\ref{tab:l2} (AMD EPYC 9754, one run at a time).}\label{fig:trace}
 \end{figure}
 
-\paragraph{Hardware and protocol.} One dedicated 32-vCPU Intel Xeon
-2.6\,GHz cloud VM, 122\,GB RAM, Linux, Python 3.12, NumPy 2.4 with
-OpenBLAS 0.3.31, \texttt{OMP\_NUM\_THREADS=1}, no other load.
-Table~\ref{tab:kreal} runs one configuration at a time in a fresh
-process; Tables~\ref{tab:diag} and~\ref{tab:assump} run their twenty
-configurations one after the other in a single process; the $L_2$
-battery (Table~\ref{tab:l2}) ran four single-threaded cells at a time;
-the synthetic tables, the screening and $n$-scaling experiments and the
-uncapped traces ran one process at a time; Tables~\ref{tab:regime}
-and~\ref{tab:bpcg} ran as up to 19 concurrent single-threaded processes
-(the regime battery's 12 workers together with the BPCG,
-LIBSVM-precomputed and ablation runs), and the isolated reruns of
-their ETA and BPCG configurations in Table~\ref{tab:kreal} reproduce
-those ratios; their SMO and LIBSVM columns were not rerun in isolation.
-Five seeds unless stated, $t$-based 95\% intervals over seeds.
-Concurrent load can manufacture ratios: under the 19-process load
-guarded $k{=}1$ appeared $1.3\times$ faster than MDM on gisette, a tie
-in isolation, and the gisette column time itself moved by $\pm15\%$
-between three isolated runs of the same trajectory
+\paragraph{Hardware and protocol.} The October rerun ran on one
+dedicated 16-vCPU AMD EPYC 9754 cloud VM, 60\,GB RAM, Linux, Python
+3.14.7, NumPy 2.4.4 with OpenBLAS 0.3.31, SciPy 1.17.1, scikit-learn
+1.8.0, \texttt{OMP\_NUM\_THREADS=1}, no other load
+(\texttt{results/machine\_oct2026.txt}). Table~\ref{tab:kreal} runs one
+configuration at a time in a fresh process; the regime battery
+(Table~\ref{tab:regime}) and the synthetic benchmark
+(Figure~\ref{fig:final}) ran four single-threaded cells at a time, the
+$L_2$ battery (Table~\ref{tab:l2}) up to four, the LIBLINEAR sweep
+(Table~\ref{tab:libdef}) three processes, and the uncapped traces and the runs of Figure~\ref{fig:shrink} one
+process at a time. Three groups of results come from
+elsewhere. (i) covtype in Table~\ref{tab:l2}: a full SMO row cache on
+its $100{,}000$ training points needs about $80$\,GB, more than that
+machine has, and a run on a 32-vCPU AMD EPYC 7B13 VM with 128\,GB was
+also killed for lack of memory. Its ETA and SMO entries are therefore
+the September run, on a 32-vCPU Intel Xeon 2.6\,GHz VM (122\,GB RAM,
+Python 3.12, four cells at a time, SMO with a 512-row cache), where both
+timed out on every cell; its LIBLINEAR entries were run on the EPYC 7B13
+with the same software versions
+(\texttt{results/machine\_oct2026\_covtype.txt}). (ii) The
+LIBSVM-precomputed brackets of Table~\ref{tab:regime} and the gisette
+KL2 row of Table~\ref{tab:bpcg} are September runs on the Intel machine,
+made concurrently with up to 19 single-threaded processes. (iii)
+Tables~\ref{tab:diag}, \ref{tab:assump}, \ref{tab:adaptive},
+\ref{tab:screen} and~\ref{tab:nscale} and the synthetic tables of this
+section were not rerun: they are September runs on the Intel machine,
+made one process at a time or instrumented, and are read only for
+ratios within each table. Five seeds unless stated, $t$-based 95\%
+intervals over seeds. Concurrent load can manufacture ratios: under
+September's 19-process load guarded $k{=}1$ appeared $1.3\times$ faster
+than MDM on gisette, a tie in isolation, and the gisette column time
+moved by $\pm15\%$ between three isolated runs of the same trajectory
 (\texttt{results/step\_profile\{,2,3\}.json}); only ratios whose
 intervals separate, and exceed that variation, are read as results.
 
-\begin{table}[htbp]\centering\scriptsize\setlength{\tabcolsep}{4pt}
+\begin{table}[htbp]\centering\scriptsize\setlength{\tabcolsep}{3pt}
 \caption{$L_2$ soft-margin battery: five seeds, 600\,s per solver for
 ETA and our SMO (our own
 implementation; LIBSVM does not solve this objective), LIBLINEAR
-at tolerance $10^{-6}$ (Section~\ref{app:details}) with no cap; released
-code, four single-threaded cells at a time on the 32-vCPU machine;
-mean $\pm$ 95\% CI, which on the fixed-split datasets (all but
-covtype) measures timing noise only. ``cap'' = timed out in every
-seed; ETA's certified relative gap is reported at its stopping point
-(mean [min, max]); accuracies are those of the returned
-iterate.}\label{tab:l2}
+(primal Newton solver, Section~\ref{app:details}) at tolerance
+$10^{-6}$ with no cap; released code with a full SMO row cache, up to four
+single-threaded cells at a time on the AMD EPYC 9754 machine, except
+covtype (below). Mean $\pm$ 95\% CI, which on the fixed-split datasets
+(all but covtype) measures timing noise only (w8a, $C{=}0.1$: one
+LIBLINEAR seed took $71$\,s, the other four $12$--$14$\,s). ``cap'' =
+timed out in every seed; $^\ast$ four of five seeds converged within
+the cap, the mean counting the capped seed at $600$\,s. ETA's certified relative
+gap is reported at its stopping point (mean [min, max]); accuracies are
+those of the returned iterate. covtype: ETA and SMO from the September
+run on the earlier machine with SMO's 512-row cache, because a full
+cache needs about $80$\,GB (Section~\ref{app:details}); LIBLINEAR on an
+AMD EPYC 7B13, whose objective values match the September run's to
+every digit.}\label{tab:l2}
 \begin{tabular}{llrrrll}
 \toprule
 dataset ($n+m$ / $d$) & $C$ & ETA (s) & SMO (s) & LIBLINEAR (s) & ETA gap at stop & acc.\ ETA / SMO / LIBLINEAR \\
 \midrule
-gisette (6,000 / 5,000) & 0.1 & $30.0\pm3.6$ & $212\pm26$ & $462\pm70$ & $9\times10^{-4}$ & .981 / .981 / .981 \\
- & 1 & $29.6\pm3.0$ & $212\pm24$ & $3{,}060\pm491$ & $10\times10^{-4}$ & .981 / .981 / .981 \\
- & 10 & $28.3\pm2.9$ & $209\pm26$ & $5{,}031\pm337$ & $10\times10^{-4}$ & .981 / .981 / .977 \\
+gisette (6,000 / 5,000) & 0.1 & $19.3\pm2.4$ & $16.7\pm2.6$ & $261\pm4$ & $9\times10^{-4}$ & .981 / .981 / .981 \\
+ & 1 & $20.6\pm3.5$ & $15.9\pm3.3$ & $1{,}893\pm41$ & $10\times10^{-4}$ & .981 / .981 / .981 \\
+ & 10 & $20.9\pm1.4$ & $19.6\pm1.1$ & $4{,}380\pm277$ & $10\times10^{-4}$ & .981 / .981 / .978 \\
 \midrule
-a9a (32,561 / 123) & 0.1 & cap & cap & $2.6\pm0.6$ & 0.0045 [0.0037, 0.0060] & .850 / .850 / .849 \\
- & 1 & cap & cap & $3.2\pm0.9$ & 0.78 [0.75, 0.83] & .823 / .801 / .849 \\
- & 10 & cap & cap & $1.4\pm0.4$ & 1.2 [1.2, 1.2] & .505 / .768 / .849 \\
-ijcnn1 (49,990 / 22) & 0.1 & $418\pm23$ & $200\pm14$ & $0.2\pm0.0$ & $10\times10^{-4}$ & .918 / .918 / .918 \\
- & 1 & cap & cap & $0.2\pm0.1$ & 0.29 [0.21, 0.36] & .923 / .918 / .918 \\
- & 10 & cap & cap & $0.1\pm0.0$ & 1.2 [1.2, 1.2] & .601 / .900 / .918 \\
-w8a (49,749 / 300) & 0.1 & cap & cap & $14.2\pm3.5$ & 0.16 [0.08, 0.24] & .987 / .986 / .987 \\
- & 1 & cap & cap & $11.9\pm0.7$ & 0.92 [0.92, 0.93] & .895 / .978 / .987 \\
- & 10 & cap & cap & $14.6\pm0.9$ & 1.6 [1.5, 1.7] & .967 / .972 / .987 \\
-covtype (100,000 / 54) & 0.1 & cap & cap & $22.5\pm21.2$ & 1.0 [1.0, 1.0] & .572 / .701 / .756 \\
- & 1 & cap & cap & $4.3\pm2.3$ & 1.1 [1.0, 1.1] & .537 / .545 / .756 \\
- & 10 & cap & cap & $3.7\pm1.1$ & 1.3 [1.3, 1.6] & .502 / .515 / .756 \\
+a9a (32,561 / 123) & 0.1 & $583\pm17^{\ast}$ & $163\pm4$ & $1.9\pm0.1$ & $(9.9$--$11)\times10^{-4}$ & .849 / .849 / .849 \\
+ & 1 & cap & cap & $3.2\pm0.8$ & 0.66 [0.55, 0.85] & .840 / .850 / .849 \\
+ & 10 & cap & cap & $1.1\pm0.1$ & 1.2 [1.2, 1.2] & .594 / .786 / .849 \\
+ijcnn1 (49,990 / 22) & 0.1 & $336\pm61$ & $59.0\pm7.4$ & $0.1\pm0.0$ & $10\times10^{-4}$ & .918 / .918 / .918 \\
+ & 1 & cap & $334\pm11$ & $0.2\pm0.1$ & 0.17 [0.16, 0.18] & .920 / .918 / .918 \\
+ & 10 & cap & cap & $0.2\pm0.0$ & 1.1 [0.99, 1.2] & .649 / .917 / .918 \\
+w8a (49,749 / 300) & 0.1 & cap & $470\pm50$ & $24.4\pm32.2$ & 0.044 [0.016, 0.12] & .987 / .987 / .987 \\
+ & 1 & cap & cap & $6.8\pm1.6$ & 0.86 [0.84, 0.89] & .979 / .987 / .987 \\
+ & 10 & cap & cap & $8.5\pm1.5$ & 1.4 [1.4, 1.5] & .975 / .977 / .987 \\
+covtype (100,000 / 54) & 0.1 & cap & cap & $12.8\pm11.1$ & 1.0 [1.0, 1.0] & .572 / .701 / .756 \\
+ & 1 & cap & cap & $3.2\pm1.5$ & 1.1 [1.0, 1.1] & .537 / .545 / .756 \\
+ & 10 & cap & cap & $2.5\pm0.9$ & 1.3 [1.3, 1.6] & .502 / .515 / .756 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Reference solver in the KL2 cells.} The hinge-loss
-\texttt{SVC(rbf, C=1)}, a different objective, took $4.4\pm0.6$ (a9a),
-$3.1\pm0.1$ (covtype), $63.3\pm13.8$ (gisette), $1.0\pm0.1$ (ijcnn1) and
-$2.7\pm0.7$\,s (w8a) in the run of Table~\ref{tab:regime}, with test accuracies $0.789$, $0.783$, $0.977$,
+\texttt{SVC(rbf, C=1)}, a different objective, took $4.5\pm0.4$ (a9a),
+$3.1\pm0.3$ (covtype), $75.1\pm4.8$ (gisette), $0.9\pm0.1$ (ijcnn1) and
+$2.2\pm0.7$\,s (w8a) in the run of Table~\ref{tab:regime}, with test accuracies $0.789$, $0.783$, $0.977$,
 $0.950$ and $0.975$, within one point of the $L_2$ solutions and on
 either side of them.
 
@@ -1245,39 +1267,55 @@ MNIST; ``single MDM'' is the toward-step algorithm of
 \citet{gupta2026} on the hard-margin rows and single MDM on the others,
 both with a $2\times10^5$-iteration cap; our SMO there runs with a
 $300$\,s cap and a two-row cache. On the four hard-margin
-classes the optimised solver is $1.1$--$1.2\times$ faster than LIBSVM
-on average, with overlapping intervals ($0.63\pm0.04$ vs
-$0.75\pm0.15$\,s at $d{=}1{,}000$; $17.9\pm1.6$ vs $20.6\pm3.7$\,s at
-$d{=}10{,}000$; $0.72\pm0.13$ vs $0.80\pm0.18$\,s at
+classes the optimised solver ranges from $1.5\times$ faster than LIBSVM
+to $1.1\times$ slower ($0.47\pm0.06$ vs $0.69\pm0.15$\,s at
+$d{=}1{,}000$, the only separated intervals; $14.1\pm1.5$ vs
+$13.2\pm1.9$\,s at $d{=}10{,}000$; $0.59\pm0.11$ vs $0.63\pm0.15$\,s at
 $\varepsilon{=}10^{-5}$, where the toward-step configuration fails to
-converge in every trial; RBF $2.33\pm0.06$ vs $2.50\pm0.12$\,s); on
-the synthetic $L_2$ margin ($d{=}1{,}000$, $C{=}1$) it ties LIBLINEAR
-($20.7\pm9.7$ vs $19.4\pm4.4$\,s); on MNIST odd-vs-even it is
-$2.7\times$ slower ($172\pm20$ vs $63\pm22$\,s; single MDM does not
-converge within its cap) and on the $\nu$-SVM $1.7\times$ slower ($61.0\pm5.0$ vs
-NuSVC's $36.5\pm5.6$\,s). Distances agree within tolerance on every
-row. On the four classes where single MDM also converges, blocks and
-guard change wall-clock by $0.9$--$1.2\times$; their clear wins are the
-two classes (tight tolerance, MNIST) where single MDM does not converge
-within the cap.
+converge in every trial; RBF $1.64\pm0.42$ vs $1.94\pm0.34$\,s); on the
+synthetic $L_2$ margin ($d{=}1{,}000$, $C{=}1$) it ties LIBLINEAR
+($13.7\pm11.0$ vs $14.5\pm5.0$\,s); on MNIST odd-vs-even it is
+$2.1\times$ slower ($135\pm17$ vs $63\pm13$\,s; single MDM does not
+converge within its cap) and on the $\nu$-SVM $1.4\times$ slower
+($41.8\pm7.9$ vs NuSVC's $30.9\pm5.7$\,s). Distances agree within
+tolerance on every row. On the four classes where single MDM also
+converges, blocks and guard change wall-clock by $0.9$--$1.2\times$;
+their clear wins are the two classes (tight tolerance, MNIST) where
+single MDM does not converge within the cap.
 
 \input{tab_synth}
 
 \begin{table}[htbp]\centering\scriptsize
-\caption{LIBLINEAR on gisette at its default tolerance ($10^{-4}$)
-versus the matched tolerance ($10^{-6}$) of Table~\ref{tab:l2}; five
-seeds. ETA's certified primal is $0.14835$ / $0.14893$ / $0.14899$ at
-$C=0.1$ / $1$ / $10$, reached in $28$--$30$\,s with test accuracy
-$0.981$.}\label{tab:libdef}
-\begin{tabular}{lrrrlr}\toprule
-$C$ & tol & time (s) & iterations & primal (vs certified) & accuracy \\\midrule
-0.1 & $10^{-4}$ & $51\pm1$ & 363 & 0.15648 ($+5.5\%$) & .978 \\
-0.1 & $10^{-6}$ & $462\pm70$ & 2,434 & 0.14835 ($+0.0\%$) & .981 \\
-1 & $10^{-4}$ & $4.3\pm0.1$ & 10 & 0.18427 ($+24\%$) & .974 \\
-1 & $10^{-6}$ & $3{,}060\pm491$ & 18,063 & 0.14900 ($+0.05\%$) & .981 \\
-10 & $10^{-4}$ & $3.5\pm0.1$ & 8 & 0.18487 ($+24\%$) & .973 \\
-10 & $10^{-6}$ & $5{,}031\pm337$ & 35,411 & 0.15663 ($+5.1\%$) & .977 \\
-\bottomrule\end{tabular}\end{table}
+\caption{LIBLINEAR's two solvers across tolerances on gisette and
+a9a (\texttt{src/liblin\_sweep.py}; five seeds, three processes at a
+time and nothing else running, AMD EPYC 9754). Newton: \texttt{LinearSVC}
+with \texttt{dual=\textquotesingle auto\textquotesingle}, which selects
+the primal trust-region Newton solver, the one the batteries ran; dual:
+\texttt{dual=True}, dual coordinate descent. Primal objective relative
+to the best known value $P^*$ ($0.14835$ and $0.14893$ on gisette at
+$C{=}0.1$ and $1$, ETA's certified values; $687.07$ and $6{,}869.7$ on
+a9a); on these fixed splits every seed returns the same primal and
+accuracy. The dual solver hit its $2\times10^5$ iteration cap on a9a
+at $C{=}1$ and $\mathrm{tol}=10^{-8}$.}\label{tab:libdef}
+\begin{tabular}{lrrrlrlc}\toprule
+dataset & $C$ & tol & Newton (s) & Newton primal & dual (s) & dual primal & acc.\ Newton / dual \\\midrule
+gisette & 0.1 & $10^{-4}$ & $40.1\pm0.5$ & 0.15345 ($+3.4\%$) & $3.0\pm0.1$ & 0.14835 ($+0.0\%$) & .978 / .981 \\
+ & & $3\times10^{-5}$ & $85.7\pm0.8$ & 0.14922 ($+0.6\%$) & $3.3\pm0.2$ & 0.14835 ($+0.0\%$) & .980 / .981 \\
+ & & $10^{-5}$ & $151\pm2$ & 0.14842 ($+0.05\%$) & $3.7\pm0.6$ & 0.14835 ($+0.0\%$) & .981 / .981 \\
+ & & $10^{-6}$ & $269\pm2$ & 0.14835 ($+0.0\%$) & $4.5\pm0.7$ & 0.14835 ($+0.0\%$) & .981 / .981 \\
+gisette & 1 & $10^{-4}$ & $3.0\pm0.2$ & 0.18440 ($+24\%$) & $2.9\pm0.2$ & 0.14893 ($+0.0\%$) & .974 / .981 \\
+ & & $3\times10^{-5}$ & $4.0\pm0.3$ & 0.18343 ($+23\%$) & $3.2\pm0.1$ & 0.14893 ($+0.0\%$) & .974 / .981 \\
+ & & $10^{-5}$ & $398\pm18$ & 0.15568 ($+4.5\%$) & $3.5\pm0.1$ & 0.14893 ($+0.0\%$) & .977 / .981 \\
+ & & $10^{-6}$ & $1{,}813\pm67$ & 0.14900 ($+0.05\%$) & $4.5\pm0.7$ & 0.14893 ($+0.0\%$) & .981 / .981 \\
+\midrule
+a9a & 0.1 & $10^{-4}$ & $0.5\pm0.1$ & 687.08 ($+0.001\%$) & $131\pm38$ & 687.07 ($+0.0\%$) & .849 / .849 \\
+ & & $10^{-6}$ & $1.8\pm0.4$ & 687.07 ($+0.0\%$) & $180\pm44$ & 687.07 ($+0.0\%$) & .849 / .849 \\
+ & & $10^{-8}$ & $2.4\pm0.5$ & 687.07 ($+0.0\%$) & $226\pm50$ & 687.07 ($+0.0\%$) & .849 / .849 \\
+a9a & 1 & $10^{-4}$ & $0.6\pm0.1$ & 6{,}869.7 ($+0.001\%$) & $1{,}291\pm416$ & 6{,}869.7 ($+0.0\%$) & .850 / .849 \\
+ & & $10^{-6}$ & $2.5\pm0.3$ & 6{,}869.7 ($+0.0\%$) & $1{,}828\pm271$ & 6{,}869.7 ($+0.0\%$) & .849 / .849 \\
+ & & $10^{-8}$ & $5.9\pm0.8$ & 6{,}869.7 ($+0.0\%$) & $1{,}852\pm249$ & 6{,}869.7 ($+0.0\%$) & .849 / .849 \\
+\bottomrule
+\end{tabular}\end{table}
 
 \begin{table}[htbp]\centering\scriptsize
 \caption{Time to $1\%$ of the optimum, seed-0 traces. The ETA columns
@@ -1286,27 +1324,26 @@ progress, so this is not a matched primal comparison (the primal of
 ETA's returned $(w,b)$ is not recorded in the traces). For ETA the
 certified dual value $2/\UB_t^2$ increases to the optimum,
 so $s_t=1-(2/\UB_t^2)/P^*$ with $P^*$ the best known primal (the lower
-of LIBLINEAR's $10^{-6}$ value and ETA's certified value); ``certified
+of LIBLINEAR's best value and ETA's certified value); ``certified
 $1\%$'' is the first time the certificate itself proves
 $1-\LB_t^2/\UB_t^2\le1\%$. ETA's a9a, w8a and ijcnn1 times are from
 the uncapped runs of Figure~\ref{fig:trace} (\texttt{src/time\_to\_tol.py}).
-The LIBLINEAR entries are the five-seed mean times of the matched
-$10^{-6}$ run of Table~\ref{tab:l2}, an upper bound on its time to
-$1\%$ (the sweep that would give the exact value is listed in
-Section~\ref{sec:limits}); ``none'' means that neither $10^{-4}$ nor
-$10^{-6}$ reaches $1\%$. On the
-remaining cells ETA is not within $1\%$ at the 600\,s cap
-($s=11$--$99\%$).}\label{tab:t1}
+LIBLINEAR: the mean time of the coarsest tolerance of Table~\ref{tab:libdef}
+whose primal is within $1\%$ of $P^*$ in every seed, for the Newton and
+the dual solver; where the sweep did not run, the matched $10^{-6}$
+Newton run of Table~\ref{tab:l2}, an upper bound (on gisette at
+$C{=}10$ that run stops $4.2\%$ above $P^*$). On the remaining cells
+ETA is not within $1\%$ at the 600\,s cap ($s=3$--$89\%$).}\label{tab:t1}
 \setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{llrrrrrl}\toprule
-dataset & $C$ & $P^*$ & ETA $1\%$ & ETA $0.1\%$ & cert.\ $1\%$ & cert.\ $10^{-3}$ & LIBLINEAR $1\%$ \\\midrule
-gisette & 0.1 & 0.14835 & 30 s & 31 s & 31 s & 32 s & $\le462$ s (tol $10^{-6}$) \\
-gisette & 1 & 0.14893 & 30 s & 31 s & 32 s & 33 s & $\le3{,}060$ s (tol $10^{-6}$) \\
-gisette & 10 & 0.14899 & 24 s & 26 s & 26 s & 27 s & none at $10^{-4}$ or $10^{-6}$ \\
+dataset & $C$ & $P^*$ & ETA $1\%$ & ETA $0.1\%$ & cert.\ $1\%$ & cert.\ $10^{-3}$ & LIBLINEAR $1\%$, Newton / dual \\\midrule
+gisette & 0.1 & 0.14835 & 17 s & 18 s & 19 s & 19 s & 86 s / 3.0 s \\
+gisette & 1 & 0.14893 & 20 s & 21 s & 21 s & 22 s & 1,813 s / 2.9 s \\
+gisette & 10 & 0.14899 & 20 s & 21 s & 22 s & 22 s & none at $10^{-6}$ / not run \\
 \midrule
-a9a & 0.1 & 687.07 & 274 s & 385 s & 524 s & 668 s & $\le2.6$ s (tol $10^{-6}$) \\
-w8a & 0.1 & 108.80 & 589 s & 764 s & 929 s & 1,107 s & $\le14$ s (tol $10^{-6}$) \\
-ijcnn1 & 0.1 & 550.61 & 108 s & 172 s & 256 s & 349 s & $\le0.2$ s (tol $10^{-6}$) \\
+a9a & 0.1 & 687.07 & 218 s & 295 s & 402 s & 510 s & 0.5 s / 131 s \\
+w8a & 0.1 & 108.80 & 435 s & 559 s & 670 s & 792 s & $\le24$ s / not run \\
+ijcnn1 & 0.1 & 550.61 & 80 s & 125 s & 189 s & 259 s & $\le0.1$ s / not run \\
 \bottomrule\end{tabular}\end{table}
 
 
@@ -1314,7 +1351,7 @@ ijcnn1 & 0.1 & 550.61 & 108 s & 172 s & 256 s & 349 s & $\le0.2$ s (tol $10^{-6}
 
 
 \begin{figure}[htbp]\centering
-\includegraphics[width=.7\linewidth]{figs/fig_shrink.pdf}
+\includegraphics[width=.7\linewidth]{figs/fig_shrink_oct.pdf}
 \caption{Safe screening on the separated synthetic protocol
 ($n{=}10{,}000$, two trials): wall-clock speed-up of screening versus
 dimension at $\varepsilon=10^{-3}$ and $10^{-5}$; labels are surviving
@@ -1325,11 +1362,11 @@ the released solver on real data.}\label{fig:shrink}
 \end{figure}
 
 \begin{figure}[htbp]\centering
-\includegraphics[width=.78\linewidth]{figs/fig_final.pdf}
+\includegraphics[width=.78\linewidth]{figs/fig_final_oct.pdf}
 \caption{Time to certified solution on seven problem classes: the
 optimised configuration vs the toward-step or single-MDM configuration
 vs the best standard solver per class (settings in
-Section~\ref{app:details}); five trials per class, mean with 95\% CI.
+Section~\ref{app:details}); five trials per class (October rerun, AMD EPYC 9754), mean with 95\% CI.
 The $\nu$-SVM row has no toward-step bar because the algorithm of
 \citet{gupta2026} has no reduced-hull variant (reduced hulls need
 capped transfers).}\label{fig:final}
@@ -1356,15 +1393,20 @@ the released code.
 Guarded block transfers give the Triangle Algorithm a linear rate with
 constants explicit in the pyramidal width of the difference atom set
 and no combinatorial swap-step bounds, and a safe screening rule with a
-finite activation bound. The experiments locate the boundary. Where the
-augmented hulls are well separated (gisette in every formulation; the
-kernel $L_2$ margins, whose supports are dense) the solver ties LIBSVM
-on the one separable real dataset, beats our column-oracle
-implementations of BPCG and, where kernel columns are expensive, of
-kernel SMO, though not LIBSVM with the kernel in memory, and supplies a
-certificate; where the hulls nearly touch or the support is dense in
-the linear case, LIBLINEAR or LIBSVM is two to three orders of
-magnitude faster. Section~\ref{sec:pay} answers the question the guard
+finite activation bound. The experiments, rerun with full baseline
+caches and both LIBLINEAR solvers, locate the boundary and narrow the
+method's niche. Where the augmented hulls are well separated (gisette
+in every formulation; the kernel $L_2$ margins, whose supports are
+dense) the solver ties LIBSVM on the linear hard margin, is $1.2\times$
+faster on the RBF hard margin, beats our column-oracle BPCG by four to
+seven times and supplies a certificate; but a full-cache SMO ties or
+beats it on every kernel $L_2$ margin, LIBSVM with the kernel in memory
+is faster still, and LIBLINEAR's dual solver solves the separable $L_2$
+margin four to seven times faster. Where the hulls nearly touch or the
+support is dense in the linear case, LIBLINEAR or LIBSVM is one to
+three orders of magnitude faster. What the solver offers that these
+baselines do not is the certified interval and the TA~I intersection
+test, not speed. Section~\ref{sec:pay} answers the question the guard
 raises: aggregation acts only on the per-iteration term of the work,
 by the exact factor $Q(2-\chi)$ or $Q/\chi$ per step; drops are an
 identification cost that becomes rare once the optimal faces are found
@@ -1382,14 +1424,16 @@ terms of the class hulls, and cannot be in general
 (Section~\ref{sec:related}); computing the facial distance of
 \citet{pena2019} on the small instances of Section~\ref{sec:ident-check}
 and comparing it with the observed contraction would show how loose
-the $1/16$ is. The $\nu$-SVM variant is not analysed. Three
-comparisons are confounded by baseline implementation and are listed
-here rather than claimed: our SMO ran with a 512-row cache while ETA's
-never evicts (a full-cache rerun would bound its row count by $n_k$);
-BPCG ran on the product-atom parametrisation (a side-transfer BPCG
-would isolate the step rule); and LIBLINEAR ran as the primal Newton
-solver at one tolerance (its dual solver and a tolerance sweep would
-give its time-to-accuracy curve). Assumption~\ref{ass:nondeg} fails
+the $1/16$ is. The $\nu$-SVM variant is not analysed. Two comparisons remain confounded
+by implementation or machine: BPCG ran on the product-atom
+parametrisation (a side-transfer BPCG would isolate the step rule), and
+the LIBSVM-precomputed baseline and covtype's ETA and SMO entries come
+from the September machine (a full-cache SMO on covtype needs about
+$80$\,GB). The October rerun resolved the other two September caveats,
+both against the method: with a full row cache our SMO computes as many
+rows as K-ETA computes columns, which removed K-ETA's apparent
+kernel-column advantage, and LIBLINEAR's dual solver, swept across
+tolerances, is the fastest solver on gisette. Assumption~\ref{ass:nondeg} fails
 when a class contains duplicate points (w8a does) or when parallel
 optimal faces make the witness pair non-unique; for the $L_2$
 augmentation and strictly positive definite kernels the affine
@@ -1430,8 +1474,9 @@ and~\ref{sec:pay-meas} (exact gain ratio, identification theorem,
 conditional iteration bound and timing model, per-step measurements on
 five real cells, and the adaptive block size with its synthetic sweep),
 the adaptive-solver rows of Table~\ref{tab:kreal}, the screening and
-$n$-scaling experiments on real and synthetic data, and the rerun of
-every timing table under one protocol on the released code. The
+$n$-scaling experiments on real and synthetic data, and the October rerun of the battery, ablation and synthetic timing
+tables on one machine, with full baseline caches and both LIBLINEAR
+solvers. The
 algorithm, its analysis, the reductions and the regime batteries
 appeared in the workshop version.
 

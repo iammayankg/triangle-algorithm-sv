@@ -1,29 +1,34 @@
 \section{When does aggregation pay: measurements}\label{sec:pay-meas}
 
 \subsection{Step ablation on real data}\label{sec:meas-kreal}
-Table~\ref{tab:kreal} separates the three effects the batteries of
-Section~\ref{sec:exp} mix: the guard and away fallback (guarded $k{=}1$
-against plain MDM), aggregation ($k{=}16$ and the adaptive size of
-Section~\ref{sec:adaptive} against guarded $k{=}1$), and the
-comparison with BPCG, all in isolated runs with a time split. Two
-effects separate. The guard and away fallback alone cut plain pairwise
-FW's iterations $1.4$--$2.7\times$ and its time by at most $1.3\times$
-(a tie on gisette and ijcnn1); aggregation cuts iterations a further
+Table~\ref{tab:kreal} separates the effects the batteries of
+Section~\ref{sec:exp} mix: the receiver search (prioritised against
+exact), the guard and away fallback (guarded $k{=}1$ against plain MDM),
+aggregation ($k{=}16$ and the adaptive size of
+Section~\ref{sec:adaptive} against guarded $k{=}1$), and the comparison
+with away-step FW and BPCG, all in isolated runs with a time split. The
+guard and away fallback alone cut plain pairwise FW's iterations
+$1.4$--$2.7\times$ and its time by at most $1.3\times$ (a tie on gisette
+and ijcnn1); an exact receiver search cuts iterations as much
+($1.4$--$2.7\times$) and, on the four kernel cells, time by
+$1.8$--$1.9\times$. Aggregation cuts iterations a further
 $3.8$--$7.0\times$, which buys wall-clock only where per-iteration
-$O(n)$ work, not column computation, dominates: $1.8$--$2.4\times$
-over guarded $k{=}1$ on the four kernel cells ($3.8$--$6.1\times$ over
-BPCG) and nothing on gisette.
+$O(n)$ work, not column computation, dominates: on the four kernel cells
+$2.1$--$2.8\times$ over guarded $k{=}1$, $1.2$--$1.9\times$ over
+exact-search MDM and $4.4$--$7.1\times$ over BPCG, and nothing on
+gisette.
 
 \begin{table}[htbp]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
 \caption{Step ablation on real data with a time split, isolated runs
 (\texttt{src/step\_profile.py}: three seeds, each configuration alone
-in its own process on an otherwise idle machine, with the final code):
-the gisette $L_2$
-margin ($C{=}1$, $d{=}5{,}000$) and the four kernel $L_2$ cells of
-Table~\ref{tab:regime}. MDM is plain
-pairwise FW (single transfers, no guard, no fallback, the same
-prioritised receiver search and schedule as the other rows); guarded $k{=}1$
-is Algorithm~\ref{alg:block} with a single pair (guard and case-(b)
+in its own process on an otherwise idle AMD EPYC 9754, with the final
+code): the gisette $L_2$ margin ($C{=}1$, $d{=}5{,}000$) and the four
+kernel $L_2$ cells of Table~\ref{tab:regime}. MDM is plain pairwise FW
+(single transfers, no guard, no fallback) with the prioritised receiver
+search and schedule of the other rows; ``exact'' rows replace that
+search by an exact linear minimisation over all points; AFW is
+away-step FW with exact search; guarded $k{=}1$ is
+Algorithm~\ref{alg:block} with a single pair (guard and case-(b)
 fallback active); auto is the adaptive block size of
 Section~\ref{sec:adaptive} (median $k$ over the run given); BPCG as in
 Table~\ref{tab:bpcg}. Split of the ETA time: scan = the score scan and
@@ -31,45 +36,62 @@ pair selection; col = Gram or kernel column computation; step = the
 step itself (block assembly, guard, line search, cache and score
 update); rest = certificate and bounds. Drops = away fallbacks that
 removed a support index. Every run converged to the certified gap with
-identical distance and accuracy per dataset and seed. Peak resident
-memory: $0.74$\,GB on gisette, $0.48$--$0.93$\,GB for ETA and
-$0.66$--$1.29$\,GB for BPCG on the kernel cells. The gisette column
-time varied by $\pm15\%$ between three isolated runs of the same
-trajectory on the same machine ($26$--$35$\,s;
-\texttt{results/step\_profile\{,2,3\}.json}), more than the $8\%$
-that separates its fastest and slowest rows here, so its rows should be
-read as a tie.}\label{tab:kreal}
+identical distance and accuracy per dataset and seed, except AFW on
+the ijcnn1, a9a and covtype kernel cells, which timed out at $600$\,s
+with certified gaps of $0.0012$--$0.004$ (iterations and columns at the
+cap shown). Iteration, column and drop counts equal those of the September runs
+for every configuration both contain except plain MDM, whose
+prioritised search varies between runs (up to $5\%$ across seeds, under
+$0.3\%$ between the two runs' means); only the times changed. Peak resident memory: $0.74$\,GB on gisette, $0.49$--$0.93$\,GB
+for ETA and $0.68$--$1.30$\,GB for BPCG on the kernel cells. Columns
+take $82$--$89\%$ of every gisette configuration's time except AFW's,
+so those rows should be read as a tie.}\label{tab:kreal}
 \begin{tabular}{llrrrrrrrrr}\toprule
 instance & step & $k$ & time (s) & scan & col & step & rest & iterations & columns & drops \\\midrule
-gisette $L_2$ & MDM & 1 & $29.4\pm0.2$ & 0.2 & 26.0 & 1.0 & 2.1 & 4,946 & 1,300 & 0 \\
-gisette $L_2$ & guarded & 1 & $30.1\pm0.3$ & 0.2 & 26.6 & 1.8 & 1.5 & 3,471 & 1,334 & 82 \\
-gisette $L_2$ & block & 16 & $31.9\pm0.5$ & 0.1 & 29.7 & 1.7 & 0.4 & 831 & 1,480 & 301 \\
-gisette $L_2$ & auto & 9 & $30.9\pm1.4$ & 0.1 & 28.8 & 1.6 & 0.5 & 986 & 1,451 & 194 \\
-gisette $L_2$ & BPCG & --- & $29.8\pm0.5$ & & & & & 10,470 & 1,322 & 87 \\
+gisette $L_2$ & MDM & 1 & $12.1\pm0.2$ & 0.2 & 10.2 & 0.8 & 0.9 & 4,946 & 1,300 & 0 \\
+gisette $L_2$ & MDM, exact & 1 & $12.0\pm0.2$ & 0.1 & 10.6 & 0.7 & 0.7 & 3,546 & 1,341 & 0 \\
+gisette $L_2$ & guarded & 1 & $12.8\pm0.1$ & 0.2 & 10.5 & 1.5 & 0.6 & 3,471 & 1,334 & 82 \\
+gisette $L_2$ & guarded, exact & 1 & $12.9\pm0.4$ & 0.1 & 10.7 & 1.5 & 0.7 & 3,416 & 1,341 & 87 \\
+gisette $L_2$ & AFW, exact & 1 & $206.7\pm5.3$ & 7.6 & 10.8 & 90.9 & 97.3 & 527,108 & 1,340 & 0 \\
+gisette $L_2$ & block & 16 & $13.0\pm0.1$ & 0.1 & 11.6 & 1.2 & 0.2 & 831 & 1,480 & 301 \\
+gisette $L_2$ & auto & 9 & $12.7\pm0.3$ & 0.1 & 11.3 & 1.1 & 0.2 & 986 & 1,451 & 194 \\
+gisette $L_2$ & BPCG & --- & $13.2\pm0.1$ &  & & & & 10,470 & 1,322 & 87 \\
 \midrule
-ijcnn1 kernel $L_2$ & MDM & 1 & $10.3\pm0.5$ & 1.3 & 0.9 & 2.9 & 5.2 & 12,796 & 4,520 & 0 \\
-ijcnn1 kernel $L_2$ & guarded & 1 & $9.7\pm0.4$ & 0.8 & 0.8 & 4.5 & 3.6 & 6,118 & 4,514 & 14 \\
-ijcnn1 kernel $L_2$ & block & 16 & $5.3\pm0.8$ & 0.2 & 0.8 & 3.3 & 1.0 & 1,396 & 4,590 & 98 \\
-ijcnn1 kernel $L_2$ & auto & 8 & $4.7\pm0.6$ & 0.3 & 0.7 & 2.6 & 1.1 & 1,734 & 4,570 & 75 \\
-ijcnn1 kernel $L_2$ & BPCG & --- & $19.9\pm2.2$ & & & & & 18,034 & 4,512 & 19 \\
+ijcnn1 kernel $L_2$ & MDM & 1 & $7.8\pm0.5$ & 1.2 & 0.8 & 2.2 & 3.6 & 12,763 & 4,523 & 0 \\
+ijcnn1 kernel $L_2$ & MDM, exact & 1 & $4.4\pm0.2$ & 0.2 & 0.8 & 1.2 & 2.3 & 5,528 & 4,519 & 0 \\
+ijcnn1 kernel $L_2$ & guarded & 1 & $8.1\pm0.4$ & 0.8 & 0.7 & 4.1 & 2.6 & 6,118 & 4,514 & 14 \\
+ijcnn1 kernel $L_2$ & guarded, exact & 1 & $7.4\pm0.5$ & 0.1 & 0.7 & 3.9 & 2.6 & 6,070 & 4,520 & 14 \\
+ijcnn1 kernel $L_2$ & AFW, exact & 1 & $>600$ & 11.8 & 0.7 & 254.1 & 333.5 & 658,667 & 4,504 & 0 \\
+ijcnn1 kernel $L_2$ & block & 16 & $3.8\pm0.3$ & 0.2 & 0.6 & 2.3 & 0.7 & 1,396 & 4,590 & 98 \\
+ijcnn1 kernel $L_2$ & auto & 8 & $3.7\pm0.1$ & 0.2 & 0.6 & 2.0 & 0.8 & 1,734 & 4,570 & 75 \\
+ijcnn1 kernel $L_2$ & BPCG & --- & $16.6\pm1.5$ &  & & & & 18,034 & 4,512 & 19 \\
 \midrule
-w8a kernel $L_2$ & MDM & 1 & $8.8\pm0.8$ & 0.9 & 2.8 & 2.2 & 2.9 & 11,461 & 3,587 & 0 \\
-w8a kernel $L_2$ & guarded & 1 & $7.3\pm1.2$ & 0.4 & 2.7 & 2.7 & 1.4 & 4,243 & 3,581 & 8 \\
-w8a kernel $L_2$ & block & 16 & $4.0\pm0.2$ & 0.1 & 2.4 & 1.2 & 0.3 & 603 & 3,591 & 50 \\
-w8a kernel $L_2$ & auto & 10 & $3.8\pm0.2$ & 0.1 & 2.3 & 1.1 & 0.3 & 756 & 3,590 & 40 \\
-w8a kernel $L_2$ & BPCG & --- & $17.5\pm2.0$ & & & & & 12,342 & 3,577 & 12 \\
+w8a kernel $L_2$ & MDM & 1 & $6.6\pm0.7$ & 0.9 & 1.6 & 1.8 & 2.3 & 11,491 & 3,588 & 0 \\
+w8a kernel $L_2$ & MDM, exact & 1 & $3.4\pm0.2$ & 0.1 & 1.4 & 0.8 & 1.1 & 4,307 & 3,585 & 0 \\
+w8a kernel $L_2$ & guarded & 1 & $5.2\pm0.5$ & 0.4 & 1.4 & 2.4 & 1.1 & 4,243 & 3,581 & 8 \\
+w8a kernel $L_2$ & guarded, exact & 1 & $5.0\pm0.4$ & 0.1 & 1.4 & 2.3 & 1.1 & 4,248 & 3,586 & 11 \\
+w8a kernel $L_2$ & AFW, exact & 1 & $225.7\pm3.4$ & 5.3 & 1.5 & 107.1 & 111.7 & 350,050 & 3,569 & 0 \\
+w8a kernel $L_2$ & block & 16 & $2.5\pm0.2$ & 0.1 & 1.3 & 0.9 & 0.2 & 603 & 3,591 & 50 \\
+w8a kernel $L_2$ & auto & 10 & $2.5\pm0.1$ & 0.1 & 1.3 & 0.9 & 0.2 & 756 & 3,590 & 40 \\
+w8a kernel $L_2$ & BPCG & --- & $13.4\pm1.2$ &  & & & & 12,342 & 3,577 & 12 \\
 \midrule
-a9a kernel $L_2$ & MDM & 1 & $31.5\pm1.6$ & 3.4 & 4.5 & 7.3 & 16.4 & 22,901 & 7,607 & 0 \\
-a9a kernel $L_2$ & guarded & 1 & $24.2\pm2.1$ & 1.9 & 3.9 & 9.7 & 8.8 & 9,879 & 7,611 & 27 \\
-a9a kernel $L_2$ & block & 16 & $10.0\pm0.5$ & 0.3 & 3.8 & 4.2 & 1.7 & 1,489 & 7,616 & 35 \\
-a9a kernel $L_2$ & auto & 13 & $10.0\pm0.5$ & 0.4 & 3.7 & 4.0 & 1.9 & 1,641 & 7,607 & 26 \\
-a9a kernel $L_2$ & BPCG & --- & $60.7\pm1.2$ & & & & & 28,653 & 7,605 & 24 \\
+a9a kernel $L_2$ & MDM & 1 & $23.3\pm0.3$ & 3.1 & 3.1 & 5.8 & 11.3 & 22,879 & 7,609 & 0 \\
+a9a kernel $L_2$ & MDM, exact & 1 & $12.8\pm0.1$ & 0.3 & 2.8 & 3.1 & 6.6 & 9,616 & 7,608 & 0 \\
+a9a kernel $L_2$ & guarded & 1 & $19.5\pm1.1$ & 1.7 & 2.7 & 8.5 & 6.7 & 9,879 & 7,611 & 27 \\
+a9a kernel $L_2$ & guarded, exact & 1 & $18.0\pm0.4$ & 0.2 & 2.6 & 8.3 & 6.8 & 9,852 & 7,607 & 22 \\
+a9a kernel $L_2$ & AFW, exact & 1 & $>600$ & 7.4 & 3.0 & 245.6 & 344.2 & 412,530 & 7,543 & 0 \\
+a9a kernel $L_2$ & block & 16 & $6.9\pm0.6$ & 0.3 & 2.4 & 3.0 & 1.2 & 1,489 & 7,616 & 35 \\
+a9a kernel $L_2$ & auto & 13 & $7.0\pm0.3$ & 0.3 & 2.5 & 3.0 & 1.3 & 1,641 & 7,607 & 26 \\
+a9a kernel $L_2$ & BPCG & --- & $49.1\pm1.5$ &  & & & & 28,653 & 7,605 & 24 \\
 \midrule
-covtype kernel $L_2$ & MDM & 1 & $39.5\pm1.4$ & 4.4 & 2.9 & 9.6 & 22.6 & 26,756 & 9,069 & 0 \\
-covtype kernel $L_2$ & guarded & 1 & $33.4\pm2.2$ & 2.6 & 2.5 & 13.7 & 14.6 & 12,544 & 9,069 & 12 \\
-covtype kernel $L_2$ & block & 16 & $17.4\pm0.5$ & 0.9 & 2.5 & 9.4 & 4.6 & 3,336 & 9,074 & 26 \\
-covtype kernel $L_2$ & auto & 7 & $16.8\pm1.7$ & 1.0 & 2.4 & 7.9 & 5.5 & 4,154 & 9,071 & 19 \\
-covtype kernel $L_2$ & BPCG & --- & $85.3\pm4.5$ & & & & & 38,422 & 9,065 & 15 \\
+covtype kernel $L_2$ & MDM & 1 & $29.3\pm1.7$ & 3.9 & 2.2 & 7.5 & 15.7 & 26,748 & 9,067 & 0 \\
+covtype kernel $L_2$ & MDM, exact & 1 & $16.2\pm0.4$ & 0.3 & 2.0 & 4.3 & 9.6 & 11,789 & 9,066 & 0 \\
+covtype kernel $L_2$ & guarded & 1 & $26.2\pm1.8$ & 2.3 & 1.8 & 11.9 & 10.2 & 12,544 & 9,069 & 12 \\
+covtype kernel $L_2$ & guarded, exact & 1 & $24.6\pm1.3$ & 0.3 & 1.9 & 11.9 & 10.6 & 12,602 & 9,068 & 14 \\
+covtype kernel $L_2$ & AFW, exact & 1 & $>600$ & 6.4 & 2.0 & 243.8 & 348.0 & 354,002 & 9,026 & 0 \\
+covtype kernel $L_2$ & block & 16 & $12.2\pm0.2$ & 0.7 & 1.6 & 6.7 & 3.1 & 3,336 & 9,074 & 26 \\
+covtype kernel $L_2$ & auto & 7 & $12.4\pm0.8$ & 0.8 & 1.6 & 6.2 & 3.8 & 4,154 & 9,071 & 19 \\
+covtype kernel $L_2$ & BPCG & --- & $70.0\pm4.6$ &  & & & & 38,422 & 9,065 & 15 \\
 \bottomrule\end{tabular}\end{table}
 
 The guarded single pair already halves the iterations of plain MDM on
@@ -81,46 +103,51 @@ $31\%$ of $k{=}16$ in time on every cell). Away fallbacks that drop an index occ
 $0.1$--$36\%$ of guarded iterations, and their share grows with $k$:
 larger blocks add more indices per iteration, and the drops remove
 them. The time split says where fewer iterations buy time. On gisette,
-$88$--$93\%$ of every configuration's time is Gram-column computation
-($O(nd)$ per new receiver, $d{=}5{,}000$), so MDM, guarded $k{=}1$,
-block $k{=}16$, the adaptive size and BPCG all lie within $8\%$ of one
-another at $29$--$32$\,s, inside the between-run variation of the
-column time. On ijcnn1 the columns cost
-about $1$\,s and the rest is per-iteration $O(n)$ work: the score
-update and line search inside the step, the certificate in the
-remainder, and least of all the scan itself. That work falls with the
-iteration count, though not in proportion, because a block step updates
-the scores with up to $k'$ columns; the net effect on ijcnn1 is
-$1.9\times$ over MDM and $3.8\times$ over BPCG at $k{=}16$, and
-$2.2\times$ and $4.2\times$ with the adaptive size, which settles at
-$k{=}7$--$8$, the $k^*$ of Section~\ref{sec:pay-meas}; the other three
-kernel cells behave alike (Table~\ref{tab:kreal}).
+$82$--$89\%$ of every configuration's time except away-step FW's is
+Gram-column computation ($O(nd)$ per new receiver, $d{=}5{,}000$), so
+MDM, guarded $k{=}1$, block $k{=}16$, the adaptive size and BPCG all lie
+within $10\%$ of one another at $12$--$13$\,s, inside the between-run
+variation of the column time. On ijcnn1 the columns cost under $1$\,s
+and the rest is per-iteration $O(n)$ work: the score update and line
+search inside the step, the certificate in the remainder, and least of
+all the scan itself. That work falls with the iteration count, though
+not in proportion, because a block step updates the scores with up to
+$k'$ columns; the net effect on ijcnn1 is $2.1\times$ over MDM,
+$1.2\times$ over exact-search MDM and $4.4\times$ over BPCG at $k{=}16$,
+and $2.1\times$, $1.2\times$ and $4.5\times$ with the adaptive size,
+which settles at $k{=}7$--$8$, the $k^*$ of Section~\ref{sec:pay-meas};
+the other three kernel cells behave alike (Table~\ref{tab:kreal}).
+Away-step FW with exact search, the classical alternative to pairwise
+steps, needs $30$--$110\times$ more iterations than plain MDM where it
+converges (gisette and w8a, $207$ and $226$\,s) and times out on the
+other three kernel cells.
 
 \begin{table}[htbp]\centering\scriptsize
 \caption{BPCG \citep{tsuji2022} versus block ETA ($k{=}16$) on the same
 objective with the same certificate ($\varepsilon{=}10^{-3}$), the same
-column cache and the same 600\,s cap (\texttt{src/bpcg\_baseline.py},
-solver \texttt{src/bpcg.py}); three seeds,
-run concurrently with Table~\ref{tab:regime}; Table~\ref{tab:kreal}
-gives the isolated reruns. Every cell converged; distances agree per
-cell to five digits and test accuracies to $10^{-4}$. Columns are
-kernel or Gram columns computed; drops count BPCG's capped
-local steps and ETA's away drops.}\label{tab:bpcg}
+column cache and the same 600\,s cap (solver \texttt{src/bpcg.py}):
+the isolated runs of Table~\ref{tab:kreal} (three seeds, AMD EPYC
+9754), and for gisette KL2, which those runs do not include, the
+September run (\texttt{src/bpcg\_baseline.py}, three seeds, concurrent
+with the regime battery on the earlier machine), marked $^\dagger$.
+Every cell converged; distances agree per cell to five digits and test
+accuracies to $10^{-4}$. Columns are kernel or Gram columns computed;
+drops count BPCG's capped local steps and ETA's away drops.}\label{tab:bpcg}
 \begin{tabular}{llrrrr}\toprule
 cell & solver & time (s) & iterations & columns & drops \\\midrule
-gisette $L_2$, $C{=}1$ & BPCG & $34.2\pm20.4$ & 10,470 & 1,322 & 87 \\
-gisette $L_2$, $C{=}1$ & ETA & $34.3\pm15.0$ & 831 & 1,480 & 301 \\
+gisette $L_2$, $C{=}1$ & BPCG & $13.2\pm0.1$ & 10,470 & 1,322 & 87 \\
+gisette $L_2$, $C{=}1$ & ETA & $13.0\pm0.1$ & 831 & 1,480 & 301 \\
 \midrule
-gisette KL2 & BPCG & $213\pm28$ & 8,702 & 3,641 & 3 \\
-gisette KL2 & ETA & $83.9\pm19.0$ & 251 & 3,653 & 4 \\
-w8a KL2 & BPCG & $22.3\pm5.8$ & 12,342 & 3,577 & 12 \\
-w8a KL2 & ETA & $5.0\pm2.2$ & 603 & 3,591 & 50 \\
-a9a KL2 & BPCG & $65.4\pm5.7$ & 28,653 & 7,605 & 24 \\
-a9a KL2 & ETA & $11.7\pm2.2$ & 1,489 & 7,616 & 35 \\
-covtype KL2 & BPCG & $90.6\pm11.2$ & 38,422 & 9,065 & 15 \\
-covtype KL2 & ETA & $20.3\pm1.1$ & 3,336 & 9,074 & 26 \\
-ijcnn1 KL2 & BPCG & $20.2\pm1.6$ & 18,034 & 4,512 & 19 \\
-ijcnn1 KL2 & ETA & $5.9\pm1.1$ & 1,396 & 4,590 & 98 \\
+gisette KL2$^\dagger$ & BPCG & $213\pm28$ & 8,702 & 3,641 & 3 \\
+gisette KL2$^\dagger$ & ETA & $83.9\pm19.0$ & 251 & 3,653 & 4 \\
+w8a KL2 & BPCG & $13.4\pm1.2$ & 12,342 & 3,577 & 12 \\
+w8a KL2 & ETA & $2.5\pm0.2$ & 603 & 3,591 & 50 \\
+a9a KL2 & BPCG & $49.1\pm1.5$ & 28,653 & 7,605 & 24 \\
+a9a KL2 & ETA & $6.9\pm0.6$ & 1,489 & 7,616 & 35 \\
+covtype KL2 & BPCG & $70.0\pm4.6$ & 38,422 & 9,065 & 15 \\
+covtype KL2 & ETA & $12.2\pm0.2$ & 3,336 & 9,074 & 26 \\
+ijcnn1 KL2 & BPCG & $16.6\pm1.5$ & 18,034 & 4,512 & 19 \\
+ijcnn1 KL2 & ETA & $3.8\pm0.3$ & 1,396 & 4,590 & 98 \\
 \bottomrule\end{tabular}\end{table}
 
 BPCG here is the blended pairwise step of \citet{tsuji2022} on the
@@ -131,8 +158,8 @@ the same cached columns, so column counts are comparable, but its
 active set is a Python-level dictionary over product atoms, and on that
 parametrisation it needs $1.1$--$2.1\times$ more iterations than even
 plain MDM with side transfers (gisette $10{,}470$ vs $4{,}946$; ijcnn1
-$18{,}034$ vs $12{,}796$). The $11$--$35\times$ iteration ratio and the
-$2.5$--$5.6\times$ wall-clock ratio against block ETA therefore compare
+$18{,}034$ vs $12{,}763$). The $11$--$35\times$ iteration ratio and the $4.4$--$7.1\times$
+wall-clock ratio against block ETA on the kernel cells therefore compare
 parametrisation and implementation as well as step rules; a BPCG on the
 side-transfer parametrisation is listed in Section~\ref{sec:limits}.
 The block's fewer scans buy time where scans dominate (KL2) and nothing
@@ -333,11 +360,10 @@ are cells not used to set the constants, and the check is whether the
 rule's wall-clock on them matches the fixed sizes run under the same
 protocol (Table~\ref{tab:kreal}). It does: the rule settles at $k=10$,
 $13$ and $7$ (the retrospectively fitted $k^*$ are $9$, $13$, $8$) and
-takes $3.8\pm0.2$, $10.0\pm0.5$ and $16.8\pm1.7$\,s against
-$4.0\pm0.2$, $10.0\pm0.5$ and $17.4\pm0.5$\,s for $k{=}16$, a tie
+takes $2.5\pm0.1$, $7.0\pm0.3$ and $12.4\pm0.8$\,s against
+$2.5\pm0.2$, $6.9\pm0.6$ and $12.2\pm0.2$\,s for $k{=}16$, a tie
 within CI on every cell, as it is on the two pilot cells ($k{=}9$ then
-$15$ on gisette; $k{=}7$--$8$ on ijcnn1, $4.7\pm0.6$ against
-$5.3\pm0.8$\,s). The rule's value is that it removes the parameter,
+$15$ on gisette; $k{=}7$--$8$ on ijcnn1, $3.7\pm0.1$ against $3.8\pm0.3$\,s). The rule's value is that it removes the parameter,
 not that it beats a well-chosen fixed size. Table~\ref{tab:adaptive} tests it where
 $\eta$ actually varies: synthetic $L_2$ instances ($n{=}2{,}000$ per
 class, $C{=}1$) whose transfer directions decorrelate as the dimension

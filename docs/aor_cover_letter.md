@@ -46,4 +46,4 @@ Sincerely,
 Mayank Gupta
 Independent Researcher, Seattle, United States
 iammayankg@gmail.com
-[ORCID]
+ORCID: https://orcid.org/0000-0002-3494-4320

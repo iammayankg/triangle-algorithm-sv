@@ -30,7 +30,7 @@ The algorithm, its convergence analysis and the regime batteries appeared in the
 **Availability and disclosures.**
 - **Code and data.** The code, experiment scripts and result files are public at https://github.com/iammayankg/triangle-algorithm-sv [archived release DOI]. The datasets are the public LIBSVM benchmark sets.
 - **AI tools.** Large language models were used to draft code, experiment scripts and text, as stated in the manuscript. I ran and verified every result.
-- **Single author.** This is single-author work, and I declare no competing interests [confirm]. The work received [no funding / funder].
+- **Single author.** This is single-author work, and I declare no competing interests. The work was self-funded.
 
 **Suggested reviewers** [optional; confirm each has no conflict and look up current affiliation and email before entering]. These are candidates from the literature the paper builds on:
 
@@ -44,6 +44,6 @@ Bahman Kalantari co-authored the earlier enhanced Triangle Algorithm paper and s
 
 Sincerely,
 Mayank Gupta
-Independent Researcher, [city, country]
+Independent Researcher, Seattle, United States
 iammayankg@gmail.com
 [ORCID]

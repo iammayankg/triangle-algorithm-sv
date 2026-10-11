@@ -454,5 +454,29 @@
   "C": 1.0,
   "tol": 1e-05,
   "seed": 4
+ },
+ {
+  "time": 1790.0037829509965,
+  "iters": 17550,
+  "primal": 0.14900099570456843,
+  "acc": 0.981,
+  "status": "converged",
+  "solver_dual": "auto",
+  "dataset": "gisette",
+  "C": 1.0,
+  "tol": 1e-06,
+  "seed": 4
+ },
+ {
+  "time": 4.855563010998594,
+  "iters": 346,
+  "primal": 0.14892791656102788,
+  "acc": 0.981,
+  "status": "converged",
+  "solver_dual": "True",
+  "dataset": "gisette",
+  "C": 1.0,
+  "tol": 1e-06,
+  "seed": 4
  }
 ]

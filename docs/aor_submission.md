@@ -183,8 +183,11 @@ src/model_predictions.py; identification-check claim corrected; guard cost state
 BPCG ratios split September/October; LIBLINEAR dual solver cited as Hsieh et al. 2008).
 
 Pending, author: city/country, ORCID, funding and competing-interest statements,
-Zenodo DOI, suggested reviewers (candidates in the cover letter), the Springer
-template sn-jnl.cls (then reset the five over-wide tables for the 372 pt column).
+Zenodo DOI, suggested reviewers (candidates in the cover letter).
+Done 2026-10-11: Springer template (December 2024 package) downloaded into
+paper/aor/ (sn-jnl.cls, sn-apacite.bst; git-ignored, not redistributed); the
+manuscript builds with it; Tables regime, l2 and libdef set as sideways tables,
+the other wide tables narrowed; no overfull boxes or oversized floats remain.
 
 Pending, decisions or new runs (raised by the reviews, not done):
 - section order: aggregation measurements (Section 9) after the experimental

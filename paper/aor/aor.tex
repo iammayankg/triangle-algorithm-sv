@@ -13,6 +13,7 @@
   \documentclass[11pt,a4paper]{article}
   \newif\ifsnjnl\snjnlfalse
   \usepackage[margin=2.5cm]{geometry}
+  \usepackage{rotating}
   \usepackage{amsmath,amssymb,amsfonts,amsthm}
   \usepackage[authoryear,round]{natbib}
   \usepackage{graphicx}
@@ -66,6 +67,7 @@
 \newcommand{\LB}{\mathrm{LB}}
 
 
+\setlength{\emergencystretch}{2em}
 \begin{document}
 
 \ifsnjnl
@@ -383,7 +385,7 @@ in $Z$.
 \begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{3pt}
 \caption{Notation. Symbols with a second, conventional meaning in one
 place only are listed with both.}\label{tab:notation}
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{4.8cm}l>{\raggedright\arraybackslash}p{5.2cm}@{}}\toprule
+\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{3.6cm}l>{\raggedright\arraybackslash}p{4.0cm}@{}}\toprule
 $V,W$; $n,m$; $d$ & point sets, their sizes, dimension & $Z$, $A$ & $\conv(V)-\conv(W)$; its atoms $v_i-w_j$ \\
 $\alpha,\beta$ & simplex weights on $V$, $W$ & $z=p-q$, $z^*$, $\delta^*$ & iterate, optimum, $\norm{z^*}$ \\
 $h$, $h_t$ & $F(z)-F(z^*)$, at iteration $t$ & $M$, $R$, $L$ & $\operatorname{diam}Z$, $\max_Z\norm u$, larger class diameter \\
@@ -839,7 +841,7 @@ $1.3$--$2.4\times$ at $\varepsilon=10^{-5}$ and $0.9$--$1.3\times$ at $10^{-3}$
 (Figure~\ref{fig:shrink}); Section~\ref{sec:screen-real} reports it on
 a real cell.
 
-\begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
+\begin{sidewaystable}\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
 \caption{Regime battery on real data, five seeds, 600\,s per solver,
 mean $\pm$ 95\% confidence interval (CI; for w8a KHM, whose seeds differ by orders of
 magnitude, median [maximum]). Kernel cells (RBF kernel
@@ -873,7 +875,7 @@ KL2 & covtype & 10000 / 54 & $16.8\pm4.3$ & $5.8\pm1.2$ [$2.1\pm0.1+2$] & 5/5 & 
 KL2 & ijcnn1 & 9853 / 22 & $5.3\pm0.3$ & $2.6\pm0.3$ [$1.1\pm0.1+2$] & 5/5 & .04790 / .04790 & .959 / .959 & 4.6 / 4.5 \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{sidewaystable}
 
 \paragraph{Real data, regime battery (Table~\ref{tab:regime}).}
 TA~I first decides separability to its tolerance
@@ -1235,7 +1237,7 @@ trajectory
 (\texttt{results/step\_profile\{,2,3\}.json}); only ratios whose
 intervals separate, and exceed that variation, are read as results.
 
-\begin{table}[htbp]\centering\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{sidewaystable}\centering\scriptsize\setlength{\tabcolsep}{3pt}
 \caption{$L_2$ soft-margin battery: five seeds, 600\,s per solver for
 ETA and our SMO (our own
 implementation; LIBSVM would need an $n\times n$ precomputed kernel),
@@ -1275,7 +1277,7 @@ covtype (100,000 / 54) & 0.1 & cap & cap & $12.8\pm11.1$ & 1.0 [1.0, 1.0] & .572
  & 10 & cap & cap & $2.5\pm0.9$ & 1.3 [1.3, 1.6] & .502 / .515 / .756 \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{sidewaystable}
 
 \paragraph{Reference solver in the KL2 cells.} The hinge-loss
 \texttt{SVC(rbf, C=1)}, a different objective, took $4.5\pm0.4$ (a9a),
@@ -1329,7 +1331,7 @@ MDM on MNIST).
 
 \input{tab_synth}
 
-\begin{table}[htbp]\centering\scriptsize
+\begin{sidewaystable}\centering\scriptsize
 \caption{LIBLINEAR's two solvers across tolerances on gisette and
 a9a (\texttt{src/liblin\_sweep.py}; five seeds, three processes at a
 time and nothing else running, AMD EPYC 7B13). Newton: \texttt{LinearSVC}
@@ -1360,7 +1362,7 @@ a9a & 1 & $10^{-4}$ & $0.6\pm0.1$ & 6{,}869.7 ($+0.001\%$) & $1{,}291\pm416$ & 6
  & & $10^{-6}$ & $2.5\pm0.3$ & 6{,}869.7 ($+0.0\%$) & $1{,}828\pm271$ & 6{,}869.7 ($+0.0\%$) & .849 / .849 \\
  & & $10^{-8}$ & $5.9\pm0.8$ & 6{,}869.7 ($+0.0\%$) & $1{,}852\pm249$ & 6{,}869.7 ($+0.0\%$) & .849 / .849 \\
 \bottomrule
-\end{tabular}\end{table}
+\end{tabular}\end{sidewaystable}
 
 \begin{table}[htbp]\centering\scriptsize
 \caption{Time to $1\%$ of the optimum, seed-0 traces. The ETA columns
@@ -1378,15 +1380,15 @@ its gisette times are from the battery traces of Table~\ref{tab:l2}.
 Machines: ETA's gisette entries and LIBLINEAR's upper bounds come from
 the EPYC 9754, ETA's a9a, w8a and ijcnn1 entries and LIBLINEAR's swept
 times from the EPYC 7B13.
-LIBLINEAR: the mean time of the coarsest tolerance of Table~\ref{tab:libdef}
-whose primal is within $1\%$ of $P^*$ in every seed, for the Newton and
-the dual solver; where the sweep did not run, the matched $10^{-6}$
+LIBLINEAR: the mean time of the coarsest tolerance of Table~\ref{tab:libdef} whose primal is within
+$1\%$ of $P^*$ in every seed, for the Newton (N) and the dual (D)
+solver; where the sweep did not run, the matched $10^{-6}$
 Newton run of Table~\ref{tab:l2}, an upper bound (on gisette at
 $C{=}10$ that run stops $4.3\%$ above $P^*$). On the remaining cells
 ETA is not within $1\%$ at the 600\,s cap ($s=3$--$89\%$).}\label{tab:t1}
-\setlength{\tabcolsep}{3.5pt}
+\setlength{\tabcolsep}{2pt}
 \begin{tabular}{llrrrrrl}\toprule
-dataset & $C$ & $P^*$ & ETA $1\%$ & ETA $0.1\%$ & cert.\ $1\%$ & cert.\ $10^{-3}$ & LIBLINEAR $1\%$, Newton / dual \\\midrule
+dataset & $C$ & $P^*$ & ETA $1\%$ & ETA $0.1\%$ & cert.\ $1\%$ & cert.\ $10^{-3}$ & LIBLINEAR $1\%$ (N / D) \\\midrule
 gisette & 0.1 & 0.14835 & 17 s & 18 s & 19 s & 19 s & 86 s / 3.0 s \\
 gisette & 1 & 0.14893 & 20 s & 21 s & 21 s & 22 s & 1,813 s / 2.9 s \\
 gisette & 10 & 0.14899 & 20 s & 21 s & 22 s & 22 s & none at $10^{-6}$ / not run \\

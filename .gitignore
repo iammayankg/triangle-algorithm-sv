@@ -26,3 +26,6 @@ build/
 *.log
 npm-debug.log*
 data/*
+# Springer Nature journal template (download from springernature.com; not redistributed here)
+paper/aor/sn-jnl.cls
+paper/aor/sn-*.bst

@@ -360,10 +360,10 @@ assembled and evaluated at iteration $t$ (both sides' blocks under the
 two-sided schedule, including the pairs evaluated before an away drop)
 and $N_{\mathrm{cols}}(k)$ the number of distinct columns computed over
 the whole run. The cost model approximates the run's work by
-\[
-W(k)\ \approx\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+\sum_{t<T}\big(a+b\,k^{\mathrm{ev}}_t\big)
-\ \lesssim\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+(a+2bk)\Big[t_1(k)+\Big\lceil\frac{\log(h_{t_1(k)}/\varepsilon_h)}{\underline\rho_{\underline k}}\Big\rceil\Big],
-\]
+\begin{align*}
+W(k)&\ \approx\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+\sum_{t<T}\big(a+b\,k^{\mathrm{ev}}_t\big)\\
+&\ \lesssim\ c_{\mathrm{col}}N_{\mathrm{cols}}(k)+(a+2bk)\Big[t_1(k)+\Big\lceil\frac{\log(h_{t_1(k)}/\varepsilon_h)}{\underline\rho_{\underline k}}\Big\rceil\Big],
+\end{align*}
 the second expression using the iteration count of
 Corollary~\ref{cor:work} and $k^{\mathrm{ev}}_t\le2k$. Here $b$ is a
 cost per evaluated pair; the $b$ fitted in Section~\ref{sec:pay-meas}

@@ -21,7 +21,7 @@ gisette.
 \begin{table}[htbp]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
 \caption{Step ablation on real data with a time split, isolated runs
 (\texttt{src/step\_profile.py}: three seeds, each configuration alone
-in its own process on an otherwise idle AMD EPYC 9754, with the final
+in its own process on an otherwise idle AMD EPYC 7B13, with the final
 code): the gisette $L_2$ margin ($C{=}1$, $d{=}5{,}000$) and the four
 kernel $L_2$ cells of Table~\ref{tab:regime}. MDM is plain pairwise FW
 (single transfers, no guard, no fallback) with the prioritised receiver
@@ -127,7 +127,7 @@ other three kernel cells.
 objective with the same certificate ($\varepsilon{=}10^{-3}$), the same
 column cache and the same 600\,s cap (solver \texttt{src/bpcg.py}):
 the isolated runs of Table~\ref{tab:kreal} (three seeds, AMD EPYC
-9754), and for gisette KL2, which those runs do not include, the
+7B13), and for gisette KL2, which those runs do not include, the
 September run (\texttt{src/bpcg\_baseline.py}, three seeds, concurrent
 with the regime battery on the earlier machine), marked $^\dagger$.
 Every cell converged; distances agree per cell to five digits and test
@@ -185,8 +185,8 @@ $c_{\mathrm{col}}$ as column time per column.
 \begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{4pt}
 \caption{The timing model fitted per cell (seed 0; the twenty
 configurations run one after the other in a single process with the
-per-step instrumentation on, which adds $5$--$34\%$ to the times of
-Table~\ref{tab:kreal}; the coefficients describe these instrumented
+per-step instrumentation on, which added $5$--$34\%$ to the times of
+the September isolated runs of the same configurations; the coefficients describe these instrumented
 runs). $\hat\eta$ is the median over $k\in\{4,16,32\}$; the $k=16$ and
 $k=32$ estimates agree within $0.01$ and the $k=4$ estimate within
 $0.04$ of them (gisette $0.04/0.08/0.07$, w8a $0.20/0.17/0.16$). $k^*$

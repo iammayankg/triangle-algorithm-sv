@@ -21,8 +21,10 @@
 # stage therefore needs a 128 GB machine and runs one cell at a time
 # (COV_PAR=1, the default); it cannot run on a 64 GB machine. Other cells
 # peak at ~20 GB (ijcnn1, w8a): L2_PAR=4 needs ~96 GB, L2_PAR=2 fits 64 GB.
-# The October covtype cells ran on a second machine (AMD EPYC 7B13,
-# 128 GB); every other stage ran on the AMD EPYC 9754 (60 GB).
+# October machines: the batteries (battery1, l2) and the synthetic
+# benchmark ran on an AMD EPYC 9754 (60 GB); the uncapped traces, the
+# step ablation, the LIBLINEAR sweep and covtype's LIBLINEAR cells on an
+# AMD EPYC 7B13 (128 GB). covtype's ETA/SMO cells did not fit either.
 set -uo pipefail
 cd "$(dirname "$0")/.."
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1

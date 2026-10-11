@@ -93,7 +93,7 @@ adaptively from the measured combination loss. On five LIBSVM problems aggregati
 rather than column computation dominates: by at most 2.8 times over the
 guarded single transfer and 1.9 times over an exact-search one. On the
 one separable real dataset the solver ties LIBSVM, but LIBLINEAR's dual
-solver is four to seven times faster there, and our full-cache
+solver is up to 4.5 times faster there, and our full-cache
 sequential minimal optimisation ties or beats it on every kernel
 $L_2$ margin; on dense-support $L_2$ margins it is one to three orders
 of magnitude slower than LIBLINEAR.}
@@ -126,7 +126,7 @@ adaptively from the measured combination loss. On five LIBSVM problems aggregati
 rather than column computation dominates: by at most 2.8 times over the
 guarded single transfer and 1.9 times over an exact-search one. On the
 one separable real dataset the solver ties LIBSVM, but LIBLINEAR's dual
-solver is four to seven times faster there, and our full-cache
+solver is up to 4.5 times faster there, and our full-cache
 sequential minimal optimisation ties or beats it on every kernel
 $L_2$ margin; on dense-support $L_2$ margins it is one to three orders
 of magnitude slower than LIBLINEAR.
@@ -814,8 +814,8 @@ of \citet{gupta2026} as implemented in the released code (two Gaussian
 clouds, $n=5{,}000$ per class). Real data
 are the LIBSVM sets a9a, w8a, ijcnn1, gisette and covtype (100k
 subsample), standardised, official test sets where they exist, five
-seeds, 600\,s per solver and cell, on one dedicated AMD EPYC 9754
-machine except where Section~\ref{app:details} states otherwise.
+seeds, 600\,s per solver and cell, on two dedicated AMD EPYC machines
+(Section~\ref{app:details} lists which ran what).
 LIBSVM \citep{chang2011} and LIBLINEAR \citep{fan2008} are called
 through scikit-learn \citep{pedregosa2011}; ``our SMO'' is our own
 implementation of sequential minimal optimisation \citep{platt1998} and
@@ -922,7 +922,9 @@ which the batteries ran, needs $4$\,min to $1.2$\,h at the matched
 tolerance $10^{-6}$ and stops $3$--$24\%$ above the certified optimum at
 coarser ones; its dual coordinate-descent solver reaches the certified
 optimum in $3$--$4.5$\,s at every tolerance from $10^{-4}$ to $10^{-6}$,
-four to seven times faster than ETA. On gisette ETA therefore adds only
+$2.9$--$4.5\times$ faster than ETA's isolated $13.0$\,s at $C{=}1$ on
+the same machine (Table~\ref{tab:kreal}; the battery's $19$--$21$\,s
+come from the other machine, under load). On gisette ETA therefore adds only
 the certificate. On the four overlapping datasets LIBLINEAR's Newton
 solver finishes in $0.1$--$24$\,s (its dual solver is far slower there:
 $131$\,s to $31$\,min on a9a). Within the cap ETA converges only on
@@ -934,8 +936,10 @@ at any $C$ (Table~\ref{tab:t1}). The uncapped traces
 (Figure~\ref{fig:trace}) show a rate at least linear, improving along
 the run (the plotted certified gap scales like $\sqrt h$,
 Corollary~\ref{cor:std}), and reach the certified $10^{-3}$ in
-$259$--$792$\,s, $30$--$1{,}800\times$ LIBLINEAR's matched-tolerance time
-on those three cells; the nine capped cells give only lower bounds on
+$259$--$792$\,s, $30$--$1{,}800\times$ LIBLINEAR's matched-tolerance time on
+those three cells (the traces ran on the EPYC 7B13 and the LIBLINEAR
+battery on the EPYC 9754; on a9a, where the sweep gives a same-machine
+time, the ratio is $280\times$); the nine capped cells give only lower bounds on
 that ratio.
 Heuristically ($\delta$ has no known bound in terms of the class
 hulls), $n_s\approx0.6n$ active atoms forming a near-regular simplex
@@ -1157,29 +1161,36 @@ result was run and checked by the author.
 $C=0.1$, uncapped, seed 0), versus iteration and wall-clock: linear-rate
 convergence in the dense-support regime, reaching the certified
 $10^{-3}$ in $259$--$792$\,s against the $600$\,s cap of
-Table~\ref{tab:l2} (AMD EPYC 9754, one run at a time).}\label{fig:trace}
+Table~\ref{tab:l2} (AMD EPYC 7B13, one run at a time).}\label{fig:trace}
 \end{figure}
 
-\paragraph{Hardware and protocol.} The October rerun ran on one
-dedicated 16-vCPU AMD EPYC 9754 cloud VM, 60\,GB RAM, Linux, Python
-3.14.7, NumPy 2.4.4 with OpenBLAS 0.3.31, SciPy 1.17.1, scikit-learn
-1.8.0, \texttt{OMP\_NUM\_THREADS=1}, no other load
-(\texttt{results/machine\_oct2026.txt}). Table~\ref{tab:kreal} runs one
-configuration at a time in a fresh process; the regime battery
-(Table~\ref{tab:regime}) and the synthetic benchmark
-(Figure~\ref{fig:final}) ran four single-threaded cells at a time, the
-$L_2$ battery (Table~\ref{tab:l2}) up to four, the LIBLINEAR sweep
-(Table~\ref{tab:libdef}) three processes, and the uncapped traces and the runs of Figure~\ref{fig:shrink} one
-process at a time. Three groups of results come from
-elsewhere. (i) covtype in Table~\ref{tab:l2}: a full SMO row cache on
-its $100{,}000$ training points needs about $80$\,GB, more than that
-machine has, and a run on a 32-vCPU AMD EPYC 7B13 VM with 128\,GB was
-also killed for lack of memory. Its ETA and SMO entries are therefore
-the September run, on a 32-vCPU Intel Xeon 2.6\,GHz VM (122\,GB RAM,
-Python 3.12, four cells at a time, SMO with a 512-row cache), where both
-timed out on every cell; its LIBLINEAR entries were run on the EPYC 7B13
-with the same software versions
-(\texttt{results/machine\_oct2026\_covtype.txt}). (ii) The
+\paragraph{Hardware and protocol.} The October rerun used two dedicated
+cloud VMs with the same software (Linux, Python 3.14.7, NumPy 2.4.4
+with OpenBLAS 0.3.31, SciPy 1.17.1, scikit-learn 1.8.0,
+\texttt{OMP\_NUM\_THREADS=1}, no other load). A 16-vCPU AMD EPYC 9754
+with 60\,GB RAM (\texttt{results/machine\_oct2026.txt}) ran the regime
+battery (Table~\ref{tab:regime}) and the synthetic benchmark
+(Figure~\ref{fig:final}) four single-threaded cells at a time, the
+$L_2$ battery (Table~\ref{tab:l2}) up to four at a time, and the runs
+of Figure~\ref{fig:shrink} one at a time. A 32-vCPU AMD EPYC 7B13 with
+128\,GB RAM (\texttt{results/machine\_oct2026\_covtype.txt}) ran the
+step ablation and the BPCG comparison (Tables~\ref{tab:kreal}
+and~\ref{tab:bpcg}), one configuration at a time in a fresh process;
+the LIBLINEAR sweep (Table~\ref{tab:libdef}), three processes at a
+time; the uncapped traces (Figure~\ref{fig:trace}), one at a time; and
+covtype's LIBLINEAR entries in Table~\ref{tab:l2}. Every comparison is
+made within one machine except where stated: the trace-to-LIBLINEAR
+ratios of Section~\ref{sec:exp} and some entries of Table~\ref{tab:t1}.
+Cross-machine ratios can be off by more than $1.5\times$: ETA on the
+gisette $L_2$ margin at $C{=}1$ took $13.0$\,s in isolation on the EPYC
+7B13 and $20.6$\,s in the EPYC 9754 battery, a gap that mixes the
+processors with the battery's load. Three groups of results come from
+September. (i) covtype in Table~\ref{tab:l2}: a full SMO row cache on
+its $100{,}000$ training points needs about $80$\,GB, more than the EPYC
+9754 has, and a run on the EPYC 7B13 was also killed for lack of memory.
+Its ETA and SMO entries are therefore the September run, on a 32-vCPU
+Intel Xeon 2.6\,GHz VM (122\,GB RAM, Python 3.12, four cells at a time,
+SMO with a 512-row cache), where both timed out on every cell. (ii) The
 LIBSVM-precomputed brackets of Table~\ref{tab:regime} and the gisette
 KL2 row of Table~\ref{tab:bpcg} are September runs on the Intel machine,
 made concurrently with up to 19 single-threaded processes. (iii)
@@ -1288,7 +1299,7 @@ single MDM does not converge within the cap.
 \begin{table}[htbp]\centering\scriptsize
 \caption{LIBLINEAR's two solvers across tolerances on gisette and
 a9a (\texttt{src/liblin\_sweep.py}; five seeds, three processes at a
-time and nothing else running, AMD EPYC 9754). Newton: \texttt{LinearSVC}
+time and nothing else running, AMD EPYC 7B13). Newton: \texttt{LinearSVC}
 with \texttt{dual=\textquotesingle auto\textquotesingle}, which selects
 the primal trust-region Newton solver, the one the batteries ran; dual:
 \texttt{dual=True}, dual coordinate descent. Primal objective relative
@@ -1327,7 +1338,11 @@ so $s_t=1-(2/\UB_t^2)/P^*$ with $P^*$ the best known primal (the lower
 of LIBLINEAR's best value and ETA's certified value); ``certified
 $1\%$'' is the first time the certificate itself proves
 $1-\LB_t^2/\UB_t^2\le1\%$. ETA's a9a, w8a and ijcnn1 times are from
-the uncapped runs of Figure~\ref{fig:trace} (\texttt{src/time\_to\_tol.py}).
+the uncapped runs of Figure~\ref{fig:trace} (\texttt{src/time\_to\_tol.py});
+its gisette times are from the battery traces of Table~\ref{tab:l2}.
+Machines: ETA's gisette entries and LIBLINEAR's upper bounds come from
+the EPYC 9754, ETA's a9a, w8a and ijcnn1 entries and LIBLINEAR's swept
+times from the EPYC 7B13.
 LIBLINEAR: the mean time of the coarsest tolerance of Table~\ref{tab:libdef}
 whose primal is within $1\%$ of $P^*$ in every seed, for the Newton and
 the dual solver; where the sweep did not run, the matched $10^{-6}$
@@ -1402,7 +1417,7 @@ faster on the RBF hard margin, beats our column-oracle BPCG by four to
 seven times and supplies a certificate; but a full-cache SMO ties or
 beats it on every kernel $L_2$ margin, LIBSVM with the kernel in memory
 is faster still, and LIBLINEAR's dual solver solves the separable $L_2$
-margin four to seven times faster. Where the hulls nearly touch or the
+margin up to $4.5$ times faster. Where the hulls nearly touch or the
 support is dense in the linear case, LIBLINEAR or LIBSVM is one to
 three orders of magnitude faster. What the solver offers that these
 baselines do not is the certified interval and the TA~I intersection

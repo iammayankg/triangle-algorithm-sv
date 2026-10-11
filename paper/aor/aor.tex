@@ -90,13 +90,13 @@ non-degeneracy every drop step occurs before an explicit
 identification iteration; and a fitted work model gives the block size
 that minimises the per-iteration term, which the solver sets
 from the measured combination loss. On five LIBSVM problems aggregation pays only where per-iteration work
-rather than column computation dominates: by at most 2.8 times over the
-guarded single transfer and 1.9 times over an exact-search one. On the
+rather than column computation dominates: by at most 1.9 times over an
+exact-search single transfer. On the
 separable real dataset the solver ties LIBSVM, but LIBLINEAR's dual
 solver is up to 4.5 times faster there, and our full-cache
 sequential minimal optimisation ties or beats it on every kernel
-$L_2$ margin; on dense-support $L_2$ margins it is one to three orders of
-magnitude slower than LIBLINEAR's Newton solver.}
+$L_2$ margin; on the $L_2$ margins of the overlapping datasets it is 30 to
+over 2,000 times slower than LIBLINEAR's Newton solver.}
 \keywords{polytope distance, Frank--Wolfe methods, Triangle Algorithm, support vector machines, safe screening, linear convergence}
 \maketitle
 \else
@@ -123,13 +123,13 @@ non-degeneracy every drop step occurs before an explicit
 identification iteration; and a fitted work model gives the block size
 that minimises the per-iteration term, which the solver sets
 from the measured combination loss. On five LIBSVM problems aggregation pays only where per-iteration work
-rather than column computation dominates: by at most 2.8 times over the
-guarded single transfer and 1.9 times over an exact-search one. On the
+rather than column computation dominates: by at most 1.9 times over an
+exact-search single transfer. On the
 separable real dataset the solver ties LIBSVM, but LIBLINEAR's dual
 solver is up to 4.5 times faster there, and our full-cache
 sequential minimal optimisation ties or beats it on every kernel
-$L_2$ margin; on dense-support $L_2$ margins it is one to three orders of
-magnitude slower than LIBLINEAR's Newton solver.
+$L_2$ margin; on the $L_2$ margins of the overlapping datasets it is 30 to
+over 2,000 times slower than LIBLINEAR's Newton solver.
 \end{abstract}
 \noindent\textbf{Keywords:} polytope distance; Frank--Wolfe methods; Triangle Algorithm; support vector machines; safe screening; linear convergence
 \fi
@@ -199,10 +199,12 @@ by the distance (Lemma~\ref{lem:gapid}), so gap-safe screening
 \citep{ndiaye2017} applies, and we bound the iteration by which it has
 removed every zero-weight point off the optimal faces.
 \item \textbf{A regime study on real data} (Section~\ref{sec:exp}): two
-batteries on five LIBSVM datasets locate the boundary between the
-sparse-support regime, where the certified solver ties LIBSVM but not
-LIBLINEAR's dual solver or a full-cache SMO, and the dense-support
-regime, where it is one to three orders of magnitude slower.
+batteries on five LIBSVM datasets locate the boundary between
+well-separated hulls, where the certified solver ties LIBSVM and our
+full-cache sequential minimal optimisation (SMO) code but is beaten by
+LIBLINEAR's dual solver and, on most kernel $L_2$ cells, by SMO, and
+nearly touching hulls or overlapping linear $L_2$ margins, where it is
+30 to over 2,000 times slower.
 \item \textbf{When aggregation pays} (Sections~\ref{sec:pay}
 and~\ref{sec:pay-meas}): (a) the exact gain ratio of a block over the
 single MDM step at the same iterate, $Q(2-\chi)$ or $Q/\chi$ in two
@@ -213,12 +215,17 @@ identification theorem: under strict complementarity and
 non-degeneracy all drop steps occur before an explicit iteration and
 none afterwards (Theorem~\ref{thm:ident}); (c) a conditional iteration
 bound (Corollary~\ref{cor:work}) and a timing model with the block size
-that minimises it; (d) isolated per-step measurements of every quantity
+that minimises it; (d) instrumented per-step measurements of every quantity
 in the model on five real cells; (e) an adaptive block size driven by
 the measured $\chi$, checked on cells not used to set its constants.
 \end{enumerate}
-Code, proofs, numerical checks and experiment scripts are in the public
-repository,
+What the method offers that the baselines do not is a certified
+interval at every iteration and an intersection test. With strengthened
+baselines (Section~\ref{sec:exp}) it is the fastest solver run on only
+one real problem, the RBF hard margin of gisette, so this paper's claims
+are the guarantees and the measured account of when aggregation pays,
+not speed. Code, proofs, numerical checks and experiment scripts are in
+the public repository,
 \url{https://github.com/iammayankg/triangle-algorithm-sv}.
 
 \section{Related work}\label{sec:related}
@@ -259,11 +266,12 @@ and the geometric formulation of \citet{mavroforakis2006} give the
 $\nu$-SVM, with the iterative maximal-margin algorithm of
 \citet{franc2003}; core-set and FW solvers for the same problem are
 \citet{tsang2005,gartner2009,clarkson2010,nanculef2014}. The
-production solvers we compare against are sequential minimal
-optimisation (SMO) \citep{platt1998} as implemented in LIBSVM
-\citep{chang2011} and the primal trust-region Newton solver of
-LIBLINEAR \citep{fan2008}, both through scikit-learn
-\citep{pedregosa2011}, and our own SMO.
+production solvers we compare against are SMO \citep{platt1998} as
+implemented in LIBSVM \citep{chang2011} and LIBLINEAR's primal
+trust-region Newton and dual coordinate-descent solvers
+\citep{fan2008,hsieh2008}, all through scikit-learn
+\citep{pedregosa2011}, together with our own implementations of SMO,
+BPCG, away-step FW and single-transfer MDM.
 
 \paragraph{Screening and identification.} Gap-safe rules
 \citep{fercoq2015,ndiaye2017,shibagaki2016} screen with a radius from
@@ -295,11 +303,9 @@ form as Theorem~\ref{thm:linear}; it is compared on the same real cells
 in Table~\ref{tab:bpcg}. Block-coordinate FW and the short-step chains
 of \citet{rinaldi2023} act on the domain decomposition and on the step
 length, not on the direction. Wolfe's method minimises over the affine
-hull of a corral at every iteration, which does not fit the
-one-column-per-iteration oracle model of the comparison, and was not
-run. A bound on the pyramidal width of the difference atom set
-$A=\{v_i-w_j\}$ in terms of the two class hulls is open, and none can
-be dimension-free: $V=\{0,e_1\}$ and $W=\{0,-(e_1+\epsilon e_2)\}$,
+hull of a corral at every iteration, which needs a different oracle
+and implementation, and was not run. A bound on the pyramidal width of the difference atom set
+$A=\{v_i-w_j\}$ in terms of the two class hulls is open, and none can depend on the class hulls' conditioning alone: $V=\{0,e_1\}$ and $W=\{0,-(e_1+\epsilon e_2)\}$,
 translated apart, have well-conditioned class hulls while the four
 difference atoms span a parallelogram of height $\epsilon$, so that
 $\PW(A)\le\epsilon$.
@@ -573,8 +579,8 @@ No swap-step bound is needed: a case-(b) iteration either drops
 (counted above) or takes the best of four candidates, of which the
 toward or away step alone gains Lemma~\ref{lem:good}'s amount,
 whichever wins. The constant is a quarter of the case-(a) bound: there
-the guard's gain is at least $(\gPW)^2/(8M^2)\ge4\rho h$, the
-$(\mu/4L)(\delta/M)^2$ rate of away-step FW in \citet{lj2015}, and
+the guard's gain is at least $(\gPW)^2/(8M^2)\ge4\rho h$, the $\tfrac14(\delta/M)^2$ rate of away-step FW in \citet{lj2015}
+(their $\mu/L$ is $1$ here), and
 the factor is lost in case (b), where the toward and away candidates
 are one-sided. The theorem does not need $\delta^*>0$: nothing in
 Lemmas~\ref{lem:good} and~\ref{lem:gsc} uses it, and when the hulls
@@ -623,7 +629,8 @@ The skip is what makes the count work. If the second side always
 steps, an iteration whose analysed side drops can add up to $k$ indices
 on the other side, and the count becomes
 $T_{\mathrm{drop}}\le2kT_{\mathrm{good}}+kT_{\mathrm{drop}}+\ell_0$, which is
-vacuous for $k\ge1$.
+vacuous for $k\ge1$. Table~\ref{tab:sched} compares the two schedules on
+synthetic instances.
 \end{remark}
 
 \begin{proposition}[Near-orthogonal speed-up]\label{prop:orth}
@@ -739,8 +746,9 @@ the rule.
 
 Lemmas~\ref{lem:block}, \ref{lem:gapid} and~\ref{lem:twosided},
 Proposition~\ref{prop:orth} and Theorem~\ref{thm:activation} are
-verified numerically on random and adversarial ensembles at machine
-precision (Section~\ref{app:num}).
+verified numerically on random and adversarial ensembles, at machine
+precision or to $10^{-9}$ (Section~\ref{app:num}; Theorem~\ref{thm:activation}
+against faces computed by the SLSQP reference).
 
 \input{sec_pay_theory}
 
@@ -760,7 +768,8 @@ $\ip{\tilde p}{\tilde v_i}=\ip{p}{v_i}+\alpha_i/C$ and
 $\norm{\tilde p}^2=\norm p^2+\norm\alpha^2/C$. The separator is recovered
 as $w=2(p-q)/\delta_C^2$, $b=(\norm{\tilde q}^2-\norm{\tilde p}^2)/\delta_C^2$,
 and the primal value is $P=2/\delta_C^2$. Validation: the solver agrees
-with the SLSQP reference on the explicitly augmented problem to $10^{-10}$
+with the SLSQP (sequential least-squares quadratic programming)
+reference on the explicitly augmented problem to $10^{-10}$
 across random instances and values of $C$; the regularisation path
 $\delta_C$ is monotone in $C$; on a9a ($C{=}0.1$) its certified primal
 $687.07$ equals LIBLINEAR's to five digits.
@@ -775,7 +784,7 @@ remainder $1-\mu\lfloor1/\mu\rfloor$ on the next, via a partial sort,
 still $O(n)$), and the primary step is the capped MDM transfer with
 blended toward steps as fallback; caching and the reduced
 support-function lower bound carry over unchanged. Validation: agreement
-with the exact box-constrained QP to $10^{-9}$--$10^{-14}$ and with
+with the exact box-constrained quadratic program (QP) to $10^{-9}$--$10^{-14}$ and with
 LIBSVM's NuSVC to $\sim10^{-10}$ through the mapping
 $\delta^*=\norm{w_{\mathrm{svc}}}/\Lambda$, $w_{\mathrm{svc}}$ LIBSVM's
 weight vector and $\Lambda$ the per-class
@@ -793,7 +802,7 @@ reconstructed from the support's cached kernel columns), and the
 classifier is the kernel expansion of the witness-pair bisector. A ridge
 $K+I/C$ gives the kernel $L_2$ margin by the same diagonal trick.
 Validation: the linear kernel reproduces the Euclidean solver to
-$10^{-12}$; RBF distances match the exact kernel QP to $10^{-9}$ and
+$10^{-12}$; radial-basis-function (RBF) distances match the exact kernel QP to $10^{-9}$ and
 LIBSVM's hard-margin solution, via
 $\norm{w_{\mathcal H}}^2=(\alpha\circ y)^\top K(\alpha\circ y)$, $w_{\mathcal H}$ the
 feature-space normal, for
@@ -824,15 +833,15 @@ K-ETA the kernelised ETA.
 \paragraph{Blocks and screening.} The block-size and step ablations
 on real data are the measurements of Section~\ref{sec:pay-meas}
 (Table~\ref{tab:kreal}); the batteries below use the untuned $k{=}16$,
-which Section~\ref{sec:pay-meas} shows to be within $16\%$ of the best
-size on every cell. On the synthetic protocol screening gives
+which the September instrumented runs of Section~\ref{sec:pay-meas} put
+within $16\%$ of the best size on every cell. On the synthetic protocol screening gives
 $1.3$--$2.4\times$ at $\varepsilon=10^{-5}$ and $0.9$--$1.3\times$ at $10^{-3}$
 (Figure~\ref{fig:shrink}); Section~\ref{sec:screen-real} reports it on
 a real cell.
 
 \begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
 \caption{Regime battery on real data, five seeds, 600\,s per solver,
-mean $\pm$ 95\% CI (for w8a KHM, whose seeds differ by orders of
+mean $\pm$ 95\% confidence interval (CI; for w8a KHM, whose seeds differ by orders of
 magnitude, median [maximum]). Kernel cells (RBF kernel
 $\exp(-\norm{x-x'}^2/d)$) use a class-balanced subsample of $n_k$ points. Same objective per row: LIN,
 linear hard margin (ETA with screening vs LIBSVM's $C{=}10^6$
@@ -866,7 +875,7 @@ KL2 & ijcnn1 & 9853 / 22 & $5.3\pm0.3$ & $2.6\pm0.3$ [$1.1\pm0.1+2$] & 5/5 & .04
 \end{tabular}
 \end{table}
 
-\paragraph{Real data, sparse-support regime (Table~\ref{tab:regime}).}
+\paragraph{Real data, regime battery (Table~\ref{tab:regime}).}
 TA~I first decides separability to its tolerance
 (Table~\ref{tab:ta1}): on gisette it returns a witness pair in
 $9$--$12$\,s; on the other four it returns an iterate with
@@ -889,12 +898,14 @@ K-ETA computed $4$--$6\times$ fewer columns than SMO recomputed rows and
 was up to $3.3\times$ faster: that advantage was the baseline's cache
 policy, not the step rule. Against BPCG \citep{tsuji2022} with the same
 column cache and certificate (Table~\ref{tab:bpcg}), block ETA needs
-$12$--$35\times$ fewer iterations, is $4.4$--$7.2\times$ faster on the
-four kernel $L_2$ cells of the isolated runs, and ties on the gisette
+$12$--$21\times$ fewer iterations, is $4.4$--$7.2\times$ faster on the
+four kernel $L_2$ cells of the isolated runs ($35\times$ and $2.5\times$
+on gisette KL2 in a loaded September run), and ties on the gisette
 $L_2$ margin, where columns dominate. LIBSVM on the precomputed $K+I/C$
 kernel (brackets in Table~\ref{tab:regime}), run only in September on
 the earlier machine, reached the same distances $2.7$--$22\times$ faster
-than K-ETA did in that run, kernel construction included; K-ETA's kernel
+than K-ETA did in that run (K-ETA then took $7.7$--$85$\,s), kernel
+construction included; K-ETA's kernel
 $L_2$ results therefore beat only our BPCG implementation.
 
 The KHM column shows where the geometry turns against the method. On
@@ -903,14 +914,14 @@ K-ETA needs $1.5$--$2.7\times10^5$ iterations and $242$\,s against
 LIBSVM's $1.1$\,s: the hulls are
 $0.004$ apart in a space of diameter $\approx\sqrt2$, so a relative
 certificate needs an absolute gap of order $10^{-6}$ (a log-factor
-cost; $\delta/M$ is translation-invariant and unknown here), which
-suits LIBSVM's second-order selection far better. On a9a and covtype the hulls are within $10^{-4}$ and
-$6\times10^{-4}$ of touching: K-ETA times out with an uncertified
-iterate and LIBSVM's $C{=}10^6$ surrogate stops at its KKT tolerance
+cost; $\delta/M$ is translation-invariant and unknown here), which plausibly suits LIBSVM's second-order selection better. On a9a and covtype the hulls are within $3\times10^{-5}$ and
+$6\times10^{-4}$ of touching (largest seed): K-ETA times out with an
+uncertified iterate and LIBSVM's $C{=}10^6$ surrogate stops at its
+Karush--Kuhn--Tucker (KKT) tolerance
 (iteration cap on covtype), so neither certifies anything and the
 LIBSVM entries of those two rows are not solutions of the hard margin
 either. On w8a the hulls intersect (duplicate points, opposite labels);
-K-ETA certifies this in under $0.1$\,s in four seeds and in $36$\,s in the fifth.
+K-ETA detects this (an $\varepsilon$-witness) in under $0.1$\,s in four seeds and in $36$\,s in the fifth.
 
 \paragraph{Real data, $L_2$ soft margins (Table~\ref{tab:l2}).}
 The same boundary appears within one problem class. Gisette is
@@ -931,8 +942,7 @@ $131$\,s to $31$\,min on a9a). Within the cap ETA converges only on
 a9a and ijcnn1 at $C{=}0.1$ ($583$ and $336$\,s, one a9a seed just over
 the cap), where our SMO takes $163$ and $59$\,s; our SMO also converges
 on ijcnn1 at $C{=}1$ and w8a at $C{=}0.1$. At $C{=}10$ the capped ETA
-iterate loses $1$--$27$ accuracy points, and on covtype it is not usable
-at any $C$ (Table~\ref{tab:t1}). The uncapped traces
+iterate loses $1$--$27$ accuracy points, and on covtype it is not usable at any $C$ (Table~\ref{tab:l2}). The uncapped traces
 (Figure~\ref{fig:trace}) show a rate at least linear, improving along
 the run (the plotted certified gap scales like $\sqrt h$,
 Corollary~\ref{cor:std}), and reach the certified $10^{-3}$ in
@@ -942,16 +952,16 @@ battery on the EPYC 9754; on a9a, where the sweep gives a same-machine
 time, the ratio is $280\times$); the nine capped cells give only lower bounds on
 that ratio.
 Heuristically ($\delta$ has no known bound in terms of the class
-hulls), $n_s\approx0.6n$ active atoms forming a near-regular simplex
-have pyramidal width $\sqrt{2/n_s}$ times the side \citep{lj2015}, so
+hulls), if a fixed fraction of the points is active and the $n_s$ active
+atoms form a near-regular simplex, its pyramidal width is $\sqrt{2/n_s}$
+times the side \citep{lj2015}, so
 $\rho\sim1/n_s$ and the cost would be $O(n^2)$-type; the $n$-scaling
 experiment of Section~\ref{sec:nscale} measures time growing as
-$n^{2.1}$--$n^{2.7}$, with the hull distance shrinking in $n$ as the
-larger cause.
+$n^{2.1}$--$n^{2.7}$, with the hull distance also shrinking in $n$.
 
 \subsection{Screening on a real cell}\label{sec:screen-real}
-Theorem~\ref{thm:activation} is exercised on gisette, the one real
-cell with a sparse support, in the linear hard margin (LIN) and the
+Theorem~\ref{thm:activation} is exercised on gisette, the one separable
+real dataset, in the linear hard margin (LIN) and the
 $L_2$ margin ($C{=}1$), at $\varepsilon=10^{-3}$ and $10^{-5}$ with
 screening off and on (every 25 iterations, compaction when at least
 $5\%$ of a class is removable), three seeds, one configuration at a
@@ -968,9 +978,10 @@ certificate closes enough in the last $2$\,s of a $29$\,s run for
 $15$--$16$ compactions to remove $70\%$ of the points ($1{,}738$ and
 $1{,}808$ survive of $6{,}000$, against optimal supports of $1{,}237$
 and $1{,}238$), with the distance and the iteration count unchanged.
-Wall-clock is a tie within CI, as Table~\ref{tab:kreal} predicts: the
-scan that screening shortens is under $1\%$ of the gisette time, the
-columns are $82$--$89\%$ of it, and the screened points never had
+Wall-clock is a tie within the confidence intervals, as the September
+isolated runs of the same configurations predict: there the scan that
+screening shortens is under $1\%$ of the gisette time and the columns
+$88$--$93\%$ of it, and the screened points never had
 columns. Screening buys time only where the scan is a large share of
 the iteration and the certificate closes early in the run, the regime
 of Figure~\ref{fig:shrink}; on the real cells of this paper the scan
@@ -998,7 +1009,7 @@ $L_2$ & $10^{-5}$ & off & $29.0\pm6.3$ & 1,361 & 1,482 & 6,000 & 0 & --- \\
 $L_2$ & $10^{-5}$ & on & $27.1\pm0.6$ & 1,361 & 1,482 & 1,808 & 15 & 25.3 \\
 \bottomrule\end{tabular}\end{table}
 
-\subsection{Scaling with \texorpdfstring{$n$}{n} in the dense-support regime}\label{sec:nscale}
+\subsection{Scaling with \texorpdfstring{$n$}{n} on overlapping $L_2$ instances}\label{sec:nscale}
 The heuristic $\rho\sim1/n_s$ of Section~\ref{sec:exp} predicts
 iterations growing linearly and time quadratically in $n$ when the
 support fraction is constant. Table~\ref{tab:nscale} measures both on
@@ -1016,7 +1027,7 @@ the iterations by $24$. What does move with $n$ on both families is the
 hull distance itself, from $0.26$ to $0.036$ at $d{=}100$ and from
 $2.0$ to $0.042$ at $d{=}1{,}000$: at fixed $C$ more points overlap
 more, the augmented hulls approach each other, and on these instances
-the pyramidal width of the difference atom set evidently shrinks with
+the pyramidal width of the difference atom set presumably shrinks with
 them ($\rho\propto(\delta/M)^2$; $\delta$ is translation-invariant and
 $\delta^*$ is not, so this is an observation about the instances, not
 an inequality). The near-regular-simplex picture accounts for the
@@ -1061,16 +1072,24 @@ the points touched so far (\texttt{prioritized=True},
 exactly every $100$ iterations (this refresh is most of the ``rest''
 column of Table~\ref{tab:kreal}), a side whose best score is within
 $10^{-11}$ of its worst active score is skipped before the side
-comparison, and the adaptive size starts from $k=16$. Every table and figure comes from the released code, and the
+comparison, and the adaptive size starts from $k=16$. Every table and figure comes from the released code, and the block
 algorithm (schedule of Lemma~\ref{lem:twosided}, case-(b) fallback in
-every path) is the same throughout. The October results
+every path) is the same throughout, except that Figure~\ref{fig:shrink}
+and the comparison configuration of Figure~\ref{fig:final} use the
+development-phase toward-step solver and the synthetic step-ablation
+counts come from the development log. The guarantees of
+Section~\ref{sec:theory} are for the full-scan algorithm; the
+prioritised search, the certificate every fifth iteration and the
+$5\%$ compaction threshold of screening are heuristics outside the
+analysis, under which every step still decreases the objective (an exact
+line search along a direction with positive gap). The October results
 (Tables~\ref{tab:regime}, \ref{tab:ta1}, \ref{tab:l2}, \ref{tab:libdef},
 \ref{tab:t1}, \ref{tab:kreal} and~\ref{tab:bpcg} and
 Figures~\ref{fig:trace}, \ref{fig:shrink} and~\ref{fig:final}) were
-timed with the final code; the September results named in the
-hardware paragraph below were timed before two constant-factor changes
-(vectorised donor selection, block Gram matrix from cached entries),
-with trajectories unchanged. \texttt{src/rerun\_new\_machine.sh}
+timed with the final code; of the September results named in the hardware paragraph below, groups
+(i) and (ii) were timed before two constant-factor changes (vectorised
+donor selection, block Gram matrix from cached entries), with
+trajectories unchanged, and group (iii) after them. \texttt{src/rerun\_new\_machine.sh}
 reproduces the October results in one sequence;
 \texttt{src/provenance\_rerun.sh}, \texttt{src/block\_diagnostics.py},
 \texttt{src/adaptive\_sweep.py} and \texttt{src/libsvm\_kl2.py} the
@@ -1082,12 +1101,14 @@ exercises it at $10^{-5}$. Our SMO: maximal-violating-pair selection, KKT gap $1
 same caps; hard margin as $C=10^{12}$; kernel SMO on $K+I/C$; in the October runs a cache that keeps every
 row it computes, as the ETA, BPCG and LIBSVM caches do (the September
 runs, and covtype in Table~\ref{tab:l2}, used a 512-row
-least-recently-used cache, so their row counts include
-re-computations). LIBSVM
+least-recently-used cache, so their row counts include re-computations;
+in the synthetic benchmark, where SMO is not plotted, it ran with a
+two-row cache). LIBSVM
 on the precomputed $K+I/C$ kernel (scikit-learn \texttt{SVC},
 \texttt{kernel='precomputed'}, $C{=}10^6$, tolerance $10^{-3}$, five
 seeds; \texttt{src/libsvm\_kl2.py}) solves the same kernel $L_2$
-margin: the RBF kernel with $1/C$ on the diagonal is built with BLAS in
+margin: the RBF kernel with $1/C$ on the diagonal is built with the
+Basic Linear Algebra Subprograms (BLAS) in
 $1$--$3$\,s and the fit takes $0.5$--$2.2$\,s, with distances equal to
 K-ETA's to five digits. LIBLINEAR
 (scikit-learn 1.8 \texttt{LinearSVC}, which with \texttt{dual='auto'}
@@ -1179,9 +1200,14 @@ step ablation and the BPCG comparison (Tables~\ref{tab:kreal}
 and~\ref{tab:bpcg}), one configuration at a time in a fresh process;
 the LIBLINEAR sweep (Table~\ref{tab:libdef}), three processes at a
 time; the uncapped traces (Figure~\ref{fig:trace}), one at a time; and
-covtype's LIBLINEAR entries in Table~\ref{tab:l2}. Every comparison is
-made within one machine except where stated: the trace-to-LIBLINEAR
-ratios of Section~\ref{sec:exp} and some entries of Table~\ref{tab:t1}.
+covtype's LIBLINEAR entries in Table~\ref{tab:l2}. Comparisons are made
+within one machine except: the trace-to-LIBLINEAR ratios of
+Section~\ref{sec:exp} and five of the six rows of Table~\ref{tab:t1};
+covtype's rows of Table~\ref{tab:l2} (September ETA and SMO beside
+October LIBLINEAR); the brackets of Table~\ref{tab:regime} (September
+LIBSVM times beside October K-ETA times); and the dual-solver comparison
+of Section~\ref{sec:exp}, which sets ETA in isolation against LIBLINEAR
+run three processes at a time.
 Cross-machine ratios can be off by more than $1.5\times$: ETA on the
 gisette $L_2$ margin at $C{=}1$ took $13.0$\,s in isolation on the EPYC
 7B13 and $20.6$\,s in the EPYC 9754 battery, a gap that mixes the
@@ -1197,13 +1223,15 @@ KL2 row of Table~\ref{tab:bpcg} are September runs on the Intel machine,
 made concurrently with up to 19 single-threaded processes. (iii)
 Tables~\ref{tab:diag}, \ref{tab:assump}, \ref{tab:adaptive},
 \ref{tab:screen} and~\ref{tab:nscale} and the synthetic tables of this
-section were not rerun: they are September runs on the Intel machine,
-made one process at a time or instrumented, and are read only for
+section were not rerun: they are September runs with the final code
+(the adaptive sweep on a local development machine, the others on cloud
+VMs), made one process at a time or instrumented, and are read only for
 ratios within each table. Five seeds unless stated, $t$-based 95\%
 intervals over seeds. Concurrent load can manufacture ratios: under
 September's 19-process load guarded $k{=}1$ appeared $1.3\times$ faster
 than MDM on gisette, a tie in isolation, and the gisette column time
-moved by $\pm15\%$ between three isolated runs of the same trajectory
+ranged from $28$ to $36$\,s across three isolated runs of the same
+trajectory
 (\texttt{results/step\_profile\{,2,3\}.json}); only ratios whose
 intervals separate, and exceed that variation, are read as results.
 
@@ -1275,9 +1303,11 @@ speed-ups and Figure~\ref{fig:final} the consolidated comparison
 (\texttt{src/final\_benchmark.py}), five trials per class (mean $\pm$
 95\% CI). Its ``optimised'' configuration is $k{=}16$ with screening on
 the hard-margin classes, $k{=}32$ on the $L_2$ class and $k{=}8$ on
-MNIST; ``single MDM'' is the toward-step algorithm of
-\citet{gupta2026} on the hard-margin rows and single MDM on the others,
-both with a $2\times10^5$-iteration cap; our SMO there runs with a
+MNIST (the $5{,}000$-image subset distributed with the mlxtend package,
+odd versus even digits); the comparison configuration is the
+toward-step algorithm of \citet{gupta2026} on the hard-margin rows,
+single MDM on the $L_2$ and MNIST rows and pairwise K-ETA on RBF, with a
+$2\times10^5$-iteration cap; our SMO there runs with a
 $300$\,s cap and a two-row cache. On the four hard-margin
 classes the optimised solver ranges from $1.5\times$ faster than LIBSVM
 to $1.1\times$ slower ($0.47\pm0.06$ vs $0.69\pm0.15$\,s at
@@ -1290,8 +1320,9 @@ synthetic $L_2$ margin ($d{=}1{,}000$, $C{=}1$) it ties LIBLINEAR
 $2.1\times$ slower ($135\pm17$ vs $63\pm13$\,s; single MDM does not
 converge within its cap) and on the $\nu$-SVM $1.4\times$ slower
 ($41.8\pm7.9$ vs NuSVC's $30.9\pm5.7$\,s). Distances agree within
-tolerance on every row. On the four classes where single MDM also
-converges, blocks and guard change wall-clock by $0.9$--$1.2\times$;
+tolerance on every row. On the four classes where the comparison
+configuration also converges, blocks and guard change wall-clock by
+$0.85$--$1.2\times$;
 their clear wins are the two where the comparison configuration does not
 converge within the cap (the toward step at $\varepsilon=10^{-5}$, single
 MDM on MNIST).
@@ -1418,20 +1449,20 @@ method's niche. Where the augmented hulls are well separated (gisette
 in every formulation; the kernel $L_2$ margins, whose supports are
 dense) the solver ties LIBSVM on the linear hard margin, is $1.2\times$
 faster on the RBF hard margin, beats our column-oracle BPCG by four to
-seven times and supplies a certificate; but a full-cache SMO ties or
-beats it on every kernel $L_2$ margin, LIBSVM with the kernel in memory
-is faster still, and LIBLINEAR's dual solver solves the separable $L_2$
+seven times on the four non-gisette kernel $L_2$ cells and supplies a
+certificate; but a full-cache SMO ties or
+beats it on every kernel $L_2$ margin, LIBSVM with the kernel in memory was faster still in September, and LIBLINEAR's dual solver solves the separable $L_2$
 margin up to $4.5$ times faster. Where the hulls nearly touch or the
-support is dense in the linear case, LIBLINEAR or LIBSVM is one to
-three orders of magnitude faster. What the solver offers that these
+support is dense in the linear case, LIBLINEAR's Newton solver or
+LIBSVM is 30 to over 2,000 times faster. What the solver offers that these
 baselines do not is the certified interval and the TA~I intersection
 test, not speed. Section~\ref{sec:pay} answers the question the guard
-raises: aggregation acts only on the per-iteration term of the work,
+raises: aggregation acts on the per-iteration term of the work
 by the exact factor $Q(2-\chi)$ or $Q/\chi$ per step; drops are an
 identification cost that becomes rare once the optimal faces are found
-and stops in the regime of Theorem~\ref{thm:ident}; and the block size
-that pays most is $\sqrt{(a/b)(1-\eta)/\eta}$, which the solver can set
-from the $\chi$ it already computes; on column-bound problems no block
+and stops in the regime of Theorem~\ref{thm:ident}; and a plug-in rule, $k=\sqrt{(a/b)(1-\hat\eta)/\hat\eta}$ with the measured
+$\hat\eta$ in place of the theorem's $\eta$, sets the block size from the
+$\chi$ the guard already computes; on column-bound problems no block
 size helps.
 
 \paragraph{Limitations and open problems.}\label{sec:limits}
@@ -1452,7 +1483,7 @@ $80$\,GB). The October rerun resolved the other two September caveats,
 both against the method: with a full row cache our SMO computes as many
 rows as K-ETA computes columns, which removed K-ETA's apparent
 kernel-column advantage, and LIBLINEAR's dual solver, swept across
-tolerances, is the fastest solver on gisette. Assumption~\ref{ass:nondeg} fails
+tolerances, is the fastest solver on the gisette $L_2$ margin. Assumption~\ref{ass:nondeg} fails
 when a class contains duplicate points (w8a does) or when parallel
 optimal faces make the witness pair non-unique; for the $L_2$
 augmentation and strictly positive definite kernels the affine
@@ -1472,7 +1503,8 @@ independence part holds automatically.
 \decl{Consent to participate} Not applicable.
 \decl{Consent for publication} Not applicable.
 \decl{Data availability} The datasets analysed are the public LIBSVM
-benchmark sets a9a, w8a, ijcnn1, gisette and covtype
+benchmark sets a9a, w8a, ijcnn1, gisette and covtype and the
+$5{,}000$-image MNIST subset of the mlxtend package
 (\url{https://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/}); the
 synthetic instances are generated by the released code from fixed seeds.
 \decl{Code availability} \url{https://github.com/iammayankg/triangle-algorithm-sv}
@@ -1484,18 +1516,18 @@ used to draft code, experiment scripts and text, as stated in
 Section~\ref{app:details}; the author ran and verified every result
 and is responsible for the content.
 \decl{Prior publication} A version of this work (six pages of main
-text with appendices, nineteen pages in all) was submitted to the OPT
-2026 workshop (NeurIPS 2026, non-archival; \todo{state the decision at
-submission time}). New in this article: the prose related work with
+text with appendices, twenty-one pages in all) was accepted as a poster
+at the OPT 2026 workshop (NeurIPS 2026), which publishes no archival
+proceedings; its camera-ready version shares the October rerun of the
+timing experiments. New in this article: the prose related work with
 fourteen added references, the work bound in standard form
 (Corollary~\ref{cor:std}), the notation table, Sections~\ref{sec:pay}
 and~\ref{sec:pay-meas} (exact gain ratio, identification theorem,
 conditional iteration bound and timing model, per-step measurements on
 five real cells, and the adaptive block size with its synthetic sweep),
 the adaptive-solver rows of Table~\ref{tab:kreal}, the screening and
-$n$-scaling experiments on real and synthetic data, and the October rerun of the battery, ablation and synthetic timing
-tables on one machine, with full baseline caches and both LIBLINEAR
-solvers. The
+$n$-scaling experiments on real and synthetic data, and the
+identification check. The
 algorithm, its analysis, the reductions and the regime batteries
 appeared in the workshop version.
 

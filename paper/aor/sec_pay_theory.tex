@@ -96,8 +96,10 @@ Proposition~\ref{prop:ratio} a sufficient condition is
 \frac{1+\beta_{\mathrm{flat}}(k'-1)}{1+\eta(k'-1)}\;>\;\frac{a+bk'+c_{\mathrm{col}}n^{\mathrm{new}}_B}{a+b+c_{\mathrm{col}}n^{\mathrm{new}}_1}.
 \end{equation}
 Two regimes are visible in \eqref{eq:ppc}. If $c_{\mathrm{col}}$
-dominates $a$ and $b$, the right-hand side tends to the miss ratio
-$n^{\mathrm{new}}_B/n^{\mathrm{new}}_1\le k'$: the block must earn every new column it
+dominates $a$ and $b$ and $n^{\mathrm{new}}_1>0$, the right-hand side tends to
+the miss ratio $n^{\mathrm{new}}_B/n^{\mathrm{new}}_1\le k'$ (if the MDM
+receiver is cached and a block receiver is not, it grows with
+$c_{\mathrm{col}}$ and the block cannot pay): the block must earn every new column it
 touches beyond the single step's, and wins by the full gain ratio when
 both need the same column ($n^{\mathrm{new}}_B=n^{\mathrm{new}}_1$), so column dominance
 raises the hurdle on the iterations on which the block's extra receivers
@@ -118,8 +120,9 @@ $\{1,\dots,k_{\max}\}$.
 
 Theorem~\ref{thm:linear} charges up to $k$ drop steps per non-drop
 iteration, which would cancel a $k$-fold gain in progress. The
-measurements below show that drops in fact happen while the support is
-being built and stop once it has settled. The following theorem proves
+measurements below show that drops happen mostly while the support is
+being built and become rare once it has settled (on gisette, ijcnn1 and
+w8a). The following theorem proves
 this under the standard non-degeneracy assumptions of active-set
 identification \citep{bomze2020,garber2020}: after an explicit
 iteration, every step that removes a non-face point is a drop, no
@@ -310,8 +313,8 @@ Theorem~\ref{thm:ident} says that drops are paid during identification
 and never afterwards: the worst case $k$ drops per iteration of
 Theorem~\ref{thm:linear} applies only up to $t_{\mathrm w}+N$, and the
 $k$-dependence of the drop count enters only through the support that
-is built up to then. This is exactly the shape of the measurements in
-Figure~\ref{fig:diag}. The thresholds are those of active-set
+is built up to then. The measurements in Figure~\ref{fig:diag} are
+consistent with this shape on gisette, ijcnn1 and w8a. The thresholds are those of active-set
 identification and are pessimistic (Section~\ref{sec:ident-check}
 measures by how much); the measured drop counts below are
 $0.3$--$70\%$ of one class's final support.
@@ -376,8 +379,8 @@ $(a+bk^{\mathrm{ev}}_t)/\underline\rho_{k'_t}$, and if
 $k'_t\equiv k^{\mathrm{ev}}_t\equiv k$ (one-sided schedule, full blocks)
 and $\beta_{\mathrm{flat}}=1$ this is proportional to
 $(1+\eta(k-1))(a+bk)/k$, minimised at $k^*$ of
-\eqref{eq:kstar}; the column term is not touched by the step rule at
-all. Whether $N_{\mathrm{cols}}$, $t_1$ and $h_{t_1}$ are in fact
+\eqref{eq:kstar}; the step rule does not reduce the column term, though
+a block can raise it by bringing in extra receivers. Whether $N_{\mathrm{cols}}$, $t_1$ and $h_{t_1}$ are in fact
 insensitive to $k$ is an empirical question, answered below for the
 five cells (column counts within $20\%$ across $k$; drops and misses
 concentrated in the same early deciles for every $k$). A comparative

@@ -66,8 +66,8 @@ converge, ties LIBSVM on sparse-support hard margins and beats our
 blended pairwise conditional gradients (BPCG). But our full-cache
 sequential minimal optimisation (SMO) code ties or beats it on kernel
 $L_2$ margins, LIBLINEAR's dual solver is up to $4.5\times$ faster on the
-separable $L_2$ margin, and our solver is one to three orders of
-magnitude slower than LIBLINEAR's Newton solver on dense-support $L_2$
+separable $L_2$ margin, and our solver is one to over three orders of magnitude slower than
+LIBLINEAR's Newton solver on dense-support $L_2$
 margins and than LIBSVM on a nearly touching kernel hull. Its edge is
 the certificate, not speed.
 \end{abstract}
@@ -308,8 +308,8 @@ to its intercept penalty (Appendix~\ref{app:details}). Synthetic instances follo
 are the LIBSVM sets a9a, w8a, ijcnn1, gisette and covtype (100k
 subsample), standardised, official test sets where they exist, five
 seeds (three in the step ablation), 600\,s per solver and cell (LIBLINEAR
-\cite{fan2008} uncapped), on two AMD EPYC machines, with some September
-runs on an Intel machine (Appendix~\ref{app:details}).
+\cite{fan2008} uncapped), on two AMD EPYC machines and, for some September runs, an Intel one
+(Appendix~\ref{app:details}).
 
 
 \paragraph{Blocks and screening (Appendix~\ref{app:details}).} In
@@ -374,8 +374,8 @@ kernel columns as kernel SMO computes rows; SMO ties it on gisette and
 w8a and is $1.5$--$2.9\times$ faster elsewhere (our submission's apparent
 advantage came mostly from a 512-row SMO cache). Against BPCG \cite{tsuji2022} with the
 same column cache and certificate (Table~\ref{tab:bpcg}), block ETA
-needs $12$--$35\times$ fewer iterations, is $4.4$--$7.2\times$ faster on
-the four isolated kernel cells and ties on the gisette $L_2$ margin.
+needs $12$--$21\times$ fewer iterations and is $4.4$--$7.2\times$ faster
+on the four isolated kernel cells, and ties on the gisette $L_2$ margin.
 LIBSVM on the precomputed $K+I/C$ kernel (brackets, September run) was
 $2.7$--$22\times$ faster than K-ETA in that run.
 
@@ -388,7 +388,7 @@ $0.004$ apart in a space of diameter $\approx\sqrt2$, so a relative
 certificate needs an absolute gap of order $10^{-6}$, which plausibly suits LIBSVM's second-order selection better. On a9a and covtype the hulls are within $10^{-4}$ and
 $6\times10^{-4}$ of touching, and neither certifies anything (LIBSVM's
 surrogate is a soft margin on a9a and hits its iteration cap on covtype). On w8a the hulls intersect (duplicate points, opposite labels);
-K-ETA certifies this in under $0.1$\,s in four seeds and $36$\,s in
+K-ETA detects this in under $0.1$\,s in four seeds and $36$\,s in
 the fifth.
 
 \paragraph{Real data, $L_2$ soft margins (Table~\ref{tab:l2}, appendix).}
@@ -428,11 +428,10 @@ as its SVM ancestors (Appendix~\ref{app:related}).
 Guarded block transfers give the Triangle Algorithm a linear rate with
 explicit constants and no combinatorial swap-step bounds, and a safe
 screening rule with a finite activation bound. With fairer baselines the
-experiments narrow the niche: on
-sparse supports and well-separated hulls the solver ties LIBSVM and
-beats our BPCG, but a full-cache SMO and LIBLINEAR's dual solver are as
+experiments narrow the niche: on well-separated hulls the solver ties
+LIBSVM and beats our BPCG, but a full-cache SMO and LIBLINEAR's dual solver are as
 fast or faster; on dense supports or nearly touching hulls LIBLINEAR's
-Newton solver or LIBSVM is one to three orders of magnitude faster. What
+Newton solver or LIBSVM is one to over three orders of magnitude faster. What
 it adds is the certificate and the intersection test, not speed. Limitations: screening pays only when the certificate closes; the code
 is NumPy-level and dense; the constants are loose; the $\nu$-SVM
 variant is unanalysed; $k$ is fixed (see Appendix~\ref{app:details}).
@@ -1203,7 +1202,9 @@ and nothing where columns do (gisette $L_2$). BPCG runs on the product atoms
 $v_i-w_j$, so the ratio compares parametrisation as well as step rule.
 
 \begin{table}[h]\centering\scriptsize
-\caption{Block-size ablation on the synthetic instances (released code, September run): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock does not fall in proportion, because each block iteration touches more columns.}\label{tab:kabl}
+\caption{Block-size ablation on the synthetic instances (released code, September run): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock need not:
+blocks touch more columns, and on the $d{=}100$ $L_2$ instance they add
+receivers ($1{,}345$ to $3{,}076$ columns) and single MDM is fastest.}\label{tab:kabl}
 \begin{tabular}{lrrrrr}\toprule
 instance & $k$ & time (s) & iterations & columns & drops \\\midrule
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 1 & 0.7 & 301 & 104 & 0 \\
@@ -1297,7 +1298,7 @@ slower than LIBSVM on the four hard-margin classes, ties LIBLINEAR on
 the synthetic $L_2$ margin, and is $1.4$--$2.1\times$ slower than NuSVC
 and LIBLINEAR on the $\nu$-SVM and MNIST classes. On the four classes
 where the comparison configuration also converges, blocks and guard
-change wall-clock by $0.9$--$1.2\times$; their clear wins are the two
+change wall-clock by $0.85$--$1.2\times$; their clear wins are the two
 where it does not (the toward step at $\varepsilon=10^{-5}$, single MDM
 on MNIST).
 

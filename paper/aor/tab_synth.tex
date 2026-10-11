@@ -15,7 +15,7 @@ $L_2$ overlap, $d{=}1000$, $C{=}1$ & Lemma~\ref{lem:twosided} & 14.9 & 3,001 & 1
 \end{tabular}\end{table}
 
 \begin{table}[htbp]\centering\scriptsize
-\caption{Block-size ablation on the same instances (same settings): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock does not fall in proportion, because each block iteration touches more columns.}\label{tab:kabl}
+\caption{Block-size ablation on the same instances (same settings): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock need not: blocks touch more columns, and on the $d{=}100$ $L_2$ instance they add receivers ($1{,}345$ to $3{,}076$ columns) and single MDM is fastest.}\label{tab:kabl}
 \begin{tabular}{lrrrrr}\toprule
 instance & $k$ & time (s) & iterations & columns & drops \\\midrule
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 1 & 0.7 & 301 & 104 & 0 \\

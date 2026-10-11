@@ -12,7 +12,10 @@ search $1.4$--$2.7\times$ and its time by at most $1.3\times$ (a tie on
 gisette and ijcnn1); an exact receiver search cuts iterations as much
 ($1.4$--$2.7\times$) and, on the four kernel cells, time by
 $1.8$--$1.9\times$, and with exact search the guard changes iterations by
-under $10\%$ either way, so that gain is the search's, not the guard's. Aggregation cuts iterations a further
+under $10\%$ either way, so that gain is the search's, not the guard's;
+the guard and fallback themselves cost step time (with exact search the
+guarded single pair is $1.4$--$1.7\times$ slower than MDM on the kernel
+cells), the price of the guarantee. Aggregation cuts iterations a further
 $3.8$--$7.0\times$, which buys wall-clock only where per-iteration
 $O(n)$ work, not column computation, dominates: on the four kernel cells
 $2.1$--$2.8\times$ over guarded $k{=}1$, $1.2$--$1.9\times$ over
@@ -35,7 +38,7 @@ Section~\ref{sec:adaptive} (median $k$ over the run given); BPCG as in
 Table~\ref{tab:bpcg}. Split of the ETA time: scan = the score scan and
 pair selection; col = Gram or kernel column computation; step = the
 step itself (block assembly, guard, line search, cache and score
-update); rest = certificate and bounds. Drops = away fallbacks that
+update); rest = certificate, bounds and score refresh. Drops = away fallbacks that
 removed a support index. Every run converged to the certified gap,
 distances agreeing to that tolerance and test accuracies to
 $2\times10^{-4}$ per dataset and seed, except AFW on
@@ -101,8 +104,8 @@ With the prioritised search the guarded single pair halves the
 iterations of MDM on ijcnn1 ($1.4\times$ on gisette), taking drop steps
 on $0.1$--$2.4\%$ of its iterations; the exact-search rows show the same
 cut without a guard. Blocks then cut iterations a further $3.8$--$7.0\times$
-(isolated seed-0 runs at $k{=}4$ are in Table~\ref{tab:diag}: within
-$31\%$ of $k{=}16$ in time on every cell). Away fallbacks that drop an index occur on
+(instrumented seed-0 runs at $k{=}4$ are in Table~\ref{tab:diag}: within
+$32\%$ of $k{=}16$ in time on every cell). Away fallbacks that drop an index occur on
 $0.1$--$36\%$ of guarded iterations, and their share grows with $k$:
 larger blocks add more indices per iteration, and the drops remove
 them. The time split says where fewer iterations buy time. On gisette,
@@ -118,7 +121,7 @@ not in proportion, because a block step updates the scores with up to
 $k'$ columns; the net effect on ijcnn1 is $2.1\times$ over MDM,
 $1.2\times$ over exact-search MDM and $4.4\times$ over BPCG at $k{=}16$,
 and $2.1\times$, $1.2\times$ and $4.5\times$ with the adaptive size,
-which settles at $k{=}7$--$8$, the $k^*$ of Section~\ref{sec:pay-meas};
+which settles at $k{=}7$--$8$, the $k^*$ of Table~\ref{tab:diag};
 the other three kernel cells behave alike (Table~\ref{tab:kreal}).
 Away-step FW with exact search, the classical alternative to pairwise
 steps, needs $30$--$110\times$ more iterations than plain MDM where it
@@ -154,16 +157,15 @@ ijcnn1 KL2 & ETA & $3.8\pm0.3$ & 1,396 & 4,590 & 98 \\
 \bottomrule\end{tabular}\end{table}
 
 BPCG here is the blended pairwise step of \citet{tsuji2022} on the
-$nm$ product atoms $v_i-w_j$ of $Z$, with product-atom capacities, the
-separable LMO of Lemma~\ref{lem:sep}, exact line searches and the
+$nm$ product atoms $v_i-w_j$ of $Z$, with product-atom capacities, the separable linear minimisation oracle of Lemma~\ref{lem:sep}, exact line searches and the
 certificate of Lemma~\ref{lem:gapid}; its scores are maintained from
 the same cached columns, so column counts are comparable, but its
 active set is a Python-level dictionary over product atoms, and on that
 parametrisation it needs $1.1$--$2.1\times$ more iterations than even
 plain MDM with side transfers (gisette $10{,}470$ vs $4{,}946$; ijcnn1
-$18{,}034$ vs $12{,}763$). The $12$--$35\times$ iteration ratio and the $4.4$--$7.2\times$
+$18{,}034$ vs $12{,}763$). The $12$--$21\times$ iteration ratio and the $4.4$--$7.2\times$
 wall-clock ratio against block ETA on the four isolated kernel cells
-($2.5\times$ on gisette KL2 in September) therefore compare
+($35\times$ and $2.5\times$ on gisette KL2 in September) therefore compare
 parametrisation and implementation as well as step rules; a BPCG on the
 side-transfer parametrisation is listed in Section~\ref{sec:limits}.
 The block's fewer scans buy time where scans dominate (KL2) and nothing
@@ -173,9 +175,11 @@ where columns do (gisette $L_2$).
 
 Every quantity in Proposition~\ref{prop:ratio}, the cost model and
 Theorem~\ref{thm:ident} was recorded on the five real cells of
-Table~\ref{tab:regime} (gisette $L_2$ and the kernel $L_2$ cells of
-ijcnn1, w8a, a9a and covtype, seed 0; \texttt{src/block\_diagnostics.py}, one process at a time on an
-otherwise idle machine, $k\in\{1,4,16,32\}$). At every block step the
+Tables~\ref{tab:l2} and~\ref{tab:regime} (gisette $L_2$ and the kernel
+$L_2$ cells of ijcnn1, w8a, a9a and covtype, seed 0;
+\texttt{src/block\_diagnostics.py}, in September, the twenty
+configurations one after the other in one process on an otherwise idle
+cloud VM, $k\in\{1,4,16,32\}$). At every block step the
 solver logs $\Delta_B$, $\Delta_1$, $Q$, $\chi$, the candidate taken,
 the capped pairs, the column misses, the support size and a time split
 of the step next to a dry-run timing of the single MDM update from the
@@ -189,10 +193,10 @@ $c_{\mathrm{col}}$ as column time per column.
 \begin{table}[t]\centering\scriptsize\setlength{\tabcolsep}{4pt}
 \caption{The timing model fitted per cell (seed 0; the twenty
 configurations run one after the other in a single process with the
-per-step instrumentation on, which added $5$--$34\%$ to the times of
-the September isolated runs of the same configurations; the coefficients describe these instrumented
-runs). $\hat\eta$ is the median over $k\in\{4,16,32\}$; the $k=16$ and
-$k=32$ estimates agree within $0.01$ and the $k=4$ estimate within
+per-step instrumentation on, which added $3$--$25\%$ to the times of
+September isolated runs of the same seed-0 trajectories at $k=1$ and
+$16$; the coefficients describe these instrumented
+runs). $\hat\eta$ is the median over $k\in\{4,16,32\}$; the $k=16$ and $k=32$ estimates agree within $0.02$ and the $k=4$ estimate within
 $0.04$ of them (gisette $0.04/0.08/0.07$, w8a $0.20/0.17/0.16$). $k^*$
 from \eqref{eq:kstar} with $\hat\eta$ in place of $\eta$. Times for $k=1/4/16/32$; ``column share'' is the
 fraction of the $k{=}16$ run spent computing columns; the last column is
@@ -222,8 +226,8 @@ from $0.31$ to $0.27$).}\label{fig:diag}
 Four facts follow.
 \begin{itemize}\setlength\itemsep{0pt}
 \item \emph{$\hat\eta$ is stable on each cell.} The effective
-correlation does not move with $k$ nor along the run
-(Figure~\ref{fig:diag}, right), although it is a statistic of the
+correlation moves little with $k$ or along the run (Figure~\ref{fig:diag},
+right; a9a and covtype drift by $0.04$--$0.06$), although it is a statistic of the
 iterates and the pairing rule rather than of the data alone; it is $0.07$ on
 gisette, $0.11$ on a9a, $0.17$ on w8a, $0.26$ on ijcnn1 and $0.29$ on
 covtype, and $0.001$ on the synthetic instance of
@@ -240,47 +244,50 @@ $k/(1+\hat\eta(k-1))$ within $35\%$; on ijcnn1 they saturate near
 $1/\hat\eta=3.8$, on gisette they are still rising at $k=32$ ($7.5$
 against $1/\hat\eta=14$).
 \item \emph{$k^*$ is $7$--$14$ on every cell}, because $a/b$ is
-$16$--$28$ throughout and $\hat\eta\in[0.07,0.29]$: a fixed block size
-of $8$--$16$ is within $16\%$ of the best measured time on all five
-cells ($k{=}16$ against the best size: $16\%$ on gisette, under $1\%$
-elsewhere; $k{=}4$ is within $31\%$ of $k{=}16$ on every cell), so the
+$16$--$28$ throughout and $\hat\eta\in[0.07,0.29]$: $k{=}16$ is within
+$16\%$ of the best measured time on all five cells ($16\%$ on gisette,
+under $1\%$ elsewhere; $k{=}4$ is within $32\%$ of $k{=}16$ on every
+cell), so the
 untuned $k=16$ of Section~\ref{sec:exp} never lost to another size by
 more than that.
 \item \emph{The wall-clock gain is bounded by the single pair's column
-share.} The block cannot touch the column term of the timing model
-($N_{\mathrm{cols}}$ varies by under $20\%$ across $k$ on every cell),
+share.} The block does not reduce the column term of the timing model and on
+these cells barely raises it ($N_{\mathrm{cols}}$ varies by under $20\%$
+across $k$),
 so no block size can beat the guarded single pair by more than the
 reciprocal of the fraction of that run spent on columns ($T_1/T_{\mathrm{col}}$:
-$1.1$ on gisette, $2.4$ on w8a, $5.5$ on a9a, $11$--$12$ on ijcnn1 and
+$1.1$ on gisette, $2.4$ on w8a, $5.4$ on a9a, $11$--$12$ on ijcnn1 and
 covtype). The measured speed-ups are $1.1\times$ on gisette,
 $2.2\times$ on w8a, $2.8\times$ on a9a and $1.9$--$2.1\times$ on ijcnn1
 and covtype, where the iteration gain has saturated at $1/\hat\eta$
 long before the column bound matters. (The share of the $k{=}16$ run
-in the table is not a bound: w8a's $2.2\times$ exceeds $1/0.64$.) The
-model's time predictions, $aT+b\sum_tk'_t+c_{\mathrm{col}}N_{\mathrm{cols}}$
-with the fitted coefficients, are within $14\%$ of the measurements at
-$k\le4$ and within $5\%$ on gisette at every $k$; at $k=16$--$32$ on
-the kernel cells they are $24$--$50\%$ too high, because the runs need
-fewer iterations than the one-state ratio predicts: the trajectory
-effect is in the block's favour, and the model is conservative.
+in the table is not a bound: w8a's $2.2\times$ exceeds $1/0.64$.) The model's time predictions,
+$c_{\mathrm{col}}N_{\mathrm{cols}}+T(k)(a+bk)$ with the iteration count
+$T(k)=T(1)(1+\hat\eta(k-1))/k$ predicted from the single-pair run
+(\texttt{src/model\_predictions.py}), are within $13\%$ of the
+measurements at $k\le4$ and within $7\%$ on gisette at every $k$; at
+$k=16$--$32$ on the kernel cells they are $9$--$41\%$ too high, because
+the runs need fewer iterations than the one-state ratio predicts: the
+trajectory effect is in the block's favour there. On gisette the model
+predicts too few iterations ($457$ against $831$ at $k=16$, with drops a
+third of the calls), but columns dominate the time.
 \item \emph{Drops are front-loaded} (Figure~\ref{fig:diag}, left). On
 gisette at $k=16$ half of the block calls in the first three deciles are
 drops and $1$--$2\%$ in the last three; the kernel cells show the same
-shape at lower levels; nearly every case-(b) call is a drop, so the
-best-of-four branch is rare. Column misses follow the same curve, so on
+shape at lower levels; most case-(b) calls are drops ($78$--$95\%$), so
+the best-of-four branch is rare. Column misses follow the same curve, so on
 column-bound cells the whole column bill is paid during identification
 whichever $k$ is used. Total drops per point of one class's final
 support are $0.13/0.13/0.48/0.69$ on gisette and $0.003$--$0.10$ on the
 kernel cells for $k=1/4/16/32$: growing with $k$, and an order of
 magnitude more frequent on the sparse linear cell, where fresh
-receivers of small weight become the worst donor at once. On a9a and
-covtype the drop fraction is flat over the first six deciles rather
-than front-loaded; the shape of Theorem~\ref{thm:ident} is clearest on
+receivers of small weight become the worst donor at once. On a9a the drop fraction is flat over the first six deciles and on
+covtype low throughout, rather than front-loaded; the shape of Theorem~\ref{thm:ident} is clearest on
 gisette, ijcnn1 and w8a.
 \end{itemize}
 \begin{table}[t]\centering\scriptsize
 \caption{The theorem's assumptions against the measured mechanism at
-$k=16$ (seed 0; \texttt{src/block\_diagnostics.py} on a second machine,
+$k=16$ (seed 0; \texttt{src/block\_diagnostics.py}, September, on a cloud VM,
 with iteration and drop counts identical to the runs of
 Table~\ref{tab:diag}; its $\hat\eta$ differs from Table~\ref{tab:diag}
 in the second decimal because it is the $k=16$ median alone rather than
@@ -315,8 +322,11 @@ pairs uncapped, so the proposition applies to a minority of the calls on
 gisette. The lower bound the proposition guarantees for the guarded
 ratio from these constants is $1.5$--$2.2$, against measured medians of
 $2.7$--$6.9$ (the bound is an inequality, so the gap is slack, not a
-contradiction). The exact identity $Q/\chi$ evaluated on the same calls
-gives $7.3/2.9/3.9/4.8/2.8$ against the measured $6.9/2.8/3.6/4.6/2.7$;
+contradiction). The ratio of the medians of $Q$ and $\chi$ over the same calls,
+$7.2/2.9/3.9/4.8/2.8$, lies above the measured $6.9/2.8/3.6/4.6/2.7$
+because it is a ratio of medians over calls that include capped
+non-leading pairs, where the identity's $S=2\sum_j\Delta_j$ does not
+hold;
 the ``model'' column, $k'/(1+\hat\eta(k'-1))$, which replaces $Q$ by
 $k'$, is $7$--$26\%$ high. Both reproduce the measurement to within the
 spread because they use the $\gamma$-weighted aggregate in which the
@@ -341,7 +351,8 @@ tests the theorem where its constants can be computed.
 Every quantity in \eqref{eq:kstar} is observable while the solver runs:
 $\chi$ is computed by the guard at every block step, so
 $\hat\eta=(\chi-1)/(k'-1)$ costs nothing, and $a/b$ is a property of
-the implementation ($16$--$28$ in Table~\ref{tab:diag}). The released
+the implementation ($16$--$28$ in the September instrumented runs of
+Table~\ref{tab:diag}). The released
 code therefore offers \texttt{block\_size='auto'}: every $50$ iterations
 it sets $k$ to $\sqrt{(a/b)(1-\hat\eta)/\hat\eta}$, clipped to $[1,k_{\max}]$,
 with $\hat\eta$ the median over the window's block steps with $k'>1$
@@ -399,8 +410,8 @@ clouds $2.5$ apart) the SLSQP reference gives $z^*$, the faces, $\tau$,
 $\alpha_{\min}$, $d_{\min}$ and $\sigma$ (as the singular value of
 Assumption~\ref{ass:nondeg}); $12$ instances are skipped, $8$ whose
 hulls intersect ($\delta^*=0$) and $4$ that fail strict complementarity
-within $10^{-7}$ (none of the separable instances fails affine
-independence), and
+within $10^{-7}$ (no instance tested for affine independence fails it;
+the four that fail strict complementarity are not tested), and
 the remaining $28$ are run with $k\in\{1,4,16\}$ to certificate tolerance $\varepsilon=10^{-10}$
 with both supports snapshotted at every iteration
 (\texttt{src/ident\_check.py}, $84$ runs). Three things are checked. The
@@ -412,14 +423,14 @@ hold to the end of every run: every removal of a non-face point is a
 drop, no non-face point enters, and after $t_1$ no index leaves. The
 third finding is how much earlier the mechanism engages than the
 theorem certifies it. The last non-face support point leaves, and the
-last drop occurs, at $h\approx10^{-3}$ (median; $h_0\approx6$); the
-proof's conditions first hold at $h\approx1.6\times10^{-7}$, and the
-thresholds $H_{\mathrm{id}},H_{\mathrm w}$ lie at $5.5\times10^{-7}$:
+last drop occurs, at $h\approx10^{-3}$ (median; $h_0\approx6$); the proof's conditions first hold at $h\approx1.6\times10^{-7}$, and the
+thresholds $H_{\mathrm{id}},H_{\mathrm w}$ lie at $5.5\times10^{-7}$ (both
+medians over runs, so they need not be ordered):
 the theorem is verified in its ingredients and contradicted nowhere,
 and its thresholds are pessimistic by about $3.5$ orders of magnitude
-in $h$ on these instances, so that on most runs the non-face points
-are already gone when $t_{\mathrm{id}}$ arrives and claim (i) is
-exercised on the few runs where they are not. Passing the distance
+in $h$ on these instances, so that on every run the non-face points are already gone when
+$t_{\mathrm{id}}$ arrives and the drop part of claim (i) holds vacuously;
+the check exercises claim (ii) and the weight inequality non-vacuously. Passing the distance
 bound through the screening radius instead, as the workshop version
 did, puts the same thresholds at $2.5\times10^{-18}$, eleven orders
 lower; the direct bound \eqref{eq:dist-h} is what makes the thresholds

@@ -172,3 +172,26 @@ Manager), repository URL/DOI, funding and competing-interest statements,
 OPT decision, the sn-jnl build itself (needs the class file), facial
 distance on the small instances (L5), Wolfe's method (L9), a
 side-transfer BPCG (C4), supplement split (H).
+
+## Status 2026-10-11 (after the October rerun and two independent reviews)
+
+Done: October numbers in every rerun table; machine attribution; prior-publication
+statement (OPT 2026 accepted as poster); framing paragraph in the introduction;
+cover letter drafted in docs/aor_cover_letter.md; independent number audit and
+consistency read applied (model-prediction claim now reproducible with
+src/model_predictions.py; identification-check claim corrected; guard cost stated;
+BPCG ratios split September/October; LIBLINEAR dual solver cited as Hsieh et al. 2008).
+
+Pending, author: city/country, ORCID, funding and competing-interest statements,
+Zenodo DOI, suggested reviewers (candidates in the cover letter), the Springer
+template sn-jnl.cls (then reset the five over-wide tables for the 372 pt column).
+
+Pending, decisions or new runs (raised by the reviews, not done):
+- section order: aggregation measurements (Section 9) after the experimental
+  details; a referee may want theory, reductions, experiments, then details;
+- same FW-gap certificate for our SMO, so "ties or beats" rests on matched
+  stopping rules rather than distance agreement;
+- refit the timing model (a, b) on one October machine, or keep the September fit
+  labelled as such; rerun the September-only tables on one machine;
+- LIBSVM precomputed-kernel brackets on the October machine;
+- side-transfer BPCG, Wolfe's method, facial distance (listed as limitations).

@@ -28,7 +28,7 @@ out[-1] = r"\bottomrule"; out += [r"\end{tabular}\end{table}", ""]
 
 kab = json.load(open(R / 'k_ablation_synth.json'))
 out += [r"\begin{table}[htbp]\centering\scriptsize",
-        r"\caption{Block-size ablation on the same instances (same settings): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock does not fall in proportion, because each block iteration touches more columns.}\label{tab:kabl}",
+        r"\caption{Block-size ablation on the same instances (same settings): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock need not: blocks touch more columns, and on the $d{=}100$ $L_2$ instance they add receivers ($1{,}345$ to $3{,}076$ columns) and single MDM is fastest.}\label{tab:kabl}",
         r"\begin{tabular}{lrrrrr}\toprule",
         r"instance & $k$ & time (s) & iterations & columns & drops \\\midrule"]
 for tag in NAMES:

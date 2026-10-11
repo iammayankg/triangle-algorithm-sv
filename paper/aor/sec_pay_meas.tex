@@ -7,15 +7,16 @@ exact), the guard and away fallback (guarded $k{=}1$ against plain MDM),
 aggregation ($k{=}16$ and the adaptive size of
 Section~\ref{sec:adaptive} against guarded $k{=}1$), and the comparison
 with away-step FW and BPCG, all in isolated runs with a time split. The
-guard and away fallback alone cut plain pairwise FW's iterations
-$1.4$--$2.7\times$ and its time by at most $1.3\times$ (a tie on gisette
-and ijcnn1); an exact receiver search cuts iterations as much
+guard and away fallback cut the iterations of MDM with the prioritised
+search $1.4$--$2.7\times$ and its time by at most $1.3\times$ (a tie on
+gisette and ijcnn1); an exact receiver search cuts iterations as much
 ($1.4$--$2.7\times$) and, on the four kernel cells, time by
-$1.8$--$1.9\times$. Aggregation cuts iterations a further
+$1.8$--$1.9\times$, and with exact search the guard changes iterations by
+under $10\%$ either way, so that gain is the search's, not the guard's. Aggregation cuts iterations a further
 $3.8$--$7.0\times$, which buys wall-clock only where per-iteration
 $O(n)$ work, not column computation, dominates: on the four kernel cells
 $2.1$--$2.8\times$ over guarded $k{=}1$, $1.2$--$1.9\times$ over
-exact-search MDM and $4.4$--$7.1\times$ over BPCG, and nothing on
+exact-search MDM and $4.4$--$7.2\times$ over BPCG, and nothing on
 gisette.
 
 \begin{table}[htbp]\centering\scriptsize\setlength{\tabcolsep}{3.5pt}
@@ -35,15 +36,17 @@ Table~\ref{tab:bpcg}. Split of the ETA time: scan = the score scan and
 pair selection; col = Gram or kernel column computation; step = the
 step itself (block assembly, guard, line search, cache and score
 update); rest = certificate and bounds. Drops = away fallbacks that
-removed a support index. Every run converged to the certified gap with
-identical distance and accuracy per dataset and seed, except AFW on
+removed a support index. Every run converged to the certified gap,
+distances agreeing to that tolerance and test accuracies to
+$2\times10^{-4}$ per dataset and seed, except AFW on
 the ijcnn1, a9a and covtype kernel cells, which timed out at $600$\,s
 with certified gaps of $0.0012$--$0.004$ (iterations and columns at the
 cap shown). Iteration, column and drop counts equal those of the September runs
 for every configuration both contain except plain MDM, whose
 prioritised search varies between runs (up to $5\%$ across seeds, under
 $0.3\%$ between the two runs' means); only the times changed. Peak resident memory: $0.74$\,GB on gisette, $0.49$--$0.93$\,GB
-for ETA and $0.68$--$1.30$\,GB for BPCG on the kernel cells. Columns
+for ETA and $0.67$--$1.29$\,GB for BPCG on the kernel cells (per-cell
+means). Columns
 take $82$--$89\%$ of every gisette configuration's time except AFW's,
 so those rows should be read as a tie.}\label{tab:kreal}
 \begin{tabular}{llrrrrrrrrr}\toprule
@@ -94,10 +97,10 @@ covtype kernel $L_2$ & auto & 7 & $12.4\pm0.8$ & 0.8 & 1.6 & 6.2 & 3.8 & 4,154 &
 covtype kernel $L_2$ & BPCG & --- & $70.0\pm4.6$ &  & & & & 38,422 & 9,065 & 15 \\
 \bottomrule\end{tabular}\end{table}
 
-The guarded single pair already halves the iterations of plain MDM on
-ijcnn1 ($1.4\times$ on gisette): the drop steps it takes (on $0.1$--$2.4\%$
-of its iterations) are what plain pairwise FW replaces by capped
-swaps. Blocks then cut iterations a further $3.8$--$7.0\times$
+With the prioritised search the guarded single pair halves the
+iterations of MDM on ijcnn1 ($1.4\times$ on gisette), taking drop steps
+on $0.1$--$2.4\%$ of its iterations; the exact-search rows show the same
+cut without a guard. Blocks then cut iterations a further $3.8$--$7.0\times$
 (isolated seed-0 runs at $k{=}4$ are in Table~\ref{tab:diag}: within
 $31\%$ of $k{=}16$ in time on every cell). Away fallbacks that drop an index occur on
 $0.1$--$36\%$ of guarded iterations, and their share grows with $k$:
@@ -106,7 +109,7 @@ them. The time split says where fewer iterations buy time. On gisette,
 $82$--$89\%$ of every configuration's time except away-step FW's is
 Gram-column computation ($O(nd)$ per new receiver, $d{=}5{,}000$), so
 MDM, guarded $k{=}1$, block $k{=}16$, the adaptive size and BPCG all lie
-within $10\%$ of one another at $12$--$13$\,s, inside the between-run
+within $11\%$ of one another at $12$--$13$\,s, inside the between-run
 variation of the column time. On ijcnn1 the columns cost under $1$\,s
 and the rest is per-iteration $O(n)$ work: the score update and line
 search inside the step, the certificate in the remainder, and least of
@@ -158,7 +161,7 @@ the same cached columns, so column counts are comparable, but its
 active set is a Python-level dictionary over product atoms, and on that
 parametrisation it needs $1.1$--$2.1\times$ more iterations than even
 plain MDM with side transfers (gisette $10{,}470$ vs $4{,}946$; ijcnn1
-$18{,}034$ vs $12{,}763$). The $11$--$35\times$ iteration ratio and the $4.4$--$7.1\times$
+$18{,}034$ vs $12{,}763$). The $12$--$35\times$ iteration ratio and the $4.4$--$7.2\times$
 wall-clock ratio against block ETA on the four isolated kernel cells
 ($2.5\times$ on gisette KL2 in September) therefore compare
 parametrisation and implementation as well as step rules; a BPCG on the

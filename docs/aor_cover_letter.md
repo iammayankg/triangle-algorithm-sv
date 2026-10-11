@@ -28,7 +28,7 @@ The contributions are:
 The algorithm, its convergence analysis and the regime batteries appeared in the workshop version.
 
 **Availability and disclosures.**
-- **Code and data.** The code, experiment scripts and result files are public at https://github.com/iammayankg/triangle-algorithm-sv [archived release DOI]. The datasets are the public LIBSVM benchmark sets.
+- **Code and data.** The code, experiment scripts and result files are public at https://github.com/iammayankg/triangle-algorithm-sv (archived release: https://doi.org/10.5281/zenodo.23304507). The datasets are the public LIBSVM benchmark sets.
 - **AI tools.** Large language models were used to draft code, experiment scripts and text, as stated in the manuscript. I ran and verified every result.
 - **Single author.** This is single-author work, and I declare no competing interests. The work was self-funded.
 

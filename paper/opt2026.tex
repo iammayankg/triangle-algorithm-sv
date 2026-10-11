@@ -360,9 +360,8 @@ KL2 & ijcnn1 & 9853 / 22 & $5.3\pm0.3$ & $2.6\pm0.3$ [$1.1\pm0.1+2$] & 5/5 & .04
 \paragraph{Real data, sparse-support regime (Table~\ref{tab:regime}).}
 TA~I first certifies separability (gisette yes, the other four no, in
 $0.1$--$30$\,s). On gisette ($d{=}5{,}000$; $1{,}237$ of $6{,}000$
-points in the support) ETA ties LIBSVM on the linear hard margin, our
-full-cache SMO being $1.1\times$ faster than both (overlapping
-intervals); K-ETA is $1.2\times$ faster than LIBSVM on the RBF hard
+points in the support) ETA ties LIBSVM on the linear hard margin and our
+full-cache SMO is $1.1\times$ faster than both (overlapping intervals); K-ETA is $1.2\times$ faster than LIBSVM on the RBF hard
 margin, with identical solutions. On the kernel $L_2$ margins K-ETA
 computes as many kernel columns as kernel SMO computes rows; SMO ties
 it on gisette and w8a and is $1.5$--$2.9\times$ faster elsewhere. (Our
@@ -810,8 +809,8 @@ the column count times $n_k$ doubles: $0.73$\,GB for the largest cell
 (covtype KL2, $9{,}100$ columns), $0.61$\,GB for a9a KL2 and
 $0.36$\,GB for ijcnn1 KL2; measured peak resident memory in the
 isolated runs of Table~\ref{tab:kreal} is $0.74$\,GB on gisette
-(data-dominated) and $0.49$--$0.50$\,GB on ijcnn1 KL2 ($0.68$\,GB for
-BPCG).
+(data-dominated), $0.49$--$0.93$\,GB for ETA and $0.68$--$1.30$\,GB for
+BPCG on the kernel cells.
 
 \paragraph{Data and seeds.} a9a, w8a, ijcnn1 and gisette use the LIBSVM
 training and test files; covtype (binary, scaled) is split 75/25 by
@@ -944,7 +943,7 @@ NuSVC's $30.9\pm5.7$\,s). Distances agree within tolerance on every
 row.
 
 \begin{table}[h]\centering\scriptsize
-\caption{Two-sided schedules on the synthetic instances of this appendix ($n{=}5{,}000$ per class, $k{=}16$): the unconditional $V$-then-$W$ order used for the batteries versus the schedule of Lemma~\ref{lem:twosided} (larger-gap side first, second side skipped after a drop). Drop steps and skipped second-side steps are counted over the run.}\label{tab:sched}
+\caption{Two-sided schedules on the synthetic instances of this appendix ($n{=}5{,}000$ per class, $k{=}16$): the unconditional $V$-then-$W$ order of the submitted version versus the schedule of Lemma~\ref{lem:twosided} (larger-gap side first, second side skipped after a drop). Drop steps and skipped second-side steps are counted over the run.}\label{tab:sched}
 \begin{tabular}{lllrrrr}\toprule
 instance & schedule & time (s) & iterations & drops & skips & distance \\\midrule
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & unconditional & 0.8 & 16 & 0 & 0 & 55.339365 \\
@@ -1180,7 +1179,7 @@ and nothing where columns do (gisette $L_2$). BPCG runs on the product atoms
 $v_i-w_j$, so the ratio compares parametrisation as well as step rule.
 
 \begin{table}[h]\centering\scriptsize
-\caption{Block-size ablation on the synthetic instances (current code): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock does not fall in proportion, because each block iteration touches more columns.}\label{tab:kabl}
+\caption{Block-size ablation on the synthetic instances (released code, September run): single MDM ($k{=}1$) versus blocks of $k$ transfers. Iterations fall with $k$; wall-clock does not fall in proportion, because each block iteration touches more columns.}\label{tab:kabl}
 \begin{tabular}{lrrrrr}\toprule
 instance & $k$ & time (s) & iterations & columns & drops \\\midrule
 hard margin, $d{=}1000$, $\varepsilon{=}10^{-5}$ & 1 & 0.6 & 301 & 104 & 0 \\
@@ -1214,7 +1213,8 @@ activation do not depend on the step.}\label{fig:shrink}
 \includegraphics[width=.78\linewidth]{figs/fig_final_oct.pdf}
 \caption{Time to certified solution on seven problem classes: optimised
 ETA vs the paper-style configuration vs the best standard solver per
-class; five trials per class, mean with 95\% CI. The $\nu$-SVM row has no paper-style bar because the toward-step
+class; five trials per class (October rerun, AMD EPYC 9754), mean with
+95\% CI. The $\nu$-SVM row has no paper-style bar because the toward-step
 algorithm of \cite{gupta2026} has no reduced-hull variant (reduced
 hulls need capped transfers).}\label{fig:final}
 \end{figure}

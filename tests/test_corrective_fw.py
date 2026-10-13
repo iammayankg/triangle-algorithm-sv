@@ -81,6 +81,34 @@ def test_rbf_l2_matches_qp():
     assert not fails, fails
 
 
+def test_unequal_class_sizes():
+    """Classes of different sizes in both directions (the kernel cells'
+    class-balanced subsamples are not equal on ijcnn1, w8a, a9a)."""
+    rng = np.random.default_rng(23)
+    fails = []
+    for trial, (n, m) in enumerate([(40, 12), (12, 40), (25, 60)]):
+        d = 5
+        V, _ = generate_overlap(d, n, delta=1.5, rng=rng)
+        _, W = generate_overlap(d, m, delta=1.5, rng=rng)
+        C, gamma = 1.0, 1.0 / d
+        truth = qp_hull_distance(*augment(V, W, C))
+        KVV = rbf_kernel(V, V, gamma=gamma) + np.eye(n) / C
+        KVW = rbf_kernel(V, W, gamma=gamma)
+        KWW = rbf_kernel(W, W, gamma=gamma) + np.eye(m) / C
+        ktruth = qp_kernel_distance(KVV, KVW, KWW)
+        for mode in MODES:
+            r = CorrectiveFW(V, W, reg_C=C, corrective=mode).solve_distance(
+                eps=1e-6, max_iter=200_000)
+            if not _check(f"l2 {n}x{m} {mode:5s}", truth, r):
+                fails.append((n, m, mode, 'l2'))
+            r = CorrectiveFW(V, W, kernel='rbf', gamma=gamma, reg_C=C,
+                             corrective=mode).solve_distance(
+                eps=1e-6, max_iter=200_000)
+            if not _check(f"kl2 {n}x{m} {mode:5s}", ktruth, r):
+                fails.append((n, m, mode, 'kl2'))
+    assert not fails, fails
+
+
 def test_factor_updates_match_refactorisation():
     """After a run with many appends and deletes, the updated factor
     equals a fresh Cholesky factor of the face Gram matrix."""
@@ -123,6 +151,7 @@ def test_every_step_descends():
 
 if __name__ == '__main__':
     for f in [test_hard_margin_matches_qp, test_l2_matches_augmented_qp,
-              test_rbf_l2_matches_qp, test_factor_updates_match_refactorisation,
+              test_rbf_l2_matches_qp, test_unequal_class_sizes,
+              test_factor_updates_match_refactorisation,
               test_every_step_descends]:
         f()

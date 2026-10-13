@@ -226,10 +226,18 @@ class CorrectiveFW(BPCG):
         self.n_refactor += 1
         self.t_linalg += time.perf_counter() - t
 
-    def _x(self):
+    def _gather(self, aV, aW):
+        """Per face position: aV[i] for a V index, aW[j] for a W index
+        (gathered side by side; the classes may differ in size)."""
         p = self.p
         isV, idx = self.ord_isV[:p], self.ord_idx[:p]
-        return np.where(isV, self.al_arr[idx], self.be_arr[idx])
+        out = np.empty(p)
+        out[isV] = aV[idx[isV]]
+        out[~isV] = aW[idx[~isV]]
+        return out
+
+    def _x(self):
+        return self._gather(self.al_arr, self.be_arr)
 
     def _set_x(self, x):
         p = self.p
@@ -238,9 +246,7 @@ class CorrectiveFW(BPCG):
         self.be_arr[idx[~isV]] = x[~isV]
 
     def _drop_zeros(self):
-        p = self.p
-        isV, idx = self.ord_isV[:p], self.ord_idx[:p]
-        x = np.where(isV, self.al_arr[idx], self.be_arr[idx])
+        x = self._x()
         dead = np.flatnonzero(x <= _W_MIN)
         for k in dead[::-1]:
             self._remove_pos(int(k))
@@ -328,9 +334,8 @@ class CorrectiveFW(BPCG):
             dx = xt - x
             # descent check with the exact gradient on the face
             p = self.p
-            isV, idx = self.ord_isV[:p], self.ord_idx[:p]
             fVc, fWc = self._f()
-            grad = np.where(isV, fVc[idx], -fWc[idx])
+            grad = self._gather(fVc, -fWc)
             if float(grad @ dx) > 1e-12 * max(abs(float(grad @ x)), 1.0):
                 self.t_linalg += time.perf_counter() - t0
                 if not moved:

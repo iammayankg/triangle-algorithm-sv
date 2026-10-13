@@ -198,7 +198,10 @@ $Z=\conv(V)-\conv(W)$ the guarded block algorithm inherits the
 pyramidal-width rate of pairwise FW \citep{lj2015} up to a factor
 four, and the away fallback replaces the combinatorial swap-step bound
 by drop-step counting with up to $k$ added indices per step (cf.\
-\citealp{tsuji2022}).
+\citealp{tsuji2022}). The per-step contraction does not depend on $k$;
+only the drop count does, and it costs a factor of at most $2k+1$ in the
+worst-case exponent, which Theorem~\ref{thm:ident} confines to an
+identification phase and which the real runs put at $1.01$--$1.6$.
 \item \textbf{Screening activation with explicit constants}
 (Theorem~\ref{thm:activation}): the TA certificate is the FW gap divided
 by the distance (Lemma~\ref{lem:gapid}), so gap-safe screening
@@ -264,6 +267,30 @@ one direction by gradient alignment, and block-coordinate FW
 \citep{lacoste2013bcfw} blocks over coordinates of a product domain.
 Our step differs from each of these in one respect, made precise
 below.
+
+\paragraph{Corrective steps and active-set control.} Fully-corrective
+FW and Wolfe's method re-optimise over the active set at every
+iteration \citep{lj2015}. \citet{halbey2025} give a corrective-FW
+framework that covers blended conditional gradients, BPCG and
+fully-corrective FW, with an optimal-face identification property, and
+two cheap quadratic corrections, one by linear optimisation and one by a
+linear system in the spirit of Wolfe's method, for convex quadratic
+objectives such as this one. The pivoting meta-algorithm of
+\citet{besancon2025} keeps the active set within Carath\'eodory's bound
+of the dimension plus one, and for away-step FW and BPCG within the
+dimension of the optimal face plus one. The nearest-extreme-point
+oracle of \citet{garber2021} yields rates that depend on the dimension
+of the optimal face rather than the ambient one. These methods act on
+the correction and the size of the active set; the guarded block acts
+on how many transfers one scan pays for, and Remark~\ref{rem:candidates}
+shows that a correction could be added to its guard without changing
+the rate. Two features of this problem limit what active-set control
+buys: the side representation already stores $|\operatorname{supp}\alpha|+|\operatorname{supp}\beta|$
+weights for the $|\operatorname{supp}\alpha|\cdot|\operatorname{supp}\beta|$ product atoms, and the
+$L_2$ augmentation and the kernels lift the problem to dimension
+$d+n+m$ or to feature space, where Carath\'eodory's bound does not
+bind. None of these methods was run here
+(Section~\ref{sec:limits}).
 
 \paragraph{SVM training as polytope distance.} The nearest-point view
 of the SVM is due to \citet{keerthi2000} and \citet{bennett2000duality},
@@ -608,6 +635,21 @@ $kT_{\mathrm{good}}+\ell_0$, so that
 \[T_{\mathrm{good}}\ge(T-\ell_0)/(k+1).\]
 All steps, drops included, are descent steps, so $h$ is monotone.
 \end{proof}
+\begin{remark}[What the factor $\zeta_k$ costs]\label{rem:zeta}
+The factor $k+1$ (two-sided: $2k+1$) in the exponent is a worst case for
+the drop count, not a slower contraction: every non-drop iteration
+contracts by the same $k$-independent $\rho$, and the bound charges each
+of them for $k$ (or $2k$) later drops. Whether that charge is paid is
+measurable, since $T/T_{\mathrm{good}}\le T/(T-T_{\mathrm{drop}})$ is the
+factor the drops actually cost. In the isolated runs at $k{=}16$
+(Table~\ref{tab:kreal}), drops are $36\%$ of the iterations on gisette
+and $0.8$--$8.3\%$ on the four kernel cells, so the realised factor is at
+most $1.6$ and $1.01$--$1.09$ against the worst case of $33$.
+Theorem~\ref{thm:ident} (Section~\ref{sec:pay}, stated and proved in
+full) explains why: under strict complementarity and non-degeneracy
+every drop occurs before an explicit iteration, after which the
+iteration count no longer depends on drops (Corollary~\ref{cor:work}).
+\end{remark}
 
 \begin{lemma}[Two-sided schedule]\label{lem:twosided}
 Let every iteration compute both side gaps, take the guarded step of
@@ -636,7 +678,34 @@ steps, an iteration whose analysed side drops can add up to $k$ indices
 on the other side, and the count becomes
 $T_{\mathrm{drop}}\le2kT_{\mathrm{good}}+kT_{\mathrm{drop}}+\ell_0$, which is
 vacuous for $k\ge1$. Table~\ref{tab:sched} compares the two schedules on
-synthetic instances.
+synthetic instances: the unconditional order takes between $3\%$ fewer
+and $15\%$ more iterations and is within $8\%$ in time on the two $L_2$
+instances, so the skip is
+needed for the proof, not for speed. The one-sided schedule of
+Theorem~\ref{thm:linear}, which has the smaller factor $k+1$, was not
+benchmarked.
+\end{remark}
+\paragraph{The schedule as implemented.} Every iteration computes both
+side gaps from the score arrays; a side whose best score is within
+$10^{-11}$ of its worst active score is skipped; the side with the larger
+pairwise gap takes the step of Algorithm~\ref{alg:block}; the other side
+takes its guarded step unless that first step was a drop. Screening
+(Section~\ref{sec:alg}) runs between iterations and removes only zero-weight points, so
+it changes neither the supports nor the drop count, and compaction keeps
+the cached columns of the surviving points. Nothing is warm-started
+across runs.
+\begin{remark}[More candidates in the guard]\label{rem:candidates}
+Theorem~\ref{thm:linear} survives any enlargement of the candidate set
+by steps that keep the iterate in $Z$, do not increase $h$ and add no
+support index, for instance a quadratic correction that re-optimises the
+weights over the current supports, as in Wolfe's method or the
+corrections of \citet{halbey2025}. In case (a) the guard's gain is still
+at least $\Delta_1$, in case (b) the best candidate still gains at least
+the amount of Lemma~\ref{lem:good}, and the drop count is unchanged,
+since such a step adds no index and any index it removes only lowers the
+support. Theorem~\ref{thm:ident} uses the specific candidates in its
+proof and would have to be rechecked. We have not implemented this
+variant.
 \end{remark}
 
 \begin{proposition}[Near-orthogonal speed-up]\label{prop:orth}
@@ -992,6 +1061,24 @@ columns. Screening buys time only where the scan is a large share of
 the iteration and the certificate closes early in the run, the regime
 of Figure~\ref{fig:shrink}; on the real cells of this paper the scan
 never is.
+
+\emph{Frequency and cost.} A screening round is one $O(n+m)$ pass over
+the cached scores plus at most one Gram or kernel column per side (that
+of $v_{\min}$ or $w_{\max}$, cached afterwards). At one round every $25$
+iterations the overhead is below timing noise: at $\varepsilon=10^{-3}$
+the screened and unscreened runs of Table~\ref{tab:screen} take
+identical trajectories and tie in time. The frequency and the $5\%$
+compaction threshold were not tuned, and sensitivity to them was not
+measured. The sufficient condition of Theorem~\ref{thm:activation},
+$\varrho<\tau_i/(3L)$, keeps holding once it holds, because $\UB$ is
+nonincreasing and the retained $\LB$ nondecreasing, so a round every $25$
+iterations removes such a point at most $25$ iterations later than a
+round at every iteration would (the $5\%$ compaction threshold can
+delay it further). On the overlapping
+datasets screening was not run: their $L_2$ supports are dense and the
+certificate does not close within the cap on most cells, so there would
+be little to remove. The wall-clock attributable to screening on real
+data is therefore measured only on gisette, where it is a tie.
 
 \begin{table}[htbp]\centering\scriptsize\setlength{\tabcolsep}{4pt}
 \caption{Safe screening on gisette (linear hard margin and $L_2$
@@ -1480,7 +1567,22 @@ terms of the class hulls, and cannot be in general
 (Section~\ref{sec:related}); computing the facial distance of
 \citet{pena2019} on the small instances of Section~\ref{sec:ident-check}
 and comparing it with the observed contraction would show how loose
-the $1/16$ is. The $\nu$-SVM variant is not analysed. Two comparisons remain confounded
+the $1/16$ is. The $\nu$-SVM variant is not analysed. No corrective
+baseline was run: fully-corrective FW, Wolfe's method and the quadratic
+corrections of \citet{halbey2025}, under the same certificate and
+tolerance, would show whether re-optimising over the support beats
+aggregating transfers on these problems, and Remark~\ref{rem:candidates}
+gives the guarded combination of the two. Approximate oracles would act
+on the wrong term or the wrong problem. Lazy or prioritised receiver
+search \citep{braun2019}, which the implementation already uses
+between full scans, saves scans; but the lower bound $\LB$ needs the
+exact minimum over all points, so every certificate still needs a full
+scan. The scan is also already a small share of the time ($0.1$--$0.7$\,s
+of the $k{=}16$ runs in Table~\ref{tab:kreal}; the per-iteration bill is the
+score update and the certificate), and the column misses are paid during
+identification whatever the step (Figure~\ref{fig:diag}). Low-rank or random-feature
+kernel approximations change the objective, so the certificate would
+bound the distance of the approximate problem only. Two comparisons remain confounded
 by implementation or machine: BPCG ran on the product-atom
 parametrisation (a side-transfer BPCG would isolate the step rule), and
 the LIBSVM-precomputed baseline and covtype's ETA and SMO entries come

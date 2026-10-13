@@ -386,6 +386,22 @@ magnitude of $\hat\eta$ and is within $0.14$\,s ($14\%$) of the best
 fixed size at $d{=}20$ and within $0.1$\,s elsewhere, the resolution of
 these short single-seed runs.
 
+\emph{Robustness and safeguards.} The rule reads $\hat\eta$ over a
+moving window, so it follows the phases of a run; on the real cells
+$\hat\eta$ is nearly constant along the run (Figure~\ref{fig:diag},
+right). Its safeguards are
+the clip to $[1,k_{\max}]$, the floor on $\hat\eta$, and the halving
+when leading pairs are capped, which is the signal that the block adds
+indices faster than drops remove them. It has no safeguard against
+column misses: the rule ignores $c_{\mathrm{col}}$, because on the real
+cells $N_{\mathrm{cols}}$ varies by under $20\%$ across $k$, so a large
+$k$ costs little there. Where a larger block does pull in many new
+receivers, as on the synthetic $d{=}100$ $L_2$ instance of
+Table~\ref{tab:kabl} (columns grow from $1{,}345$ to $3{,}076$ and
+single MDM is fastest), the rule would choose too large a $k$; it was not
+run on that instance. A miss-aware rule would add the measured
+$c_{\mathrm{col}}n^{\mathrm{new}}_B$ to the cost side of \eqref{eq:ppc}.
+
 \begin{table}[t]\centering\scriptsize
 \caption{Adaptive block size on synthetic $L_2$ instances of varying
 directional diversity (one process, seed 0, $a/b$ set to $20$,

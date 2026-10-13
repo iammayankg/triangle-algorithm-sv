@@ -76,31 +76,32 @@
 \gdef\orcidlogo{\,{\scriptsize\textsf{ORCID}}}
 \author*[1]{\fnm{Mayank} \sur{Gupta}\orcid{https://orcid.org/0000-0002-3494-4320}}\email{iammayankg@gmail.com}
 \affil*[1]{\orgname{Independent Researcher}, \orgaddress{\city{Seattle}, \country{United States}}}
-\abstract{Training a hard-margin support vector machine is the distance problem
-between two convex hulls, which the Triangle Algorithm solves with a
-certified duality gap. We study \emph{guarded block transfers}: $k$
-Mitchell--Demyanov--Malozemov transfers per scan are aggregated into
-one exact line search, guarded by a comparison with the single best
-transfer, and replaced by an away step when the leading transfer is
-capacity-clipped. On the Minkowski-difference polytope we prove linear
-convergence, with constants explicit in the pyramidal width and no
+\abstract{Training a hard-margin support vector machine is equivalent to finding
+the minimum distance between two convex hulls, which the Triangle
+Algorithm solves with a certified duality gap. We investigate
+\emph{guarded block transfers}, which aggregate $k$
+Mitchell--Demyanov--Malozemov transfers into one exact line search,
+guarded by a comparison with the best single transfer; if the leading
+transfer is capacity-clipped, it is replaced by an away step. We
+establish linear convergence on the Minkowski-difference polytope, with
+constants depending only on the pyramidal width and diameter, without
 combinatorial swap-step bounds, and a finite activation bound for
-gap-safe screening. We then ask when
-aggregation pays. The gain of a block over the single transfer has an
-exact expression in two quantities the guard
-computes, the summed relative pair gain and the loss to
-combining the directions; under strict complementarity and
-non-degeneracy every drop step occurs before an explicit
-identification iteration; and a fitted work model gives the block size
-that minimises the per-iteration term, which the solver sets
-from the measured combination loss. On five LIBSVM problems aggregation pays only where per-iteration work
-rather than column computation dominates: by at most 1.9 times over an
-exact-search single transfer. On the
-separable real dataset the solver ties LIBSVM, but LIBLINEAR's dual
-solver is up to 4.5 times faster there, and our full-cache
-sequential minimal optimisation ties or beats it on every kernel
-$L_2$ margin; on the $L_2$ margins of the overlapping datasets it is 30 to
-over 2,000 times slower than LIBLINEAR's Newton solver.}
+gap-safe screening. We then ask when aggregation is beneficial.
+
+The benefit of a block over a single transfer has an exact expression
+in two quantities the guard computes: the sum of relative pair gains
+and the loss from combining directions. Under strict complementarity
+and non-degeneracy, every drop step occurs before an explicitly
+identified iteration. A fitted work model gives the block size that
+minimises the per-iteration term, which the solver sets from the
+measured combination loss. On five LIBSVM problems, aggregation helped
+only where per-iteration work dominated column computation, and then by
+at most 1.9 times over an exact-search single transfer. On the
+separable real dataset the solver tied LIBSVM, but LIBLINEAR's dual
+solver was up to 4.5 times faster. Our full-cache sequential minimal
+optimisation code tied or beat the solver on every kernel $L_2$ margin;
+on the overlapping datasets' $L_2$ margins, the solver was 30 to over
+2,000 times slower than LIBLINEAR's Newton solver.}
 \keywords{polytope distance, Frank--Wolfe methods, Triangle Algorithm, support vector machines, safe screening, linear convergence}
 \maketitle
 \else
@@ -109,31 +110,32 @@ over 2,000 times slower than LIBLINEAR's Newton solver.}
 \date{}
 \maketitle
 \begin{abstract}
-Training a hard-margin support vector machine is the distance problem
-between two convex hulls, which the Triangle Algorithm solves with a
-certified duality gap. We study \emph{guarded block transfers}: $k$
-Mitchell--Demyanov--Malozemov transfers per scan are aggregated into
-one exact line search, guarded by a comparison with the single best
-transfer, and replaced by an away step when the leading transfer is
-capacity-clipped. On the Minkowski-difference polytope we prove linear
-convergence, with constants explicit in the pyramidal width and no
+Training a hard-margin support vector machine is equivalent to finding
+the minimum distance between two convex hulls, which the Triangle
+Algorithm solves with a certified duality gap. We investigate
+\emph{guarded block transfers}, which aggregate $k$
+Mitchell--Demyanov--Malozemov transfers into one exact line search,
+guarded by a comparison with the best single transfer; if the leading
+transfer is capacity-clipped, it is replaced by an away step. We
+establish linear convergence on the Minkowski-difference polytope, with
+constants depending only on the pyramidal width and diameter, without
 combinatorial swap-step bounds, and a finite activation bound for
-gap-safe screening. We then ask when
-aggregation pays. The gain of a block over the single transfer has an
-exact expression in two quantities the guard
-computes, the summed relative pair gain and the loss to
-combining the directions; under strict complementarity and
-non-degeneracy every drop step occurs before an explicit
-identification iteration; and a fitted work model gives the block size
-that minimises the per-iteration term, which the solver sets
-from the measured combination loss. On five LIBSVM problems aggregation pays only where per-iteration work
-rather than column computation dominates: by at most 1.9 times over an
-exact-search single transfer. On the
-separable real dataset the solver ties LIBSVM, but LIBLINEAR's dual
-solver is up to 4.5 times faster there, and our full-cache
-sequential minimal optimisation ties or beats it on every kernel
-$L_2$ margin; on the $L_2$ margins of the overlapping datasets it is 30 to
-over 2,000 times slower than LIBLINEAR's Newton solver.
+gap-safe screening. We then ask when aggregation is beneficial.
+
+The benefit of a block over a single transfer has an exact expression
+in two quantities the guard computes: the sum of relative pair gains
+and the loss from combining directions. Under strict complementarity
+and non-degeneracy, every drop step occurs before an explicitly
+identified iteration. A fitted work model gives the block size that
+minimises the per-iteration term, which the solver sets from the
+measured combination loss. On five LIBSVM problems, aggregation helped
+only where per-iteration work dominated column computation, and then by
+at most 1.9 times over an exact-search single transfer. On the
+separable real dataset the solver tied LIBSVM, but LIBLINEAR's dual
+solver was up to 4.5 times faster. Our full-cache sequential minimal
+optimisation code tied or beat the solver on every kernel $L_2$ margin;
+on the overlapping datasets' $L_2$ margins, the solver was 30 to over
+2,000 times slower than LIBLINEAR's Newton solver.
 \end{abstract}
 \noindent\textbf{Keywords:} polytope distance; Frank--Wolfe methods; Triangle Algorithm; support vector machines; safe screening; linear convergence
 \fi

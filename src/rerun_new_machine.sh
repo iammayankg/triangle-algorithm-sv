@@ -101,4 +101,11 @@ stage profile python3 -u src/step_profile.py --data-dir data --seeds 3 \
 # 5. LIBLINEAR tolerance sweep, Newton and dual solvers, nothing else running.
 stage liblin liblin_sweep
 
+# 6. Corrective-FW baselines (2026-10-13 review), same cells, seeds, cap and
+#    isolation as stage 4, on the machine that ran stage 4 (the EPYC 7B13):
+#    BPCG on side supports, the QC-MNP hybrid, fully-corrective FW.
+#    Alone: SKIP="machine battery1 l2 l2covtype uncapped uncapped10 profile liblin"
+stage cfw python3 -u src/step_profile.py --data-dir data --seeds 3 \
+    --solvers bpcg-side cfw-qcmnp fcfw --out results/step_profile_cfw.json
+
 echo "== $(date) done. Commit and push: git add results/ && git commit -m 'results: October rerun' && git push origin main"

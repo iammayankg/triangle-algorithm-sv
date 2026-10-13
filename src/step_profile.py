@@ -22,6 +22,11 @@ the solve time into
 Usage (sequential, ~10 min):
   OMP_NUM_THREADS=1 python3 src/step_profile.py --data-dir data --seeds 3 \
       --out results/step_profile.json
+
+Corrective-FW baselines (2026-10-13 review; for the CFW rows `step` is
+the linear algebra of the corrections and `scan` is not split out):
+  OMP_NUM_THREADS=1 python3 -u src/step_profile.py --data-dir data --seeds 3 \
+      --solvers bpcg-side cfw-qcmnp fcfw --out results/step_profile_cfw.json
 """
 
 from __future__ import annotations
@@ -43,10 +48,16 @@ sys.path.insert(0, str(HERE))
 EPS, CAP, C = 1e-3, 600.0, 1.0
 CELLS = ['gisette-l2', 'ijcnn1-kl2', 'w8a-kl2', 'a9a-kl2', 'covtype-kl2']
 SOLVERS = ['mdm', 'guarded1', 'block16', 'auto', 'bpcg']
+ORDER = SOLVERS + ['bpcg-side', 'cfw-qcmnp', 'fcfw']
 # added after the 2026-09-10 review: plain MDM and away-step FW with the exact
 # receiver search every iteration (prioritized=False), the one-sided
 # analogue of what Theorem 6 counts
 EXTRA = ['mdm-exact', 'afw-exact', 'guarded1-exact']
+# added after the 2026-10-13 review: corrective FW (Halbey et al. 2025,
+# src/corrective_fw.py) on the side parametrisation -- local pairwise
+# steps only (= BPCG on side supports), the QC-MNP hybrid (a quadratic
+# correction whenever a new atom has entered), and fully-corrective FW
+CORRECTIVE = ['bpcg-side', 'cfw-qcmnp', 'fcfw']
 
 
 class Timers:
@@ -111,7 +122,36 @@ def run_one(cell, solver, seed, data_dir):
         kw = dict(kernel='rbf', gamma=gamma, reg_C=C)
         Cls, kern = KernelETA, gamma
     out = dict(cell=cell, solver=solver, seed=seed)
-    if solver == 'bpcg':
+    if solver in CORRECTIVE:
+        from corrective_fw import CorrectiveFW
+        rule = {'bpcg-side': 'lps', 'cfw-qcmnp': 'qcmnp', 'fcfw': 'fcfw'}[solver]
+        s = CorrectiveFW(V, W, kernel='linear' if kind == 'l2' else 'rbf',
+                         gamma=kern, reg_C=C, corrective=rule, qc_every=1)
+        t_col = [0.0]
+        for name in ('colV', 'colW'):
+            f = getattr(s, name)
+
+            def g(i, f=f):
+                before = s.col_evals
+                t = time.perf_counter()
+                try:
+                    return f(i)
+                finally:
+                    if s.col_evals != before:
+                        t_col[0] += time.perf_counter() - t
+            setattr(s, name, g)
+        r = s.solve_distance(eps=EPS, max_iter=2_000_000, time_cap=CAP)
+        pred = (s.decision_function(Xt) > 0).astype(int)
+        out.update(time=r.time, iters=r.iterations, oracle=s.col_evals,
+                   dist=r.distance, status=r.status, n_drops=r.n_drops,
+                   gap=(r.distance - r.lower_bound) / r.distance,
+                   acc=float(np.mean(pred == yt)),
+                   n_fw=r.n_fw, n_lps=r.n_lps, n_qc=r.n_qc,
+                   n_qc_full=r.n_qc_full, n_qc_trunc=r.n_qc_trunc,
+                   n_qc_fallback=r.n_qc_fallback, max_support=r.max_support,
+                   t_column=t_col[0], t_linalg=r.t_linalg, t_step=r.t_linalg,
+                   t_other=max(r.time - t_col[0] - r.t_linalg, 0.0))
+    elif solver == 'bpcg':
         s = BPCG(V, W, kernel='linear' if kind == 'l2' else 'rbf',
                  gamma=kern, reg_C=C)
         r = s.solve_distance(eps=EPS, max_iter=2_000_000, time_cap=CAP)
@@ -157,7 +197,7 @@ def summarise(rows):
           f"{'step':>6s} {'other':>6s} {'iters':>7s} {'cols':>6s} {'drops':>6s} "
           f"{'peak GB':>8s} status")
     cells = sorted({r['cell'] for r in rows}, key=lambda c: (c not in CELLS, c))
-    order = {s: i for i, s in enumerate(SOLVERS)}
+    order = {s: i for i, s in enumerate(ORDER)}
     for cell in cells:
         for solver in sorted({r['solver'] for r in rows if r['cell'] == cell},
                              key=lambda s: order.get(s, 99)):

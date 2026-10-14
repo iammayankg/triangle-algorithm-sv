@@ -108,4 +108,15 @@ stage liblin liblin_sweep
 stage cfw python3 -u src/step_profile.py --data-dir data --seeds 3 \
     --solvers bpcg-side cfw-qcmnp fcfw --out results/step_profile_cfw.json
 
+# 7. BPCG rerun after the kernel-column fix (2026-10-14: src/bpcg.py had
+#    recomputed every class's squared norms per kernel column, 3.5x ETA's
+#    column cost). Both BPCG parametrisations on all cells, plus gisette KL2
+#    (block ETA and both BPCGs) in place of the September concurrent run.
+#    Alone: SKIP="machine battery1 l2 l2covtype uncapped uncapped10 profile liblin cfw"
+stage bpcgfix python3 -u src/step_profile.py --data-dir data --seeds 3 \
+    --cells gisette-l2 ijcnn1-kl2 w8a-kl2 a9a-kl2 covtype-kl2 gisette-kl2 \
+    --solvers bpcg bpcg-side --out results/step_profile_bpcg2.json
+stage bpcgfix_eta python3 -u src/step_profile.py --data-dir data --seeds 3 \
+    --cells gisette-kl2 --solvers block16 --out results/step_profile_bpcg2.json
+
 echo "== $(date) done. Commit and push: git add results/ && git commit -m 'results: October rerun' && git push origin main"

@@ -65,21 +65,31 @@ class BPCG:
         elif kernel == 'rbf':
             self.Vsq = np.ones(self.n)
             self.Wsq = np.ones(self.m)
+            # raw squared norms, computed once (as KernelETA does), so a
+            # kernel column costs one matrix-vector product and an exp
+            self._Vsq_raw = np.einsum('ij,ij->i', self.V, self.V)
+            self._Wsq_raw = np.einsum('ij,ij->i', self.W, self.W)
         else:
             raise ValueError(kernel)
 
     # ----- kernel columns ------------------------------------------------
-    def _k(self, X, x):
+    def _k(self, X, Xsq, x, xsq):
         if self.kernel == 'linear':
             return X @ x
-        d2 = np.einsum('ij,ij->i', X, X) - 2.0 * (X @ x) + float(x @ x)
+        d2 = Xsq - 2.0 * (X @ x) + xsq
         return np.exp(-self.gamma * np.maximum(d2, 0.0))
+
+    def _cols(self, x, xsq):
+        if self.kernel == 'linear':
+            return self.V @ x, self.W @ x
+        return (self._k(self.V, self._Vsq_raw, x, xsq),
+                self._k(self.W, self._Wsq_raw, x, xsq))
 
     def colV(self, i):
         c = self._cV.get(i)
         if c is None:
-            x = self.V[i]
-            c = (self._k(self.V, x), self._k(self.W, x))
+            c = self._cols(self.V[i], self._Vsq_raw[i]
+                           if self.kernel == 'rbf' else None)
             self._cV[i] = c
             self.col_evals += 1
         return c
@@ -87,8 +97,8 @@ class BPCG:
     def colW(self, j):
         c = self._cW.get(j)
         if c is None:
-            x = self.W[j]
-            c = (self._k(self.V, x), self._k(self.W, x))
+            c = self._cols(self.W[j], self._Wsq_raw[j]
+                           if self.kernel == 'rbf' else None)
             self._cW[j] = c
             self.col_evals += 1
         return c
